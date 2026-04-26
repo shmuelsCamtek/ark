@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Ark — User Story Studio</title>
+<meta name="viewport" content="width=1440" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; }
+  #root { min-height: 100vh; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="components/shared.jsx"></script>
+<script type="text/babel" src="components/onboarding.jsx"></script>
+<script type="text/babel" src="components/drafts.jsx"></script>
+<script type="text/babel" src="components/builder-a.jsx"></script>
+<script type="text/babel" src="components/builder-b.jsx"></script>
+<script type="text/babel" src="components/builder-c.jsx"></script>
+<script type="text/babel" src="components/push-flow.jsx"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "hiddenSections": [],
+  "selectedSection": "onboarding"
+}/*EDITMODE-END*/;
+
+const ALL_SECTIONS = [
+  { id: 'drafts',     title: '1 · My stories',                  subtitle: 'Drafts dashboard — resume in progress or start fresh.' },
+  { id: 'onboarding', title: '2 · Onboarding & Azure connect',   subtitle: 'Connect + link work item' },
+  { id: 'builders',   title: '3 · Story builder',                subtitle: 'Checklist + live preview + AI chat with one-click suggestions.' },
+  { id: 'push',       title: '4 · Push to Azure & confirmation', subtitle: 'Final review → pushing → success' },
+];
+
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const hidden = new Set(t.hiddenSections || []);
+  const visible = ALL_SECTIONS.filter(s => !hidden.has(s.id));
+
+  // Keep selection valid: if selected was hidden, fall back to first visible.
+  const selected = visible.find(s => s.id === t.selectedSection)?.id
+                 ?? visible[0]?.id
+                 ?? ALL_SECTIONS[0].id;
+
+  const deleteSelected = () => {
+    if (!selected) return;
+    const next = Array.from(new Set([...(t.hiddenSections || []), selected]));
+    // Pick a sensible new selection (next visible after deletion).
+    const remaining = ALL_SECTIONS.filter(s => !next.includes(s.id));
+    const newSel = remaining[0]?.id ?? '';
+    setTweak({ hiddenSections: next, selectedSection: newSel });
+  };
+
+  const restoreAll = () => setTweak({ hiddenSections: [], selectedSection: ALL_SECTIONS[0].id });
+
+  const sectionOptions = ALL_SECTIONS
+    .filter(s => !hidden.has(s.id))
+    .map(s => ({
+      value: s.id,
+      label: s.title.replace(/^\d+\s*·\s*/, ''),
+    }));
+
+  return (
+    <React.Fragment>
+      <DesignCanvas>
+        {visible.find(s => s.id === 'drafts') && (
+          <DCSection id="drafts" title="1 · My stories" subtitle="Landing screen before Azure connect — lists saved drafts and a New Story CTA.">
+            <DCArtboard id="drafts-populated" label="A · With drafts" width={1280} height={820}>
+              <div style={{ width: 1280, height: 820 }}>
+                <DraftsDashboard />
+              </div>
+            </DCArtboard>
+            <DCArtboard id="drafts-empty" label="B · Empty state" width={1280} height={820}>
+              <div style={{ width: 1280, height: 820 }}>
+                <DraftsDashboard empty />
+              </div>
+            </DCArtboard>
+          </DCSection>
+        )}
+
+        {visible.find(s => s.id === 'onboarding') && (
+          <DCSection id="onboarding" title="2 · Onboarding & Azure connect" subtitle="Connect + link work item">
+            <DCArtboard id="connect" label="B · Connect + parent work item" width={1280} height={820}>
+              <OnboardingStep step={2} />
+            </DCArtboard>
+          </DCSection>
+        )}
+
+        {visible.find(s => s.id === 'builders') && (
+          <DCSection id="builders" title="3 · Story builder" subtitle="Checklist + live preview + AI chat with one-click suggestions.">
+            <DCArtboard id="checklist" label="A · Checklist + Preview + AI Chat" width={1560} height={900}>
+              <div style={{ width: 1560, height: 900 }}>
+                <StoryBuilderA onSubmit={() => {}} />
+              </div>
+            </DCArtboard>
+          </DCSection>
+        )}
+
+        {visible.find(s => s.id === 'push') && (
+          <DCSection id="push" title="4 · Push to Azure & confirmation" subtitle="Final review → pushing → success">
+            <DCArtboard id="review" label="A · Final review" width={1280} height={900}>
+              <PushStage stage="review" />
+            </DCArtboard>
+            <DCArtboard id="pushing" label="B · Pushing" width={1280} height={900}>
+              <PushStage stage="pushing" />
+            </DCArtboard>
+            <DCArtboard id="done" label="C · Success" width={1280} height={900}>
+              <PushStage stage="done" />
+            </DCArtboard>
+          </DCSection>
+        )}
+
+        <DCPostIt top={-10} left={60} rotate={-3}>
+          Hi Maya! Start here — walk through sections top-to-bottom. Each row is a phase of the flow.
+        </DCPostIt>
+        <DCPostIt top={960} left={60} rotate={2} width={200}>
+          Recommendation: option A (Checklist). It teaches the format while they use it — directly attacks the "too vague / no AC" pain.
+        </DCPostIt>
+      </DesignCanvas>
+
+      <TweaksPanel>
+        <TweakSection label="Sections" />
+        <TweakSelect
+          label="Selected section"
+          value={selected}
+          options={sectionOptions}
+          onChange={(v) => setTweak('selectedSection', v)}
+        />
+        <TweakButton
+          label={visible.length <= 1 ? 'Last section — restore to delete' : 'Delete selected section'}
+          onClick={visible.length <= 1 ? () => {} : deleteSelected}
+        />
+        {hidden.size > 0 && (
+          <React.Fragment>
+            <div style={{ fontSize: 10.5, color: 'rgba(41,38,27,.55)', lineHeight: 1.4 }}>
+              Hidden: {Array.from(hidden).map(id => ALL_SECTIONS.find(s => s.id === id)?.title.replace(/^\d+\s*·\s*/, '')).join(', ')}
+            </div>
+            <TweakButton label="Restore all sections" secondary onClick={restoreAll} />
+          </React.Fragment>
+        )}
+      </TweaksPanel>
+    </React.Fragment>
+  );
+}
+
+function OnboardingStep({ step }) {
+  return (
+    <div style={{ width: 1280, height: 820 }}>
+      <OnboardingScreenAtStep forcedStep={step} />
+    </div>
+  );
+}
+
+function OnboardingScreenAtStep({ forcedStep }) {
+  const stepProps = { onComplete: () => {} };
+  return <OnboardingScreen {...stepProps} key={forcedStep} initialStep={forcedStep} />;
+}
+
+function PushStage({ stage }) {
+  return (
+    <div style={{ width: 1280, height: 900 }}>
+      <PushFlowAtStage forcedStage={stage} />
+    </div>
+  );
+}
+function PushFlowAtStage({ forcedStage }) {
+  return <PushFlow key={forcedStage} initialStage={forcedStage} onDone={() => {}} onBack={() => {}} />;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
