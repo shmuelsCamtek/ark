@@ -125,10 +125,10 @@ Full design handoff lives in `docs/design_handoff_ark_story_studio/`. Key files:
 | 6 | Builder A — Form + Live Preview | Complete |
 | 7 | Builder A — AI Coach Sidebar | Complete |
 | 8 | Push Flow | Complete |
-| 9 | Backend API + Real Service Integration | Not started |
-| 10 | Builder B — Chat-Driven Variant | Not started |
-| 11 | Builder C — Card Canvas Variant | Not started |
-| 12 | Document Scanning | Not started |
+| 9 | Backend API + Real Service Integration | Complete |
+| 10 | Builder B — Chat-Driven Variant | Complete |
+| 11 | Builder C — Card Canvas Variant | Complete |
+| 12 | Document Scanning | Complete |
 
 ## Verification
 
