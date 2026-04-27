@@ -3,7 +3,8 @@
     "allow": [
       "Bash(wc:*)",
       "Bash(find:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(npm cache:*)"
     ]
   }
 }
