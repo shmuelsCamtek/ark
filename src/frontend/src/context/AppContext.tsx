@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import type { StoryDraft } from '../types';
+import type { StoryDraft, UserProfile } from '../types';
 
 interface AzureConnection {
   connected: boolean;
@@ -10,7 +10,7 @@ interface AzureConnection {
 interface AppState {
   drafts: StoryDraft[];
   azureConnection: AzureConnection;
-  user: { name: string; email: string };
+  user: UserProfile | null;
 }
 
 interface AppActions {
@@ -19,6 +19,7 @@ interface AppActions {
   deleteDraft: (id: string) => void;
   getDraft: (id: string) => StoryDraft | undefined;
   setAzureConnection: (conn: AzureConnection) => void;
+  setUser: (user: UserProfile) => void;
 }
 
 type AppContextValue = AppState & AppActions;
@@ -106,7 +107,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     orgUrl: 'https://dev.azure.com/contoso',
     project: 'Ark',
   });
-  const [user] = useState({ name: 'Maya Kowalski', email: 'maya@contoso.com' });
+  const [user, setUser] = useState<UserProfile | null>(null);
 
   const addDraft = useCallback((draft: StoryDraft) => {
     setDrafts((prev) => [draft, ...prev]);
@@ -129,7 +130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ drafts, azureConnection, user, addDraft, updateDraft, deleteDraft, getDraft, setAzureConnection }}
+      value={{ drafts, azureConnection, user, addDraft, updateDraft, deleteDraft, getDraft, setAzureConnection, setUser }}
     >
       {children}
     </AppContext.Provider>

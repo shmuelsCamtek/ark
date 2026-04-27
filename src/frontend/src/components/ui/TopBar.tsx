@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { ARK_TOKENS } from '../../tokens';
+import { useApp } from '../../context/AppContext';
 import { ArkLogo } from './ArkLogo';
 import { Avatar } from './Avatar';
 import { Ico } from './icons';
@@ -11,6 +12,8 @@ interface TopBarProps {
 }
 
 export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopBarProps) {
+  const { user } = useApp();
+
   return (
     <div
       style={{
@@ -24,7 +27,7 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
         flexShrink: 0,
       }}
     >
-      <Avatar name="Maya Kowalski" size={28} />
+      <Avatar name={user?.displayName ?? '?'} size={28} />
       <ArkLogo />
       {breadcrumbs.length > 0 && (
         <div

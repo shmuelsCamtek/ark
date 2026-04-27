@@ -57,6 +57,12 @@ export interface CoachMessage {
 
 export type PushStage = 'review' | 'pushing' | 'done';
 
+export interface UserProfile {
+  id: string;
+  displayName: string;
+  email: string;
+}
+
 export interface WorkItemInfo {
   id: string;
   title: string;

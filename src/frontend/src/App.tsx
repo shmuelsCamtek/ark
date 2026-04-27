@@ -1,6 +1,7 @@
 import { Router } from './router';
 import { AppProvider } from './context/AppContext';
 import { ServicesProvider } from './context/ServicesContext';
+import { AppInitializer } from './components/AppInitializer';
 import { StoriesPage } from './pages/StoriesPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { BuilderPage } from './pages/BuilderPage';
@@ -25,7 +26,9 @@ export default function App() {
   return (
     <AppProvider>
       <ServicesProvider>
-        <Router routes={routes} fallback={StoriesPage} />
+        <AppInitializer>
+          <Router routes={routes} fallback={StoriesPage} />
+        </AppInitializer>
       </ServicesProvider>
     </AppProvider>
   );

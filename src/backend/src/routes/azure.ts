@@ -1,7 +1,22 @@
 import { Router } from 'express';
-import { getWorkItem, createWorkItem } from '../services/azureDevOps.ts';
+import { getWorkItem, createWorkItem, getCurrentUser } from '../services/azureDevOps.ts';
 
 export const azureRouter = Router();
+
+// Get current authenticated user
+azureRouter.get('/me', async (_req, res) => {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      res.status(503).json({ error: 'Azure DevOps not configured' });
+      return;
+    }
+    res.json(user);
+  } catch (err) {
+    console.error('Azure /me error:', err);
+    res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
 
 // Resolve a work item by ID
 azureRouter.get('/workitems/:id', async (req, res) => {
