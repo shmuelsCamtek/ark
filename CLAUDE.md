@@ -74,3 +74,4 @@ Full design handoff lives in `docs/design_handoff_ark_story_studio/`. Key files:
 - **Surgical changes:** touch only what's needed, match existing style, don't "improve" adjacent code.
 - **Ask before assuming:** if multiple interpretations exist, present them. If unclear, stop and ask.
 - **Goal-driven:** define success criteria before implementing. For multi-step tasks, state a brief plan with verification steps.
+- **Phase gate:** When work is broken into phases, STOP after completing each phase and ask the user to review before proceeding to the next one. Do not continue to the next phase without explicit user approval.
