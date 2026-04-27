@@ -9,6 +9,7 @@ import { NarrativeRow } from '../components/builder/NarrativeRow';
 import { DocsList } from '../components/builder/DocsList';
 import { UiChangePreview } from '../components/builder/UiChangePreview';
 import { WorkItemPreview } from '../components/builder/WorkItemPreview';
+import { SuggestChat } from '../components/builder/SuggestChat';
 
 interface DocItem {
   id: string;
@@ -67,6 +68,16 @@ export function BuilderPage() {
       completionPct: Math.round((filled + (criteria.length >= 2 ? 1 : 0) + (background ? 1 : 0)) / total * 100),
     });
   }, [title, background, persona, want, benefit, criteria, editId, draftId, updateDraft]);
+
+  const setters: Record<string, (v: string) => void> = { title: setTitle, background: setBackground, persona: setPersona, want: setWant, benefit: setBenefit };
+  const applySuggestion = (field: string, value: string) => {
+    if (field === 'criteria') {
+      setCriteria((prev) => [...prev, { id: Date.now(), text: value }]);
+    } else if (setters[field]) {
+      setters[field](value);
+    }
+    setActiveField(field);
+  };
 
   const fields = [
     { id: 'title', label: 'Title', filled: !!title },
@@ -258,23 +269,13 @@ export function BuilderPage() {
           </div>
         </div>
 
-        {/* RIGHT: AI Coach — Phase 7 placeholder */}
-        <div
-          style={{
-            flex: '0 0 360px',
-            borderLeft: `1px solid ${ARK_TOKENS.border}`,
-            background: ARK_TOKENS.surface,
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            color: ARK_TOKENS.inkMuted, fontSize: 13,
-          }}
-        >
-          <div style={{ width: 22, height: 22, borderRadius: 11, background: ARK_TOKENS.ai, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-            <Ico.sparkle size={11} />
-          </div>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Ark Coach</div>
-          <div style={{ fontSize: 12, color: ARK_TOKENS.inkSubtle }}>Coming in Phase 7</div>
-        </div>
+        {/* RIGHT: AI Coach */}
+        <SuggestChat
+          storyState={{ title, background, persona, want, benefit, criteria }}
+          onApply={applySuggestion}
+          activeField={activeField}
+          setActiveField={setActiveField}
+        />
       </div>
     </div>
   );
