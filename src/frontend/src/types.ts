@@ -1,0 +1,67 @@
+export interface AcceptanceCriterion {
+  id: string;
+  text: string;
+  source: 'manual' | 'ai' | 'scan';
+}
+
+export interface SupportingDoc {
+  id: string;
+  name: string;
+  type: 'pdf' | 'image' | 'other';
+  scanned: boolean;
+  summary?: string;
+}
+
+export interface UiChange {
+  id: string;
+  description: string;
+  hasBefore: boolean;
+  hasAfter: boolean;
+  beforeUrl?: string;
+  afterUrl?: string;
+}
+
+export interface StoryDraft {
+  id: string;
+  title: string;
+  persona: string;
+  narrative: {
+    asA: string;
+    iWantTo: string;
+    soThat: string;
+  };
+  acceptanceCriteria: AcceptanceCriterion[];
+  supportingDocs: SupportingDoc[];
+  uiChanges: UiChange[];
+  epicId?: string;
+  epicName?: string;
+  workItemId?: string;
+  workItemType?: string;
+  createdAt: string;
+  updatedAt: string;
+  completionPct: number;
+}
+
+export type CoachMessageType = 'user' | 'ai' | 'suggestion' | 'criteria-bundle' | 'ack';
+
+export interface CoachMessage {
+  id: string;
+  type: CoachMessageType;
+  text: string;
+  field?: string;
+  value?: string;
+  criteria?: AcceptanceCriterion[];
+  used?: boolean;
+  timestamp: string;
+}
+
+export type PushStage = 'review' | 'pushing' | 'done';
+
+export interface WorkItemInfo {
+  id: string;
+  title: string;
+  type: string;
+  state: string;
+  areaPath?: string;
+  iterationPath?: string;
+}
