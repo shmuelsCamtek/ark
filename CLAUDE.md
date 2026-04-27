@@ -130,6 +130,15 @@ Full design handoff lives in `docs/design_handoff_ark_story_studio/`. Key files:
 | 11 | Builder C — Card Canvas Variant | Not started |
 | 12 | Document Scanning | Not started |
 
+## Verification
+
+Before considering any phase or task complete, the following must pass:
+
+1. **Code must compile:** `cd src/frontend && npx tsc --noEmit` must exit with no errors.
+2. **Unit tests must pass:** All unit tests must complete successfully (once a test framework is configured).
+
+Do not commit or report completion until both checks pass.
+
 ## Behavioral Guidelines
 
 - **Simplicity first:** minimum code that solves the problem, no speculative features or abstractions.
