@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Neutrals */
+  --ark-bg: #F1F4F9;
+  --ark-surface: #ffffff;
+  --ark-surface-alt: #F5F7FA;
+  --ark-border: #E3E6ED;
+  --ark-border-strong: #C5CAD3;
+  --ark-ink: #212332;
+  --ark-ink-muted: #69707F;
+  --ark-ink-subtle: #9AA0AC;
+
+  /* Sidebar */
+  --ark-nav-bg: #212C3D;
+  --ark-nav-bg-alt: #1A2333;
+  --ark-nav-ink: #E1E5EE;
+  --ark-nav-ink-muted: #8A93A6;
+
+  /* Brand */
+  --ark-azure: #008FBE;
+  --ark-azure-dark: #006C90;
+  --ark-azure-light: #D6EEF7;
+  --ark-azure-faint: #F1F8FB;
+  --ark-marker-red: #E11A22;
+  --ark-marker-red-dark: #B81219;
+  --ark-marker-red-light: #FDE4E5;
+
+  /* Status */
+  --ark-success: #1FAB6B;
+  --ark-success-bg: #E3F6EE;
+  --ark-warning: #F4A100;
+  --ark-warning-bg: #FFF3D6;
+  --ark-danger: #E11A22;
+  --ark-danger-bg: #FDE4E5;
+  --ark-info: #008FBE;
+  --ark-info-bg: #D6EEF7;
+
+  /* AI accent */
+  --ark-ai: #7E57C2;
+  --ark-ai-light: #EDE7F6;
+  --ark-ai-faint: #F6F3FB;
+
+  /* Radius */
+  --ark-r: 4px;
+  --ark-r2: 6px;
+  --ark-r3: 8px;
+
+  /* Shadows */
+  --ark-shadow-1: 0 1px 2px rgba(33,35,50,0.08), 0 1px 3px rgba(33,35,50,0.06);
+  --ark-shadow-2: 0 2px 6px rgba(33,35,50,0.10), 0 4px 12px rgba(33,35,50,0.06);
+  --ark-shadow-3: 0 8px 24px rgba(33,35,50,0.14), 0 2px 6px rgba(33,35,50,0.08);
+}
+
+body {
+  margin: 0;
+  background: var(--ark-bg);
+  font-family: Roboto, "Helvetica Neue", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--ark-ink);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ark-ink);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+}
+
+::placeholder {
+  color: var(--ark-ink-subtle);
+}
+
+h1, h2, h3 {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* Scrollbar styling */
+.ark-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.ark-scroll::-webkit-scrollbar-thumb {
+  background: var(--ark-border-strong);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.ark-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ark-ink-subtle);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+.ark-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
