@@ -24,6 +24,7 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
         flexShrink: 0,
       }}
     >
+      <Avatar name="Maya Kowalski" size={28} />
       <ArkLogo />
       {breadcrumbs.length > 0 && (
         <div
@@ -57,7 +58,6 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
       )}
       <div style={{ flex: 1 }} />
       {rightActions}
-      <Avatar name="Maya Kowalski" size={28} />
     </div>
   );
 }
