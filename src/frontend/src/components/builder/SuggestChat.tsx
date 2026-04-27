@@ -11,6 +11,12 @@ interface SuggestMessage {
   options?: string[];
 }
 
+interface ScanResultInput {
+  docName: string;
+  acceptanceCriteria: string[];
+  edgeCases: string[];
+}
+
 interface SuggestChatProps {
   storyState: {
     title: string;
@@ -23,6 +29,7 @@ interface SuggestChatProps {
   onApply: (field: string, value: string) => void;
   activeField: string;
   setActiveField: (f: string) => void;
+  scanSuggestions?: ScanResultInput[];
 }
 
 const INITIAL_MESSAGES: SuggestMessage[] = [
@@ -83,16 +90,40 @@ function fieldLabel(f: string): string {
   return labels[f] || f;
 }
 
-export function SuggestChat({ storyState: _storyState, onApply, activeField: _activeField, setActiveField: _setActiveField }: SuggestChatProps) {
+export function SuggestChat({ storyState: _storyState, onApply, activeField: _activeField, setActiveField: _setActiveField, scanSuggestions = [] }: SuggestChatProps) {
   const [messages, setMessages] = useState<SuggestMessage[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set());
+  const [processedScans, setProcessedScans] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, typing]);
+
+  // Process new scan suggestions into chat messages
+  useEffect(() => {
+    if (scanSuggestions.length > processedScans) {
+      const newScans = scanSuggestions.slice(processedScans);
+      const newMessages: SuggestMessage[] = [];
+      for (const scan of newScans) {
+        const allOptions = [...scan.acceptanceCriteria, ...scan.edgeCases];
+        if (allOptions.length > 0) {
+          newMessages.push({
+            role: 'ai',
+            kind: 'criteria-bundle',
+            intro: `📄 I scanned **${scan.docName}** and found these likely acceptance criteria:`,
+            options: allOptions,
+          });
+        }
+      }
+      if (newMessages.length > 0) {
+        setMessages((prev) => [...prev, ...newMessages]);
+      }
+      setProcessedScans(scanSuggestions.length);
+    }
+  }, [scanSuggestions, processedScans]);
 
   const handleApply = (msgIdx: number, optIdx: number, field: string, text: string) => {
     onApply(field, text);

@@ -2,17 +2,29 @@ import { useRef } from 'react';
 import { ARK_TOKENS } from '../../tokens';
 import { Ico } from '../ui/icons';
 
-interface DocItem {
+export interface DocItem {
   id: string;
   name: string;
   size: string;
   kind: 'pdf' | 'image' | 'file';
+  scanned?: boolean;
+  scanning?: boolean;
+}
+
+export interface ScanResult {
+  docId: string;
+  docName: string;
+  summary: string;
+  acceptanceCriteria: string[];
+  edgeCases: string[];
 }
 
 interface DocsListProps {
   docs: DocItem[];
+  scanResults: ScanResult[];
   onRemove: (id: string) => void;
   onAdd: (doc: DocItem) => void;
+  onScan: (doc: DocItem) => void;
 }
 
 function DocIcon({ kind }: { kind: string }) {
@@ -31,22 +43,27 @@ function DocIcon({ kind }: { kind: string }) {
   );
 }
 
-export function DocsList({ docs, onRemove, onAdd }: DocsListProps) {
+export function DocsList({ docs, scanResults, onRemove, onAdd, onScan }: DocsListProps) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     files.forEach((f) => {
       const kind: DocItem['kind'] = f.type.startsWith('image') ? 'image' : f.name.endsWith('.pdf') ? 'pdf' : 'file';
-      onAdd({
+      const doc: DocItem = {
         id: 'd' + Date.now() + Math.random(),
         name: f.name,
         size: Math.round(f.size / 1024) + ' KB',
         kind,
-      });
+      };
+      onAdd(doc);
+      onScan(doc);
     });
     e.target.value = '';
   };
+
+  const totalACs = scanResults.reduce((sum, r) => sum + r.acceptanceCriteria.length, 0);
+  const totalEdges = scanResults.reduce((sum, r) => sum + r.edgeCases.length, 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -67,9 +84,25 @@ export function DocsList({ docs, onRemove, onAdd }: DocsListProps) {
             <div style={{ fontSize: 11, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>{d.size}</span>
               <span style={{ width: 2, height: 2, borderRadius: 1, background: ARK_TOKENS.inkSubtle }} />
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: ARK_TOKENS.ai }}>
-                <Ico.sparkle size={9} /> Read by Ark
-              </span>
+              {d.scanning ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: ARK_TOKENS.ai }}>
+                  <span
+                    style={{
+                      width: 10, height: 10,
+                      border: '1.5px solid currentColor', borderRightColor: 'transparent',
+                      borderRadius: '50%',
+                      animation: 'ark-spin 0.8s linear infinite',
+                    }}
+                  />
+                  Scanning…
+                </span>
+              ) : d.scanned ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: ARK_TOKENS.ai }}>
+                  <Ico.sparkle size={9} /> Read by Ark
+                </span>
+              ) : (
+                <span style={{ color: ARK_TOKENS.inkSubtle }}>Not scanned</span>
+              )}
             </div>
           </div>
           <button
@@ -101,9 +134,9 @@ export function DocsList({ docs, onRemove, onAdd }: DocsListProps) {
         <Ico.upload size={13} />
         <span>Add documents — Ark will read them and suggest criteria</span>
       </button>
-      <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handlePick} />
+      <input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp" style={{ display: 'none' }} onChange={handlePick} />
 
-      {docs.length > 0 && (
+      {scanResults.length > 0 && (
         <div
           style={{
             display: 'flex', alignItems: 'flex-start', gap: 8,
@@ -118,9 +151,11 @@ export function DocsList({ docs, onRemove, onAdd }: DocsListProps) {
             <Ico.sparkle size={12} />
           </span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, marginBottom: 2 }}>Ark scanned {docs.length} document{docs.length === 1 ? '' : 's'}</div>
+            <div style={{ fontWeight: 600, marginBottom: 2 }}>
+              Ark scanned {scanResults.length} document{scanResults.length === 1 ? '' : 's'}
+            </div>
             <div style={{ color: ARK_TOKENS.inkMuted }}>
-              Found 3 likely acceptance criteria and 1 edge case. See suggestions in the coach panel →
+              Found {totalACs} likely acceptance criteria{totalEdges > 0 ? ` and ${totalEdges} edge case${totalEdges === 1 ? '' : 's'}` : ''}. See suggestions in the coach panel →
             </div>
           </div>
         </div>

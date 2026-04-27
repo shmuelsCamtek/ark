@@ -6,17 +6,10 @@ import { useApp, createEmptyDraft } from '../context/AppContext';
 import { Field } from '../components/builder/Field';
 import { PersonaRow } from '../components/builder/PersonaRow';
 import { NarrativeRow } from '../components/builder/NarrativeRow';
-import { DocsList } from '../components/builder/DocsList';
+import { DocsList, type DocItem, type ScanResult } from '../components/builder/DocsList';
 import { UiChangePreview } from '../components/builder/UiChangePreview';
 import { WorkItemPreview } from '../components/builder/WorkItemPreview';
 import { SuggestChat } from '../components/builder/SuggestChat';
-
-interface DocItem {
-  id: string;
-  name: string;
-  size: string;
-  kind: 'pdf' | 'image' | 'file';
-}
 
 export function BuilderPage() {
   const params = useParams();
@@ -53,7 +46,9 @@ export function BuilderPage() {
   const [newCriterion, setNewCriterion] = useState('');
   const [activeField, setActiveField] = useState('title');
   const [docs, setDocs] = useState<DocItem[]>([]);
+  const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [showUiChange, setShowUiChange] = useState(false);
+  const [scanSuggestionsForChat, setScanSuggestionsForChat] = useState<ScanResult[]>([]);
 
   // Sync back to draft on changes
   useEffect(() => {
@@ -77,6 +72,31 @@ export function BuilderPage() {
       setters[field](value);
     }
     setActiveField(field);
+  };
+
+  const handleDocScan = (doc: DocItem) => {
+    // Mark doc as scanning
+    setDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, scanning: true } : d));
+
+    // Simulate scan with mock results after delay
+    setTimeout(() => {
+      const result: ScanResult = {
+        docId: doc.id,
+        docName: doc.name,
+        summary: `Scanned "${doc.name}" and extracted actionable criteria.`,
+        acceptanceCriteria: [
+          `Given the ${doc.kind === 'pdf' ? 'policy document' : 'screenshot'} is reviewed, when requirements are extracted, then all edge cases from the document are covered.`,
+          'Given the extracted criteria conflict with existing ACs, when compared, then the user is prompted to resolve duplicates.',
+        ],
+        edgeCases: [
+          'Legacy accounts on annual billing may have different retry windows.',
+        ],
+      };
+
+      setDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, scanning: false, scanned: true } : d));
+      setScanResults((prev) => [...prev, result]);
+      setScanSuggestionsForChat((prev) => [...prev, result]);
+    }, 1800);
   };
 
   const fields = [
@@ -186,8 +206,13 @@ export function BuilderPage() {
             >
               <DocsList
                 docs={docs}
-                onRemove={(id) => setDocs(docs.filter((d) => d.id !== id))}
+                scanResults={scanResults}
+                onRemove={(id) => {
+                  setDocs(docs.filter((d) => d.id !== id));
+                  setScanResults((prev) => prev.filter((r) => r.docId !== id));
+                }}
                 onAdd={(d) => setDocs([...docs, d])}
+                onScan={handleDocScan}
               />
             </Field>
 
@@ -275,6 +300,7 @@ export function BuilderPage() {
           onApply={applySuggestion}
           activeField={activeField}
           setActiveField={setActiveField}
+          scanSuggestions={scanSuggestionsForChat}
         />
       </div>
     </div>
