@@ -34,12 +34,32 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Build & Run
 
+### Frontend
 ```bash
 cd src/frontend
 npm install
 npm run dev        # starts Vite dev server on http://localhost:5173
 npx tsc --noEmit   # type-check without emitting
 ```
+
+By default the frontend runs with mock services. To use the real backend:
+```bash
+VITE_USE_MOCKS=false npm run dev
+```
+
+### Backend
+```bash
+cd src/backend
+npm install
+cp .env.example .env   # then fill in API keys
+npm run dev             # starts Express on http://localhost:3001 (watch mode)
+```
+
+Required `.env` keys:
+- `ANTHROPIC_API_KEY` — for AI coach (Claude API)
+- `AZURE_DEVOPS_ORG`, `AZURE_DEVOPS_PROJECT`, `AZURE_DEVOPS_PAT` — for Azure DevOps integration
+
+The frontend Vite dev server proxies `/api` requests to `localhost:3001`.
 
 No test framework is configured yet.
 
@@ -53,9 +73,9 @@ No test framework is configured yet.
 ## Tech Stack
 
 - **Frontend:** Vite 5 + React 18 + TypeScript + Tailwind CSS
-- **Backend:** Node.js Express (Phase 9, not yet implemented)
-- **AI Coach:** Claude API via Anthropic SDK (Phase 9)
-- **Persistence:** Azure Cosmos DB (Phase 9)
+- **Backend:** Node.js Express + tsx
+- **AI Coach:** Claude API via Anthropic SDK
+- **Persistence:** In-memory (ready for Cosmos DB swap)
 - **Auth:** Azure AD (user already logged in, token available)
 - **No react-router-dom** — custom router in `src/router.tsx`
 
@@ -84,15 +104,32 @@ src/frontend/                          # Vite + React app
 │       ├── OnboardingPage.tsx         # /onboarding — welcome + work item connect
 │       ├── BuilderPage.tsx            # /stories/new, /stories/:id/edit — 3-column builder
 │       ├── PushPage.tsx               # /stories/:id/push — review → pushing → done
-│       ├── BuilderBPage.tsx           # /stories/new/chat (Phase 10, placeholder)
-│       ├── BuilderCPage.tsx           # /stories/new/canvas (Phase 11, placeholder)
+│       ├── BuilderBPage.tsx           # /stories/new/chat — chat-driven builder
+│       ├── BuilderCPage.tsx           # /stories/new/canvas — card canvas builder
 │       └── DevPage.tsx                # /dev — component gallery
+```
+
+```
+src/backend/                           # Express API server
+├── src/
+│   ├── index.ts                       # Express app entry point
+│   ├── middleware/
+│   │   └── auth.ts                    # Azure AD token validation (placeholder)
+│   ├── routes/
+│   │   ├── drafts.ts                  # GET/POST/PUT/DELETE /api/drafts
+│   │   ├── ai.ts                      # POST /api/ai/chat, /api/ai/suggest
+│   │   ├── azure.ts                   # GET/POST /api/azure/workitems
+│   │   └── documents.ts              # POST /api/documents/upload, /:id/scan
+│   └── services/
+│       ├── claude.ts                  # Claude API wrapper
+│       ├── azureDevOps.ts             # Azure DevOps REST client
+│       └── documentScanner.ts         # PDF/image → AI AC extraction
 ```
 
 **Key patterns:**
 - Inline styles matching design spec (not Tailwind classes for component internals)
 - Tailwind used for layout utilities and base styles
-- Mock services in `services/` — will swap to real HTTP clients in Phase 9
+- Mock services in `services/` — switch to HTTP clients via `VITE_USE_MOCKS=false`
 - Custom router with `useNavigate()`, `useParams()`, `usePath()`
 - Design tokens in `tokens.ts` mirroring `ARK_TOKENS` from design handoff
 
@@ -113,22 +150,6 @@ Full design handoff lives in `docs/design_handoff_ark_story_studio/`. Key files:
 
 **Brand:** Camtek Bondi Blue (`#008FBE`) + marker red (`#E11A22`), AI accent purple (`#7E57C2`), Roboto font family
 
-## Implementation Status
-
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 1 | Project Scaffold + Design Tokens | Complete |
-| 2 | Shared UI Primitives | Complete |
-| 3 | Router, Types, Contexts, App Shell | Complete |
-| 4 | My Stories Page | Complete |
-| 5 | Onboarding Page | Complete |
-| 6 | Builder A — Form + Live Preview | Complete |
-| 7 | Builder A — AI Coach Sidebar | Complete |
-| 8 | Push Flow | Complete |
-| 9 | Backend API + Real Service Integration | Complete |
-| 10 | Builder B — Chat-Driven Variant | Complete |
-| 11 | Builder C — Card Canvas Variant | Complete |
-| 12 | Document Scanning | Complete |
 
 ## Verification
 
