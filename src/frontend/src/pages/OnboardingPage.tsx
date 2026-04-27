@@ -35,7 +35,6 @@ export function OnboardingPage() {
   const navigate = useNavigate();
   const { addDraft } = useApp();
   const { azure } = useServices();
-  const [step, setStep] = useState(1);
   const [workItemId, setWorkItemId] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [resolved, setResolved] = useState<ResolvedItem | null>(null);
@@ -106,67 +105,11 @@ export function OnboardingPage() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
           <ArkLogo size={28} />
-          <div style={{ display: 'flex', gap: 4 }}>
-            {[1, 2].map((n) => (
-              <div
-                key={n}
-                style={{
-                  width: 40, height: 3, borderRadius: 2,
-                  background: step >= n ? ARK_TOKENS.azure : ARK_TOKENS.border,
-                  transition: 'background 0.25s',
-                }}
-              />
-            ))}
-          </div>
+          <div style={{ display: 'flex', gap: 4 }} />
         </div>
 
-        {/* Step 1: Welcome */}
-        {step === 1 && (
-          <div className="ark-fadein">
-            <div style={{ fontSize: 11, fontWeight: 600, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 8 }}>WELCOME</div>
-            <h1 style={{ fontSize: 28, fontWeight: 600, margin: '0 0 12px', letterSpacing: -0.5, lineHeight: 1.15 }}>
-              Turn your ideas into<br />stories developers love.
-            </h1>
-            <p style={{ fontSize: 15, color: ARK_TOKENS.inkMuted, margin: '0 0 28px', lineHeight: 1.55 }}>
-              Ark guides you through writing clear, complete user stories — then pushes them straight to Azure DevOps. No more bounce-backs.
-            </p>
-
-            <div style={{ display: 'grid', gap: 12, marginBottom: 32 }}>
-              {[
-                { icon: <Ico.target size={16} />, title: 'INVEST-checked', desc: 'Independent, valuable, testable — every time.' },
-                { icon: <Ico.sparkle size={16} />, title: 'AI drafting & critique', desc: 'Turn rough notes into polished stories.' },
-                { icon: <Ico.link size={16} />, title: 'Azure DevOps native', desc: 'Attach to any Work Item by ID.' },
-              ].map((f, i) => (
-                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div
-                    style={{
-                      width: 32, height: 32, borderRadius: ARK_TOKENS.r2,
-                      background: ARK_TOKENS.azureLight, color: ARK_TOKENS.azure,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {f.icon}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{f.title}</div>
-                    <div style={{ fontSize: 13, color: ARK_TOKENS.inkMuted }}>{f.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Btn variant="primary" size="lg" onClick={() => setStep(2)} fullWidth icon={<Ico.arrow size={14} />}>
-              Get started
-            </Btn>
-            <div style={{ textAlign: 'center', fontSize: 12, color: ARK_TOKENS.inkSubtle, marginTop: 16 }}>
-              Signed in as <b style={{ color: ARK_TOKENS.inkMuted }}>maya.k@contoso.com</b>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Connect */}
-        {step === 2 && (
+        {/* Connect to Azure DevOps */}
+        {(
           <div className="ark-fadein">
             <div style={{ fontSize: 11, fontWeight: 600, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 8 }}>CONNECT TO AZURE DEVOPS</div>
             <h1 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 8px', letterSpacing: -0.4 }}>Where should your story go?</h1>
@@ -256,7 +199,7 @@ export function OnboardingPage() {
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>
-              <Btn onClick={() => setStep(1)}>Back</Btn>
+              <Btn onClick={() => navigate('/stories')}>Cancel</Btn>
               <div style={{ flex: 1 }} />
               <Btn
                 variant="primary"
