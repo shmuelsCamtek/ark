@@ -1,6 +1,10 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { type AiService, MockAiService } from '../services/ai';
 import { type AzureService, MockAzureService } from '../services/azure';
+import { HttpAiService } from '../services/http-ai';
+import { HttpAzureService } from '../services/http-azure';
+
+const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false';
 
 interface Services {
   ai: AiService;
@@ -10,10 +14,12 @@ interface Services {
 const ServicesContext = createContext<Services | null>(null);
 
 export function ServicesProvider({ children }: { children: ReactNode }) {
-  const services = useMemo<Services>(() => ({
-    ai: new MockAiService(),
-    azure: new MockAzureService(),
-  }), []);
+  const services = useMemo<Services>(() => {
+    if (USE_MOCKS) {
+      return { ai: new MockAiService(), azure: new MockAzureService() };
+    }
+    return { ai: new HttpAiService(), azure: new HttpAzureService() };
+  }, []);
 
   return (
     <ServicesContext.Provider value={services}>
