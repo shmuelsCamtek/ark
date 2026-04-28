@@ -290,6 +290,8 @@ export function BuilderPage() {
               criteria={criteria.map((c) => ({ id: c.id, text: c.text }))}
               docs={docs}
               showUiChange={showUiChange}
+              workItemState={draft?.workItemState}
+              workItemAssignedTo={draft?.workItemAssignedTo}
             />
           </div>
         </div>

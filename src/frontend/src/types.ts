@@ -37,6 +37,8 @@ export interface StoryDraft {
   epicName?: string;
   workItemId?: string;
   workItemType?: string;
+  workItemState?: string;
+  workItemAssignedTo?: string;
   createdAt: string;
   updatedAt: string;
   completionPct: number;
@@ -68,6 +70,7 @@ export interface WorkItemInfo {
   title: string;
   type: string;
   state: string;
+  assignedTo?: string;
   areaPath?: string;
   iterationPath?: string;
 }

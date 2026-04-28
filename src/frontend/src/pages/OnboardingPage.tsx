@@ -13,6 +13,7 @@ interface ResolvedItem {
   project: string;
   area: string;
   state: string;
+  assignedTo?: string;
   children: number;
   color: string;
   notFound?: boolean;
@@ -35,6 +36,7 @@ function toResolved(item: WorkItemInfo): ResolvedItem {
     project: item.areaPath?.split('\\')[0] || 'Project',
     area: item.areaPath || '',
     state: item.state,
+    assignedTo: item.assignedTo,
     children: 0,
     color: workItemColor(item.type),
   };
@@ -131,6 +133,8 @@ export function OnboardingPage() {
         title: resolved && !resolved.notFound ? resolved.title : '',
         workItemId: workItemId,
         workItemType: resolved && !resolved.notFound ? resolved.type : undefined,
+        workItemState: resolved && !resolved.notFound ? resolved.state : undefined,
+        workItemAssignedTo: resolved && !resolved.notFound ? resolved.assignedTo : undefined,
         epicId: resolved && !resolved.notFound ? String(resolved.id) : undefined,
         epicName: resolved && !resolved.notFound ? resolved.title : undefined,
       });
@@ -301,13 +305,10 @@ export function OnboardingPage() {
                         <div style={{ width: 14, height: 14, background: resolved.color, borderRadius: 2, flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.5, marginBottom: 2 }}>
-                            {resolved.type.toUpperCase()} · #{resolved.id} · {resolved.state}
+                            {resolved.type.toUpperCase()} · #{resolved.id}
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {resolved.title}
-                          </div>
-                          <div style={{ fontSize: 11, color: ARK_TOKENS.inkMuted, marginTop: 2 }}>
-                            {resolved.project} · {resolved.area}{resolved.children ? ` · ${resolved.children} children` : ''}
                           </div>
                         </div>
                         <Badge tone="success">LINKED</Badge>

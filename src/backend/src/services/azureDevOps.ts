@@ -32,6 +32,7 @@ export interface WorkItemResult {
   title: string;
   type: string;
   state: string;
+  assignedTo?: string;
   areaPath?: string;
   iterationPath?: string;
 }
@@ -77,6 +78,7 @@ export async function getWorkItem(id: string): Promise<WorkItemResult | null> {
     title: fields['System.Title'] || '',
     type: fields['System.WorkItemType'] || '',
     state: fields['System.State'] || '',
+    assignedTo: fields['System.AssignedTo']?.displayName || fields['System.AssignedTo'] || undefined,
     areaPath: fields['System.AreaPath'],
     iterationPath: fields['System.IterationPath'],
   };
@@ -144,7 +146,7 @@ export async function searchWorkItems(query: string, top = 15): Promise<WorkItem
   const ids: number[] = (wiqlData.workItems || []).map((wi: { id: number }) => wi.id);
   if (ids.length === 0) return [];
 
-  const fields = 'System.Id,System.Title,System.WorkItemType,System.State,System.AreaPath,System.IterationPath';
+  const fields = 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.AreaPath,System.IterationPath';
   const detailUrl = `${ORG_URL}/${PROJECT}/_apis/wit/workitems?ids=${ids.join(',')}&fields=${fields}&api-version=7.1`;
   const detailRes = await fetch(detailUrl, { headers: auth });
 
@@ -161,6 +163,7 @@ export async function searchWorkItems(query: string, top = 15): Promise<WorkItem
       title: f['System.Title'] || '',
       type: f['System.WorkItemType'] || '',
       state: f['System.State'] || '',
+      assignedTo: (f['System.AssignedTo'] as unknown as { displayName?: string })?.displayName || f['System.AssignedTo'] || undefined,
       areaPath: f['System.AreaPath'],
       iterationPath: f['System.IterationPath'],
     };

@@ -26,9 +26,11 @@ interface WorkItemPreviewProps {
   docs: DocItem[];
   showUiChange: boolean;
   compact?: boolean;
+  workItemState?: string;
+  workItemAssignedTo?: string;
 }
 
-export function WorkItemPreview({ title, background, persona, want, benefit, criteria, docs, showUiChange, compact }: WorkItemPreviewProps) {
+export function WorkItemPreview({ title, background, persona, want, benefit, criteria, docs, showUiChange, compact, workItemState, workItemAssignedTo }: WorkItemPreviewProps) {
   return (
     <div style={{ fontSize: 13, lineHeight: 1.55 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: 11, color: ARK_TOKENS.inkSubtle, fontWeight: 500, letterSpacing: 0.3 }}>
@@ -41,10 +43,8 @@ export function WorkItemPreview({ title, background, persona, want, benefit, cri
       </h2>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginBottom: 20, fontSize: 12 }}>
-        <PreviewMeta label="Assigned" value={<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Avatar name="Unassigned" size={16} color="#a19f9d" /> Unassigned</div>} />
-        <PreviewMeta label="State" value="New" />
-        <PreviewMeta label="Area" value="Billing" />
-        <PreviewMeta label="Iteration" value="Sprint 42" />
+        <PreviewMeta label="Assigned" value={<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Avatar name={workItemAssignedTo || 'Unassigned'} size={16} color={workItemAssignedTo ? ARK_TOKENS.azure : '#a19f9d'} /> {workItemAssignedTo || 'Unassigned'}</div>} />
+        <PreviewMeta label="State" value={workItemState || 'New'} />
       </div>
 
       <div style={{ marginBottom: 20 }}>
