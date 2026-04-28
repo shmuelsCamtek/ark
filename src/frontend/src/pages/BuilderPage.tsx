@@ -274,8 +274,17 @@ export function BuilderPage() {
           </div>
         </div>
 
-        {/* MIDDLE: Live preview */}
-        <div style={{ flex: '0 0 400px', borderLeft: `1px solid ${ARK_TOKENS.border}`, background: ARK_TOKENS.surface, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* MIDDLE: AI Coach */}
+        <SuggestChat
+          storyState={{ title, background, persona, want, benefit, criteria }}
+          onApply={applySuggestion}
+          activeField={activeField}
+          setActiveField={setActiveField}
+          scanSuggestions={scanSuggestionsForChat}
+        />
+
+        {/* RIGHT: Azure DevOps preview */}
+        <div style={{ flex: '0 0 520px', borderLeft: `1px solid ${ARK_TOKENS.border}`, background: ARK_TOKENS.surface, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <div style={{ padding: '14px 20px', borderBottom: `1px solid ${ARK_TOKENS.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
             <AzureMark size={14} />
             <div style={{ fontSize: 12, fontWeight: 600, color: ARK_TOKENS.inkMuted, letterSpacing: 0.2 }}>Azure DevOps preview</div>
@@ -295,15 +304,6 @@ export function BuilderPage() {
             />
           </div>
         </div>
-
-        {/* RIGHT: AI Coach */}
-        <SuggestChat
-          storyState={{ title, background, persona, want, benefit, criteria }}
-          onApply={applySuggestion}
-          activeField={activeField}
-          setActiveField={setActiveField}
-          scanSuggestions={scanSuggestionsForChat}
-        />
       </div>
     </div>
   );
