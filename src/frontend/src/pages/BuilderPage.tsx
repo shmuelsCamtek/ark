@@ -130,9 +130,14 @@ export function BuilderPage() {
       <TopBar
         breadcrumbs={['Stories', editId ? 'Edit' : 'New story']}
         rightActions={
-          <Btn variant="primary" icon={<Ico.arrow size={14} />} onClick={handlePush}>
-            Push to Azure
-          </Btn>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn icon={<Ico.check size={14} />} onClick={() => navigate('/stories')}>
+              Save as draft
+            </Btn>
+            <Btn variant="primary" icon={<Ico.arrow size={14} />} onClick={handlePush}>
+              Push to Azure
+            </Btn>
+          </div>
         }
       />
 
