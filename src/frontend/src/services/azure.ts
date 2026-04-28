@@ -20,6 +20,10 @@ const MOCK_WORK_ITEMS: Record<string, WorkItemInfo> = {
     assignedTo: 'Dana Levy',
     areaPath: 'Ark\\Frontend',
     iterationPath: 'Ark\\Sprint 14',
+    attachments: [
+      { id: 'att-1', name: 'onboarding-wireframe.png', url: '#', size: 245000 },
+      { id: 'att-2', name: 'user-research-findings.pdf', url: '#', size: 1830000 },
+    ],
   },
   '4102': {
     id: '4102',
@@ -29,6 +33,9 @@ const MOCK_WORK_ITEMS: Record<string, WorkItemInfo> = {
     assignedTo: 'Shmuel S.',
     areaPath: 'Ark\\Backend',
     iterationPath: 'Ark\\Sprint 15',
+    attachments: [
+      { id: 'att-3', name: 'export-format-spec.pdf', url: '#', size: 520000 },
+    ],
   },
   '3870': {
     id: '3870',

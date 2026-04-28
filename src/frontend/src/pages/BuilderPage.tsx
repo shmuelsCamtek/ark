@@ -45,7 +45,13 @@ export function BuilderPage() {
   );
   const [newCriterion, setNewCriterion] = useState('');
   const [activeField, setActiveField] = useState('title');
-  const [docs, setDocs] = useState<DocItem[]>([]);
+  const [docs, setDocs] = useState<DocItem[]>(() => {
+    if (!draft?.supportingDocs?.length) return [];
+    return draft.supportingDocs.map((sd) => {
+      const kind: DocItem['kind'] = sd.type === 'pdf' ? 'pdf' : sd.type === 'image' ? 'image' : 'file';
+      return { id: sd.id, name: sd.name, size: '', kind, scanned: sd.scanned };
+    });
+  });
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [showUiChange, setShowUiChange] = useState(false);
   const [scanSuggestionsForChat, setScanSuggestionsForChat] = useState<ScanResult[]>([]);

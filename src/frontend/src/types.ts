@@ -65,6 +65,13 @@ export interface UserProfile {
   email: string;
 }
 
+export interface WorkItemAttachment {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+}
+
 export interface WorkItemInfo {
   id: string;
   title: string;
@@ -73,4 +80,5 @@ export interface WorkItemInfo {
   assignedTo?: string;
   areaPath?: string;
   iterationPath?: string;
+  attachments?: WorkItemAttachment[];
 }

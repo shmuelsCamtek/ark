@@ -4,7 +4,7 @@ import { ArkLogo, Btn, Badge, Ico } from '../components/ui';
 import { useNavigate } from '../router';
 import { useApp, createEmptyDraft } from '../context/AppContext';
 import { HttpAzureService } from '../services/http-azure';
-import type { WorkItemInfo } from '../types';
+import type { WorkItemInfo, WorkItemAttachment } from '../types';
 
 interface ResolvedItem {
   id: number;
@@ -17,6 +17,7 @@ interface ResolvedItem {
   children: number;
   color: string;
   notFound?: boolean;
+  attachments?: WorkItemAttachment[];
 }
 
 function workItemColor(type: string): string {
@@ -39,6 +40,7 @@ function toResolved(item: WorkItemInfo): ResolvedItem {
     assignedTo: item.assignedTo,
     children: 0,
     color: workItemColor(item.type),
+    attachments: item.attachments,
   };
 }
 
@@ -124,19 +126,41 @@ export function OnboardingPage() {
     setResolved(toResolved(item));
     setShowDropdown(false);
     setSearchResults([]);
-  }, []);
+
+    // Re-resolve to get full data including attachments
+    azure.resolveWorkItem(item.id).then((full) => {
+      if (full) setResolved(toResolved(full));
+    });
+  }, [azure]);
 
   const handleFinish = () => {
     setConnecting(true);
     setTimeout(() => {
+      const hasItem = resolved && !resolved.notFound;
+
+      // Convert work item attachments to supporting docs
+      const supportingDocs = (hasItem && resolved.attachments || []).map((att) => {
+        const ext = att.name.split('.').pop()?.toLowerCase() || '';
+        const type: 'pdf' | 'image' | 'other' = ext === 'pdf' ? 'pdf'
+          : ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(ext) ? 'image'
+          : 'other';
+        return {
+          id: att.id,
+          name: att.name,
+          type,
+          scanned: false,
+        };
+      });
+
       const draft = createEmptyDraft({
-        title: resolved && !resolved.notFound ? resolved.title : '',
+        title: hasItem ? resolved.title : '',
         workItemId: workItemId,
-        workItemType: resolved && !resolved.notFound ? resolved.type : undefined,
-        workItemState: resolved && !resolved.notFound ? resolved.state : undefined,
-        workItemAssignedTo: resolved && !resolved.notFound ? resolved.assignedTo : undefined,
-        epicId: resolved && !resolved.notFound ? String(resolved.id) : undefined,
-        epicName: resolved && !resolved.notFound ? resolved.title : undefined,
+        workItemType: hasItem ? resolved.type : undefined,
+        workItemState: hasItem ? resolved.state : undefined,
+        workItemAssignedTo: hasItem ? resolved.assignedTo : undefined,
+        epicId: hasItem ? String(resolved.id) : undefined,
+        epicName: hasItem ? resolved.title : undefined,
+        supportingDocs,
       });
       addDraft(draft);
       navigate(`/stories/${draft.id}/edit`);
@@ -310,6 +334,12 @@ export function OnboardingPage() {
                           <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {resolved.title}
                           </div>
+                          {resolved.attachments && resolved.attachments.length > 0 && (
+                            <div style={{ fontSize: 10, color: ARK_TOKENS.inkMuted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Ico.file size={10} />
+                              {resolved.attachments.length} attachment{resolved.attachments.length === 1 ? '' : 's'} will be imported
+                            </div>
+                          )}
                         </div>
                         <Badge tone="success">LINKED</Badge>
                       </>

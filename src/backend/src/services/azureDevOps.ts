@@ -27,6 +27,13 @@ async function authHeaders(): Promise<Record<string, string>> {
   return { Authorization: `Bearer ${token.token}` };
 }
 
+export interface WorkItemAttachment {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+}
+
 export interface WorkItemResult {
   id: number;
   title: string;
@@ -35,6 +42,7 @@ export interface WorkItemResult {
   assignedTo?: string;
   areaPath?: string;
   iterationPath?: string;
+  attachments?: WorkItemAttachment[];
 }
 
 export interface AzureUserProfile {
@@ -66,13 +74,30 @@ export async function getCurrentUser(): Promise<AzureUserProfile | null> {
 
 export async function getWorkItem(id: string): Promise<WorkItemResult | null> {
 
-  const url = `${ORG_URL}/${PROJECT}/_apis/wit/workitems/${id}?api-version=7.1`;
+  const url = `${ORG_URL}/${PROJECT}/_apis/wit/workitems/${id}?$expand=relations&api-version=7.1`;
   const headers = await authHeaders();
   const res = await fetch(url, { headers });
   if (!res.ok) return null;
 
   const data = await res.json();
   const fields = data.fields || {};
+
+  // Extract attachments from relations
+  const attachments: WorkItemAttachment[] = [];
+  if (data.relations) {
+    for (const rel of data.relations) {
+      if (rel.rel === 'AttachedFile') {
+        const attrs = rel.attributes || {};
+        attachments.push({
+          id: String(attrs.id || rel.url?.split('/').pop() || Date.now()),
+          name: attrs.name || 'attachment',
+          url: rel.url || '',
+          size: attrs.resourceSize || 0,
+        });
+      }
+    }
+  }
+
   return {
     id: data.id,
     title: fields['System.Title'] || '',
@@ -81,6 +106,7 @@ export async function getWorkItem(id: string): Promise<WorkItemResult | null> {
     assignedTo: fields['System.AssignedTo']?.displayName || fields['System.AssignedTo'] || undefined,
     areaPath: fields['System.AreaPath'],
     iterationPath: fields['System.IterationPath'],
+    attachments: attachments.length > 0 ? attachments : undefined,
   };
 }
 
