@@ -53,6 +53,44 @@ export class MockAiService implements AiService {
       };
     }
 
+    if (userText.includes('background') || userText.includes('context')) {
+      return {
+        id: msgId(),
+        type: 'quiz',
+        text: 'Let me help you write a solid background section.',
+        quiz: {
+          question: 'What\'s driving this work?',
+          options: [
+            'A customer-reported pain point or support trend',
+            'An internal process that\'s slow or error-prone',
+            'A compliance or regulatory requirement',
+            'A new business opportunity or market need',
+            'Something else\u2026',
+          ],
+        },
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    if (userText.includes('narrative') || userText.includes('i want to') || userText.includes('so that')) {
+      return {
+        id: msgId(),
+        type: 'quiz',
+        text: 'Let me help you craft the narrative.',
+        quiz: {
+          question: 'What best describes what the persona needs to accomplish?',
+          options: [
+            'View or access information they currently can\'t see',
+            'Automate a task they currently do manually',
+            'Get notified when something important happens',
+            'Modify or configure an existing workflow',
+            'Something else\u2026',
+          ],
+        },
+        timestamp: new Date().toISOString(),
+      };
+    }
+
     if (userText.includes('split')) {
       return {
         id: msgId(),

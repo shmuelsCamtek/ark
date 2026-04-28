@@ -36,7 +36,7 @@ interface SuggestChatProps {
     workItemDescription?: string;
     workItemReproSteps?: string;
     epicName?: string;
-    supportingDocs?: { name: string; kind: string; scanned: boolean }[];
+    supportingDocs?: { name: string; kind: string; scanned: boolean; summary?: string; acceptanceCriteria?: string[]; edgeCases?: string[] }[];
   };
   onApply: (field: string, value: string) => void;
   activeField: string;
@@ -45,10 +45,9 @@ interface SuggestChatProps {
 }
 
 const QUICK_CHIPS = [
+  'Suggest Background',
+  'Suggest Narrative',
   'Suggest more ACs',
-  'Tighten the benefit',
-  'Find similar stories',
-  'Split this story',
 ];
 
 function fieldLabel(f: string): string {
@@ -235,24 +234,38 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
   }, [ai, messages, storyState, activeField]);
 
   const handleChip = useCallback(async (chip: string) => {
-    if (chip === 'Suggest more ACs') {
+    // Chips that use suggestField (direct suggestions)
+    const suggestChips: Record<string, { field: string; value: string }> = {
+      'Suggest more ACs': { field: 'acceptanceCriteria', value: storyState.criteria.map((c) => c.text).join('; ') },
+    };
+    // Chips that use chat (quiz-style clarifying questions)
+    const chatChips: Record<string, string> = {
+      'Suggest Background': 'Help me write the background for this story. Ask me a clarifying question to understand the context.',
+      'Suggest Narrative': 'Help me write the narrative (I want to… / So that…) for this story. Ask me a clarifying question first.',
+    };
+
+    const suggestMatch = suggestChips[chip];
+    const chatPrompt = chatChips[chip];
+
+    if (suggestMatch) {
       setMessages((m) => [...m, { role: 'user', text: chip }]);
       setTyping(true);
       try {
         const ctx = buildDraftContext(storyState, activeField);
-        const response = await ai.suggestField('acceptanceCriteria', storyState.criteria.map((c) => c.text).join('; '), ctx);
+        const response = await ai.suggestField(suggestMatch.field, suggestMatch.value, ctx);
         setMessages((m) => [...m, coachToSuggestMessage(response)]);
       } catch {
         setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn\'t generate suggestions right now.' }]);
       } finally {
         setTyping(false);
       }
-    } else if (chip === 'Tighten the benefit') {
+    } else if (chatPrompt) {
       setMessages((m) => [...m, { role: 'user', text: chip }]);
       setTyping(true);
       try {
         const ctx = buildDraftContext(storyState, activeField);
-        const response = await ai.suggestField('benefit', storyState.benefit, ctx);
+        const conversationMsgs = toCoachMessages([...messages, { role: 'user', text: chatPrompt }]);
+        const response = await ai.chat(conversationMsgs, ctx);
         setMessages((m) => [...m, coachToSuggestMessage(response)]);
       } catch {
         setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn\'t generate suggestions right now.' }]);
@@ -262,7 +275,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
     } else {
       await sendMessage(chip);
     }
-  }, [ai, storyState, activeField, sendMessage]);
+  }, [ai, messages, storyState, activeField, sendMessage]);
 
   const send = () => {
     if (!input.trim()) return;

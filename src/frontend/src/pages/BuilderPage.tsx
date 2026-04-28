@@ -296,7 +296,13 @@ export function BuilderPage() {
             workItemDescription: draft?.workItemDescription,
             workItemReproSteps: draft?.workItemReproSteps,
             epicName: draft?.epicName,
-            supportingDocs: docs.map(d => ({ name: d.name, kind: d.kind, scanned: !!d.scanned })),
+            supportingDocs: docs.map(d => {
+              const scan = scanResults.find(s => s.docId === d.id);
+              return {
+                name: d.name, kind: d.kind, scanned: !!d.scanned,
+                ...(scan && { summary: scan.summary, acceptanceCriteria: scan.acceptanceCriteria, edgeCases: scan.edgeCases }),
+              };
+            }),
           }}
           onApply={applySuggestion}
           activeField={activeField}

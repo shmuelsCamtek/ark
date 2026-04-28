@@ -745,10 +745,8 @@ function SuggestChat({ storyState, onApply, activeField, setActiveField }) {
       {/* quick chips */}
       <div style={{ padding: '4px 14px 10px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {[
-        'Suggest more ACs',
-        'Tighten the benefit',
-        'Find similar stories',
-        'Split this story'].
+        'Suggest Background',
+        'Suggest Narrative'].
         map((c) =>
         <button key={c} onClick={() => setInput(c)}
         style={{

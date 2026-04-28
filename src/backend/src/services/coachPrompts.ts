@@ -13,7 +13,7 @@ interface DraftContext {
   workItemDescription?: string;
   workItemReproSteps?: string;
   epicName?: string;
-  supportingDocs?: { name: string; kind: string; scanned: boolean }[];
+  supportingDocs?: { name: string; kind: string; scanned: boolean; summary?: string; acceptanceCriteria?: string[]; edgeCases?: string[] }[];
 }
 
 function stripHtml(html: string): string {
@@ -38,6 +38,19 @@ function buildWorkItemSection(ctx: DraftContext): string {
   }
   if (ctx.supportingDocs && ctx.supportingDocs.length > 0) {
     lines.push(`- Attached documents: ${ctx.supportingDocs.map(d => `${d.name} (${d.kind}${d.scanned ? ', scanned' : ''})`).join(', ')}`);
+    for (const doc of ctx.supportingDocs) {
+      if (!doc.scanned) continue;
+      lines.push(`\n### Document: ${doc.name}`);
+      if (doc.summary) lines.push(`**Summary**: ${doc.summary}`);
+      if (doc.acceptanceCriteria?.length) {
+        lines.push('**Extracted acceptance criteria**:');
+        doc.acceptanceCriteria.forEach((ac, i) => lines.push(`  ${i + 1}. ${ac}`));
+      }
+      if (doc.edgeCases?.length) {
+        lines.push('**Edge cases identified**:');
+        doc.edgeCases.forEach((ec, i) => lines.push(`  ${i + 1}. ${ec}`));
+      }
+    }
   }
   lines.push('');
   lines.push('Use this context to inform your suggestions — the description often contains requirements, constraints, and stakeholder expectations that should be reflected in the user story fields.');
@@ -163,6 +176,16 @@ export function buildFieldSuggestionPrompt(
   if (draftContext.workItemType && draftContext.workItemId) contextParts.push(`Source: ${draftContext.workItemType} #${draftContext.workItemId}`);
   if (draftContext.workItemDescription) contextParts.push(`Work item description: ${stripHtml(draftContext.workItemDescription)}`);
   if (draftContext.workItemReproSteps) contextParts.push(`Repro steps: ${stripHtml(draftContext.workItemReproSteps)}`);
+  if (draftContext.supportingDocs?.length) {
+    for (const doc of draftContext.supportingDocs) {
+      if (!doc.scanned) continue;
+      const parts: string[] = [`Document "${doc.name}"`];
+      if (doc.summary) parts.push(`Summary: ${doc.summary}`);
+      if (doc.acceptanceCriteria?.length) parts.push(`Extracted ACs: ${doc.acceptanceCriteria.join('; ')}`);
+      if (doc.edgeCases?.length) parts.push(`Edge cases: ${doc.edgeCases.join('; ')}`);
+      contextParts.push(parts.join(' — '));
+    }
+  }
 
   return `You are Ark Coach. The user needs help with the "${field}" field of their user story.
 
