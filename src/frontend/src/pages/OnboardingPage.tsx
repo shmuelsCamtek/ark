@@ -128,7 +128,9 @@ export function OnboardingPage() {
     setConnecting(true);
     setTimeout(() => {
       const draft = createEmptyDraft({
+        title: resolved && !resolved.notFound ? resolved.title : '',
         workItemId: workItemId,
+        workItemType: resolved && !resolved.notFound ? resolved.type : undefined,
         epicId: resolved && !resolved.notFound ? String(resolved.id) : undefined,
         epicName: resolved && !resolved.notFound ? resolved.title : undefined,
       });
