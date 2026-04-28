@@ -4,7 +4,7 @@ interface AvatarProps {
   color?: string;
 }
 
-const COLORS = ['#008FBE', '#8764b8', '#107c10', '#E11A22', '#006C90', '#498205'];
+const COLORS = ['#1994FF', '#7E57C2', '#10b981', '#f59e0b', '#157CFF', '#ef4444'];
 
 export function Avatar({ name, size = 28, color }: AvatarProps) {
   const initials = (name || '?')

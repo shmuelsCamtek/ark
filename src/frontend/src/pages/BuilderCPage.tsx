@@ -12,7 +12,7 @@ interface CardData {
 }
 
 const CARDS: Record<string, CardData> = {
-  persona: { title: 'Support engineer', sub: 'The user', content: 'Triages 30\u201360 billing tickets a day. Most card-decline cases are routine retries handled by hand.', color: '#008FBE', icon: 'user' },
+  persona: { title: 'Support engineer', sub: 'The user', content: 'Triages 30\u201360 billing tickets a day. Most card-decline cases are routine retries handled by hand.', color: '#1994FF', icon: 'user' },
   problem: { title: "Today's pain", sub: 'What hurts', content: 'Every Pro renewal that declines becomes a ticket. Engineers spend hours per week clicking \u201cretry\u201d and emailing customers.', color: '#E11A22', icon: 'warn' },
   want: { title: 'The ask', sub: 'The desire', content: 'Auto-retry failed renewals on a smart schedule, log each attempt, and only escalate if all retries fail.', color: '#8764b8', icon: 'bolt' },
   outcome: { title: 'The win', sub: 'Why it matters', content: 'Recover 80% of declined renewals without human touch. Support engineers focus on real issues; involuntary churn drops.', color: '#107c10', icon: 'heart' },
@@ -65,7 +65,7 @@ export function BuilderCPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <LegendTag color="#008FBE" label="Persona" />
+          <LegendTag color="#1994FF" label="Persona" />
           <LegendTag color="#E11A22" label="Problem" />
           <LegendTag color="#8764b8" label="Ask" />
           <LegendTag color="#107c10" label="Outcome" />

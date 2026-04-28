@@ -30,7 +30,7 @@ export function TextArea({ value, onChange, placeholder, style, rows = 3, autoFo
         borderRadius: ARK_TOKENS.r,
         padding: '8px 10px',
         lineHeight: 1.5,
-        transition: 'border-color 0.12s',
+        transition: 'border-color 150ms ease-in-out, box-shadow 150ms ease-in-out',
         fontFamily: 'inherit',
         ...style,
       }}

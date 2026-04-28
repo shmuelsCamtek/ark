@@ -54,7 +54,7 @@ export function StoriesPage() {
       total: 9,
       lastEdited: formatTimeAgo(d.updatedAt),
       owner: 'Maya Kowalski',
-      ownerColor: '#008FBE',
+      ownerColor: '#1994FF',
       acCount: d.acceptanceCriteria.length,
     };
   });

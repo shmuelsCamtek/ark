@@ -32,8 +32,8 @@ export function Badge({ tone = 'default', children, icon, style }: BadgeProps) {
         color: t.fg,
         fontSize: 11,
         fontWeight: 600,
-        borderRadius: 10,
-        letterSpacing: 0.1,
+        borderRadius: 6,
+        letterSpacing: '0.02em',
         ...style,
       }}
     >

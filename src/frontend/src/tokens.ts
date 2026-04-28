@@ -1,54 +1,54 @@
 export const ARK_TOKENS = {
-  // Neutrals — cool/slate axis
-  bg: '#F1F4F9',
+  // Neutrals — Basewell-inspired neutral scale
+  bg: '#f5f5f5',
   surface: '#ffffff',
-  surfaceAlt: '#F5F7FA',
-  border: '#E3E6ED',
-  borderStrong: '#C5CAD3',
-  ink: '#212332',
-  inkMuted: '#69707F',
-  inkSubtle: '#9AA0AC',
+  surfaceAlt: '#fafafa',
+  border: '#e5e5e5',
+  borderStrong: '#d4d4d4',
+  ink: '#0a0a0a',
+  inkMuted: '#525252',
+  inkSubtle: '#a3a3a3',
 
   // Sidebar / dark surfaces
-  navBg: '#212C3D',
-  navBgAlt: '#1A2333',
-  navInk: '#E1E5EE',
-  navInkMuted: '#8A93A6',
+  navBg: '#111111',
+  navBgAlt: '#0a0a0a',
+  navInk: '#fafafa',
+  navInkMuted: '#a3a3a3',
 
-  // Brand — Camtek Bondi Blue + marker red
-  azure: '#008FBE',
-  azureDark: '#006C90',
-  azureLight: '#D6EEF7',
-  azureFaint: '#F1F8FB',
+  // Brand — Basewell blue gradient
+  azure: '#1994FF',
+  azureDark: '#157CFF',
+  azureLight: '#dbeafe',
+  azureFaint: '#eff6ff',
   markerRed: '#E11A22',
   markerRedDark: '#B81219',
   markerRedLight: '#FDE4E5',
 
   // Status
-  success: '#1FAB6B',
-  successBg: '#E3F6EE',
-  warning: '#F4A100',
-  warningBg: '#FFF3D6',
-  danger: '#E11A22',
-  dangerBg: '#FDE4E5',
-  info: '#008FBE',
-  infoBg: '#D6EEF7',
+  success: '#10b981',
+  successBg: '#ecfdf5',
+  warning: '#f59e0b',
+  warningBg: '#fffbeb',
+  danger: '#ef4444',
+  dangerBg: '#fef2f2',
+  info: '#1994FF',
+  infoBg: '#dbeafe',
 
   // AI accent
   ai: '#7E57C2',
   aiLight: '#EDE7F6',
   aiFaint: '#F6F3FB',
 
-  // Radius & shadow
-  r: 4,
-  r2: 6,
-  r3: 8,
-  shadow1: '0 1px 2px rgba(33,35,50,0.08), 0 1px 3px rgba(33,35,50,0.06)',
-  shadow2: '0 2px 6px rgba(33,35,50,0.10), 0 4px 12px rgba(33,35,50,0.06)',
-  shadow3: '0 8px 24px rgba(33,35,50,0.14), 0 2px 6px rgba(33,35,50,0.08)',
+  // Radius & shadow — generous radii, blue-tinted layered shadows
+  r: 8,
+  r2: 12,
+  r3: 16,
+  shadow1: '0 1px 2px rgba(29,78,216,0.04), 0 1px 3px rgba(0,0,0,0.06)',
+  shadow2: '0 5px 3px rgba(29,78,216,0.03), 0 10px 4px rgba(29,78,216,0.01), 0 2px 4px rgba(0,0,0,0.06)',
+  shadow3: '0 15px 4px rgba(29,78,216,0.00), 0 10px 4px rgba(29,78,216,0.01), 0 5px 3px rgba(29,78,216,0.05), 0 2px 6px rgba(0,0,0,0.08)',
 
-  font: 'Roboto, "Helvetica Neue", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  mono: '"Roboto Mono", "SF Mono", Consolas, monospace',
+  font: 'system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  mono: '"SF Mono", "Roboto Mono", Consolas, monospace',
 } as const;
 
 export type ArkTokens = typeof ARK_TOKENS;

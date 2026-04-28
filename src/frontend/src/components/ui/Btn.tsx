@@ -17,25 +17,47 @@ interface BtnProps {
 }
 
 const sizes: Record<BtnSize, CSSProperties> = {
-  sm: { padding: '4px 12px', fontSize: 11.5, height: 26 },
-  md: { padding: '6px 16px', fontSize: 13, height: 34 },
-  lg: { padding: '8px 22px', fontSize: 13.5, height: 40 },
+  sm: { padding: '5px 14px', fontSize: 12, height: 28 },
+  md: { padding: '7px 18px', fontSize: 13, height: 36 },
+  lg: { padding: '10px 24px', fontSize: 14, height: 40 },
 };
 
 const variants: Record<BtnVariant, CSSProperties> = {
-  primary: { background: ARK_TOKENS.azure, color: '#fff', border: '1px solid ' + ARK_TOKENS.azure, boxShadow: ARK_TOKENS.shadow1 },
-  default: { background: ARK_TOKENS.surface, color: ARK_TOKENS.ink, border: '1px solid ' + ARK_TOKENS.borderStrong },
-  ghost: { background: 'transparent', color: ARK_TOKENS.azure, border: '1px solid transparent' },
-  ai: { background: ARK_TOKENS.ai, color: '#fff', border: '1px solid ' + ARK_TOKENS.ai, boxShadow: ARK_TOKENS.shadow1 },
-  danger: { background: 'transparent', color: ARK_TOKENS.danger, border: '1px solid ' + ARK_TOKENS.borderStrong },
+  primary: {
+    background: `linear-gradient(135deg, ${ARK_TOKENS.azure}, ${ARK_TOKENS.azureDark})`,
+    color: '#fff',
+    border: 'none',
+    boxShadow: ARK_TOKENS.shadow1,
+  },
+  default: {
+    background: ARK_TOKENS.surface,
+    color: ARK_TOKENS.ink,
+    border: `1px solid ${ARK_TOKENS.borderStrong}`,
+  },
+  ghost: {
+    background: 'transparent',
+    color: ARK_TOKENS.ink,
+    border: '1px solid transparent',
+  },
+  ai: {
+    background: `linear-gradient(135deg, ${ARK_TOKENS.ai}, #6E4FA0)`,
+    color: '#fff',
+    border: 'none',
+    boxShadow: ARK_TOKENS.shadow1,
+  },
+  danger: {
+    background: 'transparent',
+    color: ARK_TOKENS.danger,
+    border: `1px solid ${ARK_TOKENS.borderStrong}`,
+  },
 };
 
-const hoverBg: Record<BtnVariant, string> = {
-  primary: ARK_TOKENS.azureDark,
-  default: ARK_TOKENS.surfaceAlt,
-  ghost: ARK_TOKENS.azureFaint,
-  ai: '#6E4FA0',
-  danger: ARK_TOKENS.dangerBg,
+const hoverStyles: Record<BtnVariant, CSSProperties> = {
+  primary: { transform: 'scale(0.98)', boxShadow: ARK_TOKENS.shadow2 },
+  default: { background: ARK_TOKENS.surfaceAlt, transform: 'scale(0.98)' },
+  ghost: { background: ARK_TOKENS.surfaceAlt, transform: 'scale(0.98)' },
+  ai: { transform: 'scale(0.98)', boxShadow: ARK_TOKENS.shadow2 },
+  danger: { background: ARK_TOKENS.dangerBg, transform: 'scale(0.98)' },
 };
 
 export function Btn({ variant = 'default', size = 'md', icon, children, onClick, disabled, style, fullWidth, type }: BtnProps) {
@@ -51,11 +73,10 @@ export function Btn({ variant = 'default', size = 'md', icon, children, onClick,
       style={{
         ...sizes[size],
         ...variants[variant],
-        background: hover && !disabled ? hoverBg[variant] : variants[variant].background,
+        ...(hover && !disabled ? hoverStyles[variant] : {}),
         borderRadius: ARK_TOKENS.r,
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.04em',
+        fontWeight: 500,
+        letterSpacing: '0.01em',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
         display: 'inline-flex',
@@ -63,7 +84,7 @@ export function Btn({ variant = 'default', size = 'md', icon, children, onClick,
         justifyContent: 'center',
         gap: 6,
         width: fullWidth ? '100%' : 'auto',
-        transition: 'background 0.15s, box-shadow 0.15s',
+        transition: 'transform 150ms ease-in-out, box-shadow 150ms ease-in-out, background 150ms ease-in-out',
         whiteSpace: 'nowrap',
         ...style,
       }}

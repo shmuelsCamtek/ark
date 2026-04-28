@@ -4,39 +4,39 @@
 
 :root {
   /* Neutrals */
-  --ark-bg: #F1F4F9;
+  --ark-bg: #f5f5f5;
   --ark-surface: #ffffff;
-  --ark-surface-alt: #F5F7FA;
-  --ark-border: #E3E6ED;
-  --ark-border-strong: #C5CAD3;
-  --ark-ink: #212332;
-  --ark-ink-muted: #69707F;
-  --ark-ink-subtle: #9AA0AC;
+  --ark-surface-alt: #fafafa;
+  --ark-border: #e5e5e5;
+  --ark-border-strong: #d4d4d4;
+  --ark-ink: #0a0a0a;
+  --ark-ink-muted: #525252;
+  --ark-ink-subtle: #a3a3a3;
 
   /* Sidebar */
-  --ark-nav-bg: #212C3D;
-  --ark-nav-bg-alt: #1A2333;
-  --ark-nav-ink: #E1E5EE;
-  --ark-nav-ink-muted: #8A93A6;
+  --ark-nav-bg: #111111;
+  --ark-nav-bg-alt: #0a0a0a;
+  --ark-nav-ink: #fafafa;
+  --ark-nav-ink-muted: #a3a3a3;
 
   /* Brand */
-  --ark-azure: #008FBE;
-  --ark-azure-dark: #006C90;
-  --ark-azure-light: #D6EEF7;
-  --ark-azure-faint: #F1F8FB;
+  --ark-azure: #1994FF;
+  --ark-azure-dark: #157CFF;
+  --ark-azure-light: #dbeafe;
+  --ark-azure-faint: #eff6ff;
   --ark-marker-red: #E11A22;
   --ark-marker-red-dark: #B81219;
   --ark-marker-red-light: #FDE4E5;
 
   /* Status */
-  --ark-success: #1FAB6B;
-  --ark-success-bg: #E3F6EE;
-  --ark-warning: #F4A100;
-  --ark-warning-bg: #FFF3D6;
-  --ark-danger: #E11A22;
-  --ark-danger-bg: #FDE4E5;
-  --ark-info: #008FBE;
-  --ark-info-bg: #D6EEF7;
+  --ark-success: #10b981;
+  --ark-success-bg: #ecfdf5;
+  --ark-warning: #f59e0b;
+  --ark-warning-bg: #fffbeb;
+  --ark-danger: #ef4444;
+  --ark-danger-bg: #fef2f2;
+  --ark-info: #1994FF;
+  --ark-info-bg: #dbeafe;
 
   /* AI accent */
   --ark-ai: #7E57C2;
@@ -44,24 +44,24 @@
   --ark-ai-faint: #F6F3FB;
 
   /* Radius */
-  --ark-r: 4px;
-  --ark-r2: 6px;
-  --ark-r3: 8px;
+  --ark-r: 8px;
+  --ark-r2: 12px;
+  --ark-r3: 16px;
 
-  /* Shadows */
-  --ark-shadow-1: 0 1px 2px rgba(33,35,50,0.08), 0 1px 3px rgba(33,35,50,0.06);
-  --ark-shadow-2: 0 2px 6px rgba(33,35,50,0.10), 0 4px 12px rgba(33,35,50,0.06);
-  --ark-shadow-3: 0 8px 24px rgba(33,35,50,0.14), 0 2px 6px rgba(33,35,50,0.08);
+  /* Shadows — blue-tinted layered */
+  --ark-shadow-1: 0 1px 2px rgba(29,78,216,0.04), 0 1px 3px rgba(0,0,0,0.06);
+  --ark-shadow-2: 0 5px 3px rgba(29,78,216,0.03), 0 10px 4px rgba(29,78,216,0.01), 0 2px 4px rgba(0,0,0,0.06);
+  --ark-shadow-3: 0 15px 4px rgba(29,78,216,0.00), 0 10px 4px rgba(29,78,216,0.01), 0 5px 3px rgba(29,78,216,0.05), 0 2px 6px rgba(0,0,0,0.08);
 }
 
 body {
   margin: 0;
   background: var(--ark-bg);
-  font-family: Roboto, "Helvetica Neue", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--ark-ink);
   font-size: 14px;
   line-height: 1.5;
-  letter-spacing: 0.01em;
+  letter-spacing: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -91,18 +91,28 @@ input:focus, textarea:focus, select:focus {
 
 h1, h2, h3 {
   font-weight: 500;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+}
+
+/* Focus ring — Basewell style: ring-1 ring-neutral-400 offset */
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  box-shadow: 0 0 0 2px var(--ark-surface), 0 0 0 4px rgba(25,148,255,0.25);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ark-surface), 0 0 0 4px rgba(25,148,255,0.25);
 }
 
 /* Scrollbar styling */
 .ark-scroll::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 .ark-scroll::-webkit-scrollbar-thumb {
   background: var(--ark-border-strong);
-  border-radius: 5px;
+  border-radius: 4px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -115,4 +125,9 @@ h1, h2, h3 {
 
 .ark-scroll::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* Spin animation for loaders */
+@keyframes ark-spin {
+  to { transform: rotate(360deg); }
 }

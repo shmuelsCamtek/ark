@@ -29,7 +29,7 @@ export function TextInput({ value, onChange, placeholder, style, label, hint, er
           borderRadius: ARK_TOKENS.r,
           padding: '0 8px',
           height: 32,
-          transition: 'border-color 0.12s',
+          transition: 'border-color 150ms ease-in-out, box-shadow 150ms ease-in-out',
         }}
       >
         {icon && (
