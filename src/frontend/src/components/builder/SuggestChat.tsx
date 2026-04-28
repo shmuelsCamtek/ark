@@ -274,7 +274,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
   return (
     <div
       style={{
-        flex: '0 0 360px',
+        flex: '0 0 518px',
         borderLeft: `1px solid ${ARK_TOKENS.border}`,
         background: ARK_TOKENS.surface,
         display: 'flex',
@@ -288,8 +288,8 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
           <Ico.sparkle size={11} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>Ark Coach</div>
-          <div style={{ fontSize: 11, color: ARK_TOKENS.inkSubtle }}>Reading your backlog</div>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>Ark Coach</div>
+          <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle }}>Reading your backlog</div>
         </div>
         <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: ARK_TOKENS.inkSubtle, padding: 4, borderRadius: 3 }}>
           <Ico.gear size={14} />
@@ -335,7 +335,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
               background: ARK_TOKENS.surface,
               padding: '4px 10px',
               borderRadius: 12,
-              fontSize: 11,
+              fontSize: 13,
               color: ARK_TOKENS.inkMuted,
               cursor: typing ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
@@ -378,7 +378,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
               resize: 'none',
               outline: 'none',
               fontFamily: 'inherit',
-              fontSize: 13,
+              fontSize: 16,
               lineHeight: 1.5,
             }}
           />
@@ -444,7 +444,7 @@ function QuizOptions({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {question && (
-        <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: ARK_TOKENS.ink, marginBottom: 2 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.5, color: ARK_TOKENS.ink, marginBottom: 2 }}>
           {question}
         </div>
       )}
@@ -464,7 +464,7 @@ function QuizOptions({
                 border: `1px solid ${isSelected ? ARK_TOKENS.ai : ARK_TOKENS.border}`,
                 background: isSelected ? ARK_TOKENS.aiFaint : ARK_TOKENS.surface,
                 borderRadius: ARK_TOKENS.r2,
-                fontSize: 12.5,
+                fontSize: 15,
                 lineHeight: 1.5,
                 color: answered && !isSelected ? ARK_TOKENS.inkMuted : ARK_TOKENS.ink,
                 cursor: answered ? 'default' : 'pointer',
@@ -495,7 +495,7 @@ function QuizOptions({
                   background: isSelected ? ARK_TOKENS.ai : 'transparent',
                   color: isSelected ? '#fff' : ARK_TOKENS.inkMuted,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700, flexShrink: 0,
+                  fontSize: 12, fontWeight: 700, flexShrink: 0,
                   transition: 'all 0.12s',
                 }}
               >
@@ -516,7 +516,7 @@ function QuizOptions({
                     border: `1px solid ${ARK_TOKENS.borderStrong}`,
                     borderRadius: ARK_TOKENS.r,
                     padding: '6px 10px',
-                    fontSize: 12,
+                    fontSize: 14,
                     fontFamily: 'inherit',
                     outline: 'none',
                     background: ARK_TOKENS.surface,
@@ -566,7 +566,7 @@ function SuggestMsg({
   if (msg.role === 'user') {
     return (
       <div style={{ display: 'flex', justifyContent: 'flex-end', animation: 'ark-fadein 0.25s' }}>
-        <div style={{ maxWidth: '88%', background: ARK_TOKENS.surfaceAlt, color: ARK_TOKENS.ink, padding: '8px 12px', borderRadius: 10, fontSize: 13, lineHeight: 1.5 }}>
+        <div style={{ maxWidth: '88%', background: ARK_TOKENS.surfaceAlt, color: ARK_TOKENS.ink, padding: '8px 12px', borderRadius: 10, fontSize: 16, lineHeight: 1.5 }}>
           {msg.text}
         </div>
       </div>
@@ -575,7 +575,7 @@ function SuggestMsg({
 
   if (msg.kind === 'ack') {
     return (
-      <div className="ark-fadein" style={{ display: 'flex', gap: 6, paddingLeft: 32, fontSize: 11, color: ARK_TOKENS.inkSubtle, alignItems: 'center' }}>
+      <div className="ark-fadein" style={{ display: 'flex', gap: 6, paddingLeft: 32, fontSize: 13, color: ARK_TOKENS.inkSubtle, alignItems: 'center' }}>
         <Ico.check size={11} />
         <span>{msg.text}</span>
       </div>
@@ -597,13 +597,13 @@ function SuggestMsg({
       <div style={{ flex: 1, minWidth: 0 }}>
         {msg.text && (
           <div
-            style={{ fontSize: 13, lineHeight: 1.55, color: ARK_TOKENS.ink, marginBottom: msg.kind ? 10 : 0 }}
+            style={{ fontSize: 16, lineHeight: 1.55, color: ARK_TOKENS.ink, marginBottom: msg.kind ? 10 : 0 }}
             dangerouslySetInnerHTML={{ __html: renderBold(msg.text) }}
           />
         )}
         {msg.intro && (
           <div
-            style={{ fontSize: 12, lineHeight: 1.5, color: ARK_TOKENS.inkMuted, marginBottom: 8 }}
+            style={{ fontSize: 14, lineHeight: 1.5, color: ARK_TOKENS.inkMuted, marginBottom: 8 }}
             dangerouslySetInnerHTML={{ __html: renderBold(msg.intro) }}
           />
         )}
@@ -624,7 +624,7 @@ function SuggestMsg({
                     border: `1px solid ${ARK_TOKENS.border}`,
                     background: used ? ARK_TOKENS.surfaceAlt : ARK_TOKENS.surface,
                     borderRadius: ARK_TOKENS.r2,
-                    fontSize: 12.5,
+                    fontSize: 15,
                     lineHeight: 1.5,
                     color: used ? ARK_TOKENS.inkMuted : ARK_TOKENS.ink,
                     cursor: used ? 'default' : 'pointer',

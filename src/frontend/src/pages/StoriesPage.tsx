@@ -82,9 +82,9 @@ export function StoriesPage() {
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 6 }}>MY STORIES</div>
-              <h1 style={{ fontSize: 26, fontWeight: 600, margin: 0, letterSpacing: -0.4 }}>Pick up where you left off</h1>
-              <p style={{ fontSize: 13, color: ARK_TOKENS.inkMuted, margin: '6px 0 0', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 6 }}>MY STORIES</div>
+              <h1 style={{ fontSize: 31, fontWeight: 600, margin: 0, letterSpacing: -0.4 }}>Pick up where you left off</h1>
+              <p style={{ fontSize: 16, color: ARK_TOKENS.inkMuted, margin: '6px 0 0', lineHeight: 1.5 }}>
                 Drafts stay here until you push them to Azure DevOps. Start a new story or resume one in progress.
               </p>
             </div>
@@ -111,10 +111,10 @@ export function StoriesPage() {
                 placeholder="Search drafts\u2026"
                 style={{
                   flex: 1, border: 'none', outline: 'none', background: 'transparent',
-                  fontSize: 13, fontFamily: 'inherit', color: ARK_TOKENS.ink,
+                  fontSize: 16, fontFamily: 'inherit', color: ARK_TOKENS.ink,
                 }}
               />
-              <span style={{ fontSize: 11, color: ARK_TOKENS.inkSubtle, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle, fontVariantNumeric: 'tabular-nums' }}>
                 {filtered.length} of {displayDrafts.length}
               </span>
             </div>
@@ -147,7 +147,7 @@ export function StoriesPage() {
                 />
               ))}
               {filtered.length === 0 && (
-                <div style={{ padding: '32px 16px', textAlign: 'center', color: ARK_TOKENS.inkMuted, fontSize: 13 }}>
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: ARK_TOKENS.inkMuted, fontSize: 16 }}>
                   No drafts match &ldquo;{query}&rdquo;.
                 </div>
               )}
@@ -156,7 +156,7 @@ export function StoriesPage() {
 
           {/* Footer */}
           {displayDrafts.length > 0 && (
-            <div style={{ marginTop: 16, fontSize: 12, color: ARK_TOKENS.inkSubtle, display: 'flex', gap: 16 }}>
+            <div style={{ marginTop: 16, fontSize: 14, color: ARK_TOKENS.inkSubtle, display: 'flex', gap: 16 }}>
               <span>{displayDrafts.length} draft{displayDrafts.length === 1 ? '' : 's'} · synced to your account</span>
               <span style={{ flex: 1 }} />
               <a style={{ color: ARK_TOKENS.azure, textDecoration: 'none' }} href="#">View pushed stories in Azure ↗</a>
@@ -207,7 +207,7 @@ function DraftRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <div
             style={{
-              fontSize: 14, fontWeight: 600, color: ARK_TOKENS.ink,
+              fontSize: 17, fontWeight: 600, color: ARK_TOKENS.ink,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}
           >
@@ -215,7 +215,7 @@ function DraftRow({
           </div>
           {d.acCount === 0 && <Badge tone="warning">Needs ACs</Badge>}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: ARK_TOKENS.inkMuted }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: ARK_TOKENS.inkMuted }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Ico.user size={11} /> {d.persona}
           </span>
@@ -223,7 +223,7 @@ function DraftRow({
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.area}</span>
         </div>
         {d.epic && (
-          <div style={{ marginTop: 4, fontSize: 11, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ marginTop: 4, fontSize: 13, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 8, height: 8, background: '#773b93', borderRadius: 1, flexShrink: 0 }} />
             <span style={{ color: ARK_TOKENS.azure, fontVariantNumeric: 'tabular-nums' }}>Epic {d.epic.id}</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.epic.title}</span>
@@ -233,7 +233,7 @@ function DraftRow({
 
       {/* Progress */}
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: ARK_TOKENS.inkMuted, marginBottom: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: ARK_TOKENS.inkMuted, marginBottom: 4 }}>
           <span>{d.filled} of {d.total} fields</span>
           <span style={{ fontVariantNumeric: 'tabular-nums', color: ARK_TOKENS.ink, fontWeight: 500 }}>{pct}%</span>
         </div>
@@ -249,14 +249,14 @@ function DraftRow({
       </div>
 
       {/* Last edited */}
-      <div style={{ fontSize: 12, color: ARK_TOKENS.inkMuted, fontVariantNumeric: 'tabular-nums' }}>
+      <div style={{ fontSize: 14, color: ARK_TOKENS.inkMuted, fontVariantNumeric: 'tabular-nums' }}>
         {d.lastEdited}
       </div>
 
       {/* Owner */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <Avatar name={d.owner} size={22} color={d.ownerColor} />
-        <div style={{ fontSize: 12, color: ARK_TOKENS.inkMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 14, color: ARK_TOKENS.inkMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {d.owner.split(' ')[0]}
         </div>
       </div>
@@ -322,7 +322,7 @@ function DraftMenuItem({ icon, children, danger }: { icon: React.ReactNode; chil
       onMouseLeave={() => setHover(false)}
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        padding: '7px 10px', fontSize: 12.5,
+        padding: '7px 10px', fontSize: 15,
         color: danger ? ARK_TOKENS.danger : ARK_TOKENS.ink,
         cursor: 'pointer', borderRadius: ARK_TOKENS.r,
         background: hover ? (danger ? ARK_TOKENS.dangerBg : ARK_TOKENS.surfaceAlt) : 'transparent',
@@ -354,8 +354,8 @@ function EmptyDraftsState({ onNewStory }: { onNewStory: () => void }) {
       >
         <Ico.list size={20} />
       </div>
-      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No drafts yet</div>
-      <div style={{ fontSize: 13, color: ARK_TOKENS.inkMuted, marginBottom: 20, maxWidth: 360, margin: '0 auto 20px', lineHeight: 1.5 }}>
+      <div style={{ fontSize: 19, fontWeight: 600, marginBottom: 6 }}>No drafts yet</div>
+      <div style={{ fontSize: 16, color: ARK_TOKENS.inkMuted, marginBottom: 20, maxWidth: 360, margin: '0 auto 20px', lineHeight: 1.5 }}>
         Start a new user story and Ark will guide you through writing one developers can pick up without questions.
       </div>
       <Btn variant="primary" size="lg" icon={<Ico.plus size={14} />} onClick={onNewStory}>

@@ -41,8 +41,8 @@ export function BuilderCPage() {
         rightActions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 0, border: `1px solid ${ARK_TOKENS.borderStrong}`, borderRadius: ARK_TOKENS.r, overflow: 'hidden' }}>
-              <button style={{ padding: '5px 10px', background: ARK_TOKENS.azureLight, color: ARK_TOKENS.azure, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Canvas</button>
-              <button style={{ padding: '5px 10px', background: '#fff', color: ARK_TOKENS.inkMuted, border: 'none', borderLeft: `1px solid ${ARK_TOKENS.borderStrong}`, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>Document</button>
+              <button style={{ padding: '5px 10px', background: ARK_TOKENS.azureLight, color: ARK_TOKENS.azure, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Canvas</button>
+              <button style={{ padding: '5px 10px', background: '#fff', color: ARK_TOKENS.inkMuted, border: 'none', borderLeft: `1px solid ${ARK_TOKENS.borderStrong}`, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Document</button>
             </div>
             <Btn variant="ghost" icon={<Ico.sparkle size={14} />} style={{ color: ARK_TOKENS.ai }}>Fill gaps with AI</Btn>
             <Btn variant="primary" icon={<Ico.arrow size={14} />} onClick={() => navigate('/stories/new/push')}>Push to Azure</Btn>
@@ -53,8 +53,8 @@ export function BuilderCPage() {
       {/* Sub-header */}
       <div style={{ padding: '16px 24px', borderBottom: `1px solid ${ARK_TOKENS.border}`, background: ARK_TOKENS.surface, display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: 1 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0, letterSpacing: -0.2 }}>Auto-retry failed Pro subscription renewals</h2>
-          <div style={{ fontSize: 12, color: ARK_TOKENS.inkMuted, marginTop: 2, display: 'flex', gap: 10 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, margin: 0, letterSpacing: -0.2 }}>Auto-retry failed Pro subscription renewals</h2>
+          <div style={{ fontSize: 14, color: ARK_TOKENS.inkMuted, marginTop: 2, display: 'flex', gap: 10 }}>
             <span>7 cards</span>
             <span>&middot;</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -93,7 +93,7 @@ export function BuilderCPage() {
         {/* Divider */}
         <div style={{ display: 'flex', justifyContent: 'center', margin: '32px 0 20px', gap: 12, alignItems: 'center' }}>
           <div style={{ height: 1, flex: 0.2, background: ARK_TOKENS.border }} />
-          <div style={{ fontSize: 11, fontWeight: 600, color: ARK_TOKENS.inkMuted, letterSpacing: 0.8, padding: '4px 12px', background: ARK_TOKENS.surfaceAlt, borderRadius: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: ARK_TOKENS.inkMuted, letterSpacing: 0.8, padding: '4px 12px', background: ARK_TOKENS.surfaceAlt, borderRadius: 12 }}>
             HOW WE KNOW IT WORKS
           </div>
           <div style={{ height: 1, flex: 0.2, background: ARK_TOKENS.border }} />
@@ -112,7 +112,7 @@ export function BuilderCPage() {
             style={{
               padding: '10px 16px', border: `1.5px dashed ${ARK_TOKENS.borderStrong}`, background: 'transparent',
               borderRadius: ARK_TOKENS.r2, cursor: 'pointer', color: ARK_TOKENS.inkMuted, fontWeight: 500,
-              display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: 13,
+              display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: 16,
             }}
           >
             <Ico.plus size={12} /> Add acceptance criterion
@@ -129,10 +129,10 @@ export function BuilderCPage() {
             transform: 'rotate(1deg)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: ARK_TOKENS.ai, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: ARK_TOKENS.ai, fontSize: 13, fontWeight: 700, letterSpacing: 0.5 }}>
             <Ico.sparkle size={12} /> COACH NOTE
           </div>
-          <div style={{ fontSize: 12, lineHeight: 1.5, color: ARK_TOKENS.ink }}>
+          <div style={{ fontSize: 14, lineHeight: 1.5, color: ARK_TOKENS.ink }}>
             Your story is well-shaped, but consider splitting out the <b>customer notification email</b> piece — it may belong to a separate story owned by the Notifications team.
           </div>
           <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
@@ -169,16 +169,16 @@ function IdxCard({ data }: { data: CardData }) {
           {IconComp && <IconComp size={12} />}
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.5, textTransform: 'uppercase' }}>{data.sub}</div>
-          <div style={{ fontSize: 14, fontWeight: 600, marginTop: 1 }}>{data.title}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.5, textTransform: 'uppercase' }}>{data.sub}</div>
+          <div style={{ fontSize: 17, fontWeight: 600, marginTop: 1 }}>{data.title}</div>
         </div>
       </div>
-      <div style={{ fontSize: 13, lineHeight: 1.5, color: ARK_TOKENS.ink, flex: 1 }}>{data.content}</div>
+      <div style={{ fontSize: 16, lineHeight: 1.5, color: ARK_TOKENS.ink, flex: 1 }}>{data.content}</div>
       <div style={{ display: 'flex', gap: 4, marginTop: 4, borderTop: `1px solid ${ARK_TOKENS.border}`, paddingTop: 8 }}>
-        <button style={{ border: 'none', background: 'transparent', color: ARK_TOKENS.inkSubtle, cursor: 'pointer', padding: 4, borderRadius: 3, fontSize: 11, display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'inherit' }}>
+        <button style={{ border: 'none', background: 'transparent', color: ARK_TOKENS.inkSubtle, cursor: 'pointer', padding: 4, borderRadius: 3, fontSize: 13, display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'inherit' }}>
           <Ico.edit size={11} /> Edit
         </button>
-        <button style={{ border: 'none', background: 'transparent', color: ARK_TOKENS.ai, cursor: 'pointer', padding: 4, borderRadius: 3, fontSize: 11, display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'inherit' }}>
+        <button style={{ border: 'none', background: 'transparent', color: ARK_TOKENS.ai, cursor: 'pointer', padding: 4, borderRadius: 3, fontSize: 13, display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'inherit' }}>
           <Ico.sparkle size={11} /> Tighten
         </button>
       </div>
@@ -188,7 +188,7 @@ function IdxCard({ data }: { data: CardData }) {
 
 function LegendTag({ color, label }: { color: string; label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: ARK_TOKENS.inkMuted }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: ARK_TOKENS.inkMuted }}>
       <span style={{ width: 10, height: 10, borderRadius: 5, background: color }} />
       {label}
     </div>

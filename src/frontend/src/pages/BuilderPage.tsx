@@ -147,8 +147,8 @@ export function BuilderPage() {
           <div style={{ maxWidth: 620, padding: '32px 40px 80px' }}>
             {/* Heading */}
             <div style={{ marginBottom: 28 }}>
-              <h1 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 6px', letterSpacing: -0.4 }}>New user story</h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: ARK_TOKENS.inkMuted }}>
+              <h1 style={{ fontSize: 29, fontWeight: 600, margin: '0 0 6px', letterSpacing: -0.4 }}>New user story</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: ARK_TOKENS.inkMuted }}>
                 <span>{completion} of {fields.length} sections complete</span>
                 <span style={{ flex: 1, maxWidth: 120, height: 3, background: ARK_TOKENS.border, borderRadius: 2, overflow: 'hidden' }}>
                   <span style={{ display: 'block', height: '100%', width: `${(completion / fields.length) * 100}%`, background: ARK_TOKENS.azure, transition: 'width 0.3s' }} />
@@ -253,10 +253,10 @@ export function BuilderPage() {
                       display: 'flex', gap: 12, alignItems: 'flex-start',
                       padding: '10px 0',
                       borderBottom: `1px solid ${ARK_TOKENS.border}`,
-                      fontSize: 13, lineHeight: 1.5,
+                      fontSize: 16, lineHeight: 1.5,
                     }}
                   >
-                    <span style={{ color: ARK_TOKENS.inkSubtle, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontSize: 11, fontWeight: 600, marginTop: 2, width: 24 }}>
+                    <span style={{ color: ARK_TOKENS.inkSubtle, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontSize: 13, fontWeight: 600, marginTop: 2, width: 24 }}>
                       AC{i + 1}
                     </span>
                     <span style={{ flex: 1 }}>{c.text}</span>
@@ -308,7 +308,7 @@ export function BuilderPage() {
         <div style={{ flex: '0 0 520px', borderLeft: `1px solid ${ARK_TOKENS.border}`, background: ARK_TOKENS.surface, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <div style={{ padding: '14px 20px', borderBottom: `1px solid ${ARK_TOKENS.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
             <AzureMark size={14} />
-            <div style={{ fontSize: 12, fontWeight: 600, color: ARK_TOKENS.inkMuted, letterSpacing: 0.2 }}>Azure DevOps preview</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: ARK_TOKENS.inkMuted, letterSpacing: 0.2 }}>Azure DevOps preview</div>
           </div>
           <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
             <WorkItemPreview

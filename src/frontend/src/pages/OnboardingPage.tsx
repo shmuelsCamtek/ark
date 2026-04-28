@@ -201,15 +201,15 @@ export function OnboardingPage() {
         {/* Connect to Azure DevOps */}
         {(
           <div className="ark-fadein">
-            <div style={{ fontSize: 11, fontWeight: 600, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 8 }}>CONNECT TO AZURE DEVOPS</div>
-            <h1 style={{ fontSize: 24, fontWeight: 600, margin: '0 0 8px', letterSpacing: -0.4 }}>Where should your story go?</h1>
-            <p style={{ fontSize: 14, color: ARK_TOKENS.inkMuted, margin: '0 0 24px' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 8 }}>CONNECT TO AZURE DEVOPS</div>
+            <h1 style={{ fontSize: 29, fontWeight: 600, margin: '0 0 8px', letterSpacing: -0.4 }}>Where should your story go?</h1>
+            <p style={{ fontSize: 17, color: ARK_TOKENS.inkMuted, margin: '0 0 24px' }}>
               Paste the Work Item ID this story belongs to, and pick the project type.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 24 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>Parent Work Item</label>
+                <label style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, display: 'block' }}>Parent Work Item</label>
                 <div style={{ position: 'relative' }}>
                   <div
                     style={{
@@ -222,7 +222,7 @@ export function OnboardingPage() {
                     <div
                       style={{
                         padding: '0 10px', color: ARK_TOKENS.inkSubtle, height: '100%',
-                        display: 'flex', alignItems: 'center', fontSize: 14,
+                        display: 'flex', alignItems: 'center', fontSize: 17,
                         borderRight: `1px solid ${ARK_TOKENS.border}`, background: ARK_TOKENS.surfaceAlt,
                       }}
                     >
@@ -293,16 +293,16 @@ export function OnboardingPage() {
                           }}
                         >
                           <div style={{ width: 10, height: 10, borderRadius: 2, flexShrink: 0, background: workItemColor(item.type) }} />
-                          <div style={{ fontSize: 11, color: ARK_TOKENS.inkSubtle, fontWeight: 600, flexShrink: 0 }}>
+                          <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle, fontWeight: 600, flexShrink: 0 }}>
                             {item.type} #{item.id}
                           </div>
                           <div style={{
-                            flex: 1, fontSize: 13, fontWeight: 500, minWidth: 0,
+                            flex: 1, fontSize: 16, fontWeight: 500, minWidth: 0,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           }}>
                             {item.title}
                           </div>
-                          <div style={{ fontSize: 10, color: ARK_TOKENS.inkSubtle, flexShrink: 0 }}>
+                          <div style={{ fontSize: 12, color: ARK_TOKENS.inkSubtle, flexShrink: 0 }}>
                             {item.state}
                           </div>
                         </div>
@@ -326,7 +326,7 @@ export function OnboardingPage() {
                     {resolved.notFound ? (
                       <>
                         <span style={{ color: ARK_TOKENS.danger, display: 'flex' }}><Ico.warn size={16} /></span>
-                        <div style={{ fontSize: 12, color: ARK_TOKENS.danger }}>
+                        <div style={{ fontSize: 14, color: ARK_TOKENS.danger }}>
                           Couldn&apos;t find #{workItemId} in this organization. Check the ID or your permissions.
                         </div>
                       </>
@@ -334,14 +334,14 @@ export function OnboardingPage() {
                       <>
                         <div style={{ width: 14, height: 14, background: resolved.color, borderRadius: 2, flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.5, marginBottom: 2 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.5, marginBottom: 2 }}>
                             {resolved.type.toUpperCase()} · #{resolved.id}
                           </div>
-                          <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: 16, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {resolved.title}
                           </div>
                           {resolved.attachments && resolved.attachments.length > 0 && (
-                            <div style={{ fontSize: 10, color: ARK_TOKENS.inkMuted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <div style={{ fontSize: 12, color: ARK_TOKENS.inkMuted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                               <Ico.file size={10} />
                               {resolved.attachments.length} attachment{resolved.attachments.length === 1 ? '' : 's'} will be imported
                             </div>
@@ -352,7 +352,7 @@ export function OnboardingPage() {
                     )}
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: ARK_TOKENS.inkSubtle, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Ico.info size={12} /> Your new story will be created as a child of this item.
                 </div>
               </div>
@@ -377,7 +377,7 @@ export function OnboardingPage() {
       <div
         style={{
           position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
-          fontSize: 11, color: ARK_TOKENS.inkSubtle,
+          fontSize: 13, color: ARK_TOKENS.inkSubtle,
         }}
       >
         Ark · For organization experts who speak business, not backlog

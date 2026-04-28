@@ -33,7 +33,7 @@ export function StateDot({ state }: StateDotProps) {
     >
       {state === 'done' && <span style={{ color: '#fff' }}><Ico.check size={10} /></span>}
       {state === 'active' && <div style={{ width: 6, height: 6, borderRadius: 3, background: ARK_TOKENS.azure }} />}
-      {state === 'warn' && <span style={{ color: ARK_TOKENS.warning, fontSize: 10, fontWeight: 700 }}>!</span>}
+      {state === 'warn' && <span style={{ color: ARK_TOKENS.warning, fontSize: 12, fontWeight: 700 }}>!</span>}
     </div>
   );
 }

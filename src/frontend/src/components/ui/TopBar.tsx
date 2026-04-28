@@ -36,7 +36,7 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
             alignItems: 'center',
             gap: 6,
             marginLeft: 12,
-            fontSize: 13,
+            fontSize: 16,
             color: ARK_TOKENS.inkMuted,
           }}
         >

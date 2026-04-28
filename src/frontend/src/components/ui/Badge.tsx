@@ -30,7 +30,7 @@ export function Badge({ tone = 'default', children, icon, style }: BadgeProps) {
         padding: '2px 8px',
         background: t.bg,
         color: t.fg,
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: 600,
         borderRadius: 6,
         letterSpacing: '0.02em',

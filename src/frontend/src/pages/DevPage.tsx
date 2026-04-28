@@ -101,7 +101,7 @@ export function DevPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: '#212332' }}>{title}</h2>
+      <h2 style={{ fontSize: 19, fontWeight: 600, margin: 0, color: '#212332' }}>{title}</h2>
       <div style={{ background: '#fff', borderRadius: 6, padding: 20, border: '1px solid #E3E6ED', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {children}
       </div>
@@ -117,7 +117,7 @@ function LabeledItem({ label, children }: { label: string; children: React.React
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       {children}
-      <span style={{ fontSize: 10, color: '#9AA0AC' }}>{label}</span>
+      <span style={{ fontSize: 12, color: '#9AA0AC' }}>{label}</span>
     </div>
   );
 }

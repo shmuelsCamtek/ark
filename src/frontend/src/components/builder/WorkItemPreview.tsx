@@ -32,17 +32,17 @@ interface WorkItemPreviewProps {
 
 export function WorkItemPreview({ title, background, persona, want, benefit, criteria, docs, showUiChange, compact, workItemState, workItemAssignedTo }: WorkItemPreviewProps) {
   return (
-    <div style={{ fontSize: 13, lineHeight: 1.55 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: 11, color: ARK_TOKENS.inkSubtle, fontWeight: 500, letterSpacing: 0.3 }}>
+    <div style={{ fontSize: 16, lineHeight: 1.55 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: 13, color: ARK_TOKENS.inkSubtle, fontWeight: 500, letterSpacing: 0.3 }}>
         <span style={{ width: 10, height: 10, background: ARK_TOKENS.azure, borderRadius: 1 }} />
         <span>USER STORY · #4187 · NEW</span>
       </div>
 
-      <h2 style={{ fontSize: 19, fontWeight: 600, margin: '0 0 16px', letterSpacing: -0.3, lineHeight: 1.3 }}>
+      <h2 style={{ fontSize: 23, fontWeight: 600, margin: '0 0 16px', letterSpacing: -0.3, lineHeight: 1.3 }}>
         {title || <span style={{ color: ARK_TOKENS.inkSubtle, fontWeight: 400 }}>Untitled story</span>}
       </h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginBottom: 20, fontSize: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginBottom: 20, fontSize: 14 }}>
         <PreviewMeta label="Assigned" value={<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Avatar name={workItemAssignedTo || 'Unassigned'} size={16} color={workItemAssignedTo ? ARK_TOKENS.azure : '#a19f9d'} /> {workItemAssignedTo || 'Unassigned'}</div>} />
         <PreviewMeta label="State" value={workItemState || 'New'} />
       </div>
@@ -50,7 +50,7 @@ export function WorkItemPreview({ title, background, persona, want, benefit, cri
       <div style={{ marginBottom: 20 }}>
         <SectionLabel>Background</SectionLabel>
         {background ? (
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: ARK_TOKENS.ink, whiteSpace: 'pre-wrap' }}>{background}</p>
+          <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: ARK_TOKENS.ink, whiteSpace: 'pre-wrap' }}>{background}</p>
         ) : (
           <Placeholder w={260} />
         )}
@@ -58,7 +58,7 @@ export function WorkItemPreview({ title, background, persona, want, benefit, cri
 
       <div style={{ marginBottom: 20 }}>
         <SectionLabel>Description</SectionLabel>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: ARK_TOKENS.ink }}>
+        <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: ARK_TOKENS.ink }}>
           <b>As a</b> {persona || <Placeholder w={80} />}
           <br /><b>I want to</b> {want || <Placeholder w={200} />}
           <br /><b>So that</b> {benefit || <Placeholder w={180} />}.
@@ -77,10 +77,10 @@ export function WorkItemPreview({ title, background, persona, want, benefit, cri
                 style={{
                   display: 'flex', gap: 12, padding: '8px 0',
                   borderTop: i === 0 ? 'none' : `1px solid ${ARK_TOKENS.border}`,
-                  fontSize: 12.5, lineHeight: 1.55,
+                  fontSize: 15, lineHeight: 1.55,
                 }}
               >
-                <span style={{ color: ARK_TOKENS.inkSubtle, fontWeight: 600, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontSize: 11, marginTop: 2, width: 24 }}>
+                <span style={{ color: ARK_TOKENS.inkSubtle, fontWeight: 600, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontSize: 13, marginTop: 2, width: 24 }}>
                   AC{i + 1}
                 </span>
                 <span style={{ flex: 1 }}>{c.text}</span>
@@ -102,10 +102,10 @@ export function WorkItemPreview({ title, background, persona, want, benefit, cri
           <SectionLabel>Attachments</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {docs.map((d) => (
-              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: ARK_TOKENS.ink, padding: '4px 0' }}>
+              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: ARK_TOKENS.ink, padding: '4px 0' }}>
                 <DocIcon kind={d.kind} />
                 <span style={{ flex: 1 }}>{d.name}</span>
-                <span style={{ color: ARK_TOKENS.inkSubtle, fontSize: 11 }}>{d.size}</span>
+                <span style={{ color: ARK_TOKENS.inkSubtle, fontSize: 13 }}>{d.size}</span>
               </div>
             ))}
           </div>
@@ -113,7 +113,7 @@ export function WorkItemPreview({ title, background, persona, want, benefit, cri
       )}
 
       {!compact && (
-        <div style={{ marginTop: 22, fontSize: 12, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ marginTop: 22, fontSize: 14, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
           <Ico.link size={11} />
           <span>Will link to <span style={{ color: ARK_TOKENS.azure, fontWeight: 500 }}>Feature #3994</span></span>
         </div>
@@ -124,7 +124,7 @@ export function WorkItemPreview({ title, background, persona, want, benefit, cri
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <div style={{ fontSize: 10.5, fontWeight: 600, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.7, marginBottom: 8, textTransform: 'uppercase' }}>
+    <div style={{ fontSize: 13, fontWeight: 600, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.7, marginBottom: 8, textTransform: 'uppercase' }}>
       {children}
     </div>
   );
@@ -133,8 +133,8 @@ function SectionLabel({ children }: { children: ReactNode }) {
 function PreviewMeta({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: 10, color: ARK_TOKENS.inkSubtle, fontWeight: 600, letterSpacing: 0.6, marginBottom: 3, textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ fontSize: 12.5, color: ARK_TOKENS.ink }}>{value}</div>
+      <div style={{ fontSize: 12, color: ARK_TOKENS.inkSubtle, fontWeight: 600, letterSpacing: 0.6, marginBottom: 3, textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontSize: 15, color: ARK_TOKENS.ink }}>{value}</div>
     </div>
   );
 }

@@ -17,9 +17,9 @@ interface BtnProps {
 }
 
 const sizes: Record<BtnSize, CSSProperties> = {
-  sm: { padding: '5px 14px', fontSize: 12, height: 28 },
-  md: { padding: '7px 18px', fontSize: 13, height: 36 },
-  lg: { padding: '10px 24px', fontSize: 14, height: 40 },
+  sm: { padding: '5px 14px', fontSize: 14, height: 28 },
+  md: { padding: '7px 18px', fontSize: 16, height: 36 },
+  lg: { padding: '10px 24px', fontSize: 17, height: 40 },
 };
 
 const variants: Record<BtnVariant, CSSProperties> = {

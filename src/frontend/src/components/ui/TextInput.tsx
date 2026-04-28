@@ -18,7 +18,7 @@ export function TextInput({ value, onChange, placeholder, style, label, hint, er
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {label && (
-        <label style={{ fontSize: 12, fontWeight: 600, color: ARK_TOKENS.ink }}>{label}</label>
+        <label style={{ fontSize: 14, fontWeight: 600, color: ARK_TOKENS.ink }}>{label}</label>
       )}
       <div
         style={{
@@ -44,8 +44,8 @@ export function TextInput({ value, onChange, placeholder, style, label, hint, er
           style={{ flex: 1, border: 'none', background: 'transparent', height: '100%', outline: 'none', ...style }}
         />
       </div>
-      {hint && !error && <span style={{ fontSize: 11, color: ARK_TOKENS.inkSubtle }}>{hint}</span>}
-      {error && <span style={{ fontSize: 11, color: ARK_TOKENS.danger }}>{error}</span>}
+      {hint && !error && <span style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle }}>{hint}</span>}
+      {error && <span style={{ fontSize: 13, color: ARK_TOKENS.danger }}>{error}</span>}
     </div>
   );
 }

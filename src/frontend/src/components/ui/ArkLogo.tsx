@@ -18,10 +18,10 @@ export function ArkLogo({ size = 24 }: ArkLogoProps) {
           </linearGradient>
         </defs>
       </svg>
-      <span style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', color: ARK_TOKENS.ink }}>Ark</span>
+      <span style={{ fontSize: 18, fontWeight: 500, letterSpacing: '-0.01em', color: ARK_TOKENS.ink }}>Ark</span>
       <span
         style={{
-          fontSize: 10.5,
+          fontSize: 13,
           fontWeight: 500,
           color: ARK_TOKENS.inkSubtle,
           padding: '2px 8px',

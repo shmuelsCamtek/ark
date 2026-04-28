@@ -20,7 +20,7 @@ export function NarrativeRow({ label, value, onChange, placeholder, multiline, l
     background: 'transparent',
     padding: '4px 0',
     fontFamily: 'inherit',
-    fontSize: 14,
+    fontSize: 17,
     lineHeight: 1.5,
     color: ARK_TOKENS.ink,
     outline: 'none',
@@ -35,7 +35,7 @@ export function NarrativeRow({ label, value, onChange, placeholder, multiline, l
         borderBottom: last ? 'none' : `1px solid ${ARK_TOKENS.border}`,
       }}
     >
-      <div style={{ fontSize: 12, color: ARK_TOKENS.inkMuted, fontWeight: 500, paddingTop: 4 }}>{label}</div>
+      <div style={{ fontSize: 14, color: ARK_TOKENS.inkMuted, fontWeight: 500, paddingTop: 4 }}>{label}</div>
       {multiline ? (
         <textarea
           value={value}
