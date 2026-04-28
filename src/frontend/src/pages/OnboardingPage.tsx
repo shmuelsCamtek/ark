@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ARK_TOKENS } from '../tokens';
 import { ArkLogo, Btn, Badge, Ico } from '../components/ui';
 import { useNavigate } from '../router';
 import { useApp, createEmptyDraft } from '../context/AppContext';
-import { useServices } from '../context/ServicesContext';
+import { HttpAzureService } from '../services/http-azure';
+import type { WorkItemInfo } from '../types';
 
 interface ResolvedItem {
   id: number;
@@ -15,6 +16,28 @@ interface ResolvedItem {
   children: number;
   color: string;
   notFound?: boolean;
+}
+
+function workItemColor(type: string): string {
+  switch (type) {
+    case 'Bug': return '#cc293d';
+    case 'Epic': return '#ff7b00';
+    case 'Task': return '#f2cb1d';
+    default: return '#773b93';
+  }
+}
+
+function toResolved(item: WorkItemInfo): ResolvedItem {
+  return {
+    id: parseInt(item.id, 10),
+    title: item.title,
+    type: item.type,
+    project: item.areaPath?.split('\\')[0] || 'Project',
+    area: item.areaPath || '',
+    state: item.state,
+    children: 0,
+    color: workItemColor(item.type),
+  };
 }
 
 function Spinner({ size = 14 }: { size?: number }) {
@@ -34,41 +57,72 @@ function Spinner({ size = 14 }: { size?: number }) {
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { addDraft } = useApp();
-  const { azure } = useServices();
+  const azure = useMemo(() => new HttpAzureService(), []);
   const [workItemId, setWorkItemId] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [resolved, setResolved] = useState<ResolvedItem | null>(null);
+  const [searchResults, setSearchResults] = useState<WorkItemInfo[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Debounced work item resolution
+  // Debounced search
   useEffect(() => {
     if (!workItemId || workItemId.length < 2) {
-      setResolved(null);
+      setSearchResults([]);
+      setShowDropdown(false);
       return;
     }
+    // If we already have a resolved item matching the current input, don't search
+    if (resolved && String(resolved.id) === workItemId) return;
+
+    let cancelled = false;
     const t = setTimeout(async () => {
-      const result = await azure.resolveWorkItem(workItemId);
-      if (result) {
-        setResolved({
-          id: parseInt(result.id, 10),
-          title: result.title,
-          type: result.type,
-          project: result.areaPath?.split('\\')[0] || 'Project',
-          area: result.areaPath || '',
-          state: result.state,
-          children: 0,
-          color: result.type === 'Bug' ? '#cc293d' : '#773b93',
-        });
-      } else {
-        setResolved({
-          id: parseInt(workItemId, 10),
-          title: 'Item not found',
-          type: '', project: '', area: '', state: '', children: 0, color: '',
-          notFound: true,
-        });
+      try {
+        const results = await azure.searchWorkItems(workItemId);
+        if (cancelled) return;
+        if (results.length > 0) {
+          setSearchResults(results);
+          setShowDropdown(true);
+          setHighlightIndex(0);
+        } else if (/^\d+$/.test(workItemId)) {
+          // Fallback: try direct resolve for exact numeric IDs
+          const item = await azure.resolveWorkItem(workItemId);
+          if (cancelled) return;
+          if (item) {
+            setSearchResults([item]);
+            setShowDropdown(true);
+            setHighlightIndex(0);
+          } else {
+            setSearchResults([]);
+            setShowDropdown(false);
+            setResolved({
+              id: parseInt(workItemId, 10),
+              title: 'Item not found',
+              type: '', project: '', area: '', state: '', children: 0, color: '',
+              notFound: true,
+            });
+          }
+        } else {
+          setSearchResults([]);
+          setShowDropdown(false);
+        }
+      } catch (err) {
+        console.error('[onboarding] search failed:', err);
+        if (cancelled) return;
+        setSearchResults([]);
+        setShowDropdown(false);
       }
     }, 400);
-    return () => clearTimeout(t);
-  }, [workItemId, azure]);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [workItemId, azure, resolved]);
+
+  const selectItem = useCallback((item: WorkItemInfo) => {
+    setWorkItemId(item.id);
+    setResolved(toResolved(item));
+    setShowDropdown(false);
+    setSearchResults([]);
+  }, []);
 
   const handleFinish = () => {
     setConnecting(true);
@@ -119,37 +173,104 @@ export function OnboardingPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 24 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>Parent Work Item ID</label>
-                <div
-                  style={{
-                    display: 'flex', alignItems: 'center',
-                    border: `1px solid ${resolved && !resolved.notFound ? ARK_TOKENS.success : ARK_TOKENS.borderStrong}`,
-                    borderRadius: ARK_TOKENS.r,
-                    background: ARK_TOKENS.surface, height: 36, overflow: 'hidden',
-                  }}
-                >
+                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>Parent Work Item</label>
+                <div style={{ position: 'relative' }}>
                   <div
                     style={{
-                      padding: '0 12px', color: ARK_TOKENS.inkSubtle, height: '100%',
-                      display: 'flex', alignItems: 'center', fontSize: 14, fontWeight: 600,
-                      borderRight: `1px solid ${ARK_TOKENS.border}`, background: ARK_TOKENS.surfaceAlt,
+                      display: 'flex', alignItems: 'center',
+                      border: `1px solid ${resolved && !resolved.notFound ? ARK_TOKENS.success : ARK_TOKENS.borderStrong}`,
+                      borderRadius: ARK_TOKENS.r,
+                      background: ARK_TOKENS.surface, height: 36, overflow: 'hidden',
                     }}
                   >
-                    #
+                    <div
+                      style={{
+                        padding: '0 10px', color: ARK_TOKENS.inkSubtle, height: '100%',
+                        display: 'flex', alignItems: 'center', fontSize: 14,
+                        borderRight: `1px solid ${ARK_TOKENS.border}`, background: ARK_TOKENS.surfaceAlt,
+                      }}
+                    >
+                      <Ico.search size={14} />
+                    </div>
+                    <input
+                      ref={inputRef}
+                      value={workItemId}
+                      onChange={(e) => {
+                        setWorkItemId(e.target.value);
+                        // Clear resolved when user edits
+                        if (resolved && e.target.value !== String(resolved.id)) {
+                          setResolved(null);
+                        }
+                      }}
+                      onFocus={() => { if (searchResults.length > 0) setShowDropdown(true); }}
+                      onBlur={() => setShowDropdown(false)}
+                      onKeyDown={(e) => {
+                        if (!showDropdown) return;
+                        if (e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          setHighlightIndex((i) => Math.min(i + 1, searchResults.length - 1));
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          setHighlightIndex((i) => Math.max(i - 1, 0));
+                        } else if (e.key === 'Enter' && searchResults[highlightIndex]) {
+                          e.preventDefault();
+                          selectItem(searchResults[highlightIndex]);
+                        } else if (e.key === 'Escape') {
+                          setShowDropdown(false);
+                        }
+                      }}
+                      placeholder="Search by ID or title..."
+                      style={{
+                        flex: 1, border: 'none', height: '100%', padding: '0 12px',
+                        background: 'transparent', outline: 'none',
+                        fontFamily: ARK_TOKENS.mono, fontWeight: 600,
+                      }}
+                    />
+                    {resolved && !resolved.notFound && (
+                      <div style={{ color: ARK_TOKENS.success, padding: '0 12px', display: 'flex', alignItems: 'center' }}>
+                        <Ico.check size={14} />
+                      </div>
+                    )}
                   </div>
-                  <input
-                    value={workItemId}
-                    onChange={(e) => setWorkItemId(e.target.value.replace(/\D/g, ''))}
-                    placeholder="e.g. 3994"
-                    style={{
-                      flex: 1, border: 'none', height: '100%', padding: '0 12px',
-                      background: 'transparent', outline: 'none',
-                      fontFamily: ARK_TOKENS.mono, fontWeight: 600,
-                    }}
-                  />
-                  {resolved && !resolved.notFound && (
-                    <div style={{ color: ARK_TOKENS.success, padding: '0 12px', display: 'flex', alignItems: 'center' }}>
-                      <Ico.check size={14} />
+
+                  {/* Search dropdown */}
+                  {showDropdown && searchResults.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute', top: '100%', left: 0, right: 0,
+                        marginTop: 4, background: ARK_TOKENS.surface,
+                        border: `1px solid ${ARK_TOKENS.borderStrong}`,
+                        borderRadius: ARK_TOKENS.r2,
+                        boxShadow: ARK_TOKENS.shadow3,
+                        zIndex: 50, maxHeight: 260, overflowY: 'auto',
+                      }}
+                    >
+                      {searchResults.map((item, idx) => (
+                        <div
+                          key={item.id}
+                          onMouseDown={(e) => { e.preventDefault(); selectItem(item); }}
+                          onMouseEnter={() => setHighlightIndex(idx)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            padding: '8px 12px', cursor: 'pointer',
+                            background: idx === highlightIndex ? ARK_TOKENS.surfaceAlt : 'transparent',
+                          }}
+                        >
+                          <div style={{ width: 10, height: 10, borderRadius: 2, flexShrink: 0, background: workItemColor(item.type) }} />
+                          <div style={{ fontSize: 11, color: ARK_TOKENS.inkSubtle, fontWeight: 600, flexShrink: 0 }}>
+                            {item.type} #{item.id}
+                          </div>
+                          <div style={{
+                            flex: 1, fontSize: 13, fontWeight: 500, minWidth: 0,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {item.title}
+                          </div>
+                          <div style={{ fontSize: 10, color: ARK_TOKENS.inkSubtle, flexShrink: 0 }}>
+                            {item.state}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

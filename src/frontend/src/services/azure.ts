@@ -2,6 +2,7 @@ import type { WorkItemInfo } from '../types';
 
 export interface AzureService {
   resolveWorkItem(id: string): Promise<WorkItemInfo | null>;
+  searchWorkItems(query: string): Promise<WorkItemInfo[]>;
   createWorkItem(data: {
     title: string;
     description: string;
@@ -35,12 +36,52 @@ const MOCK_WORK_ITEMS: Record<string, WorkItemInfo> = {
     areaPath: 'Ark\\Platform',
     iterationPath: 'Ark\\Sprint 14',
   },
+  '4200': {
+    id: '4200',
+    title: 'User notification preferences',
+    type: 'User Story',
+    state: 'New',
+    areaPath: 'Ark\\Frontend',
+    iterationPath: 'Ark\\Sprint 15',
+  },
+  '4301': {
+    id: '4301',
+    title: 'API rate limiting implementation',
+    type: 'Task',
+    state: 'Active',
+    areaPath: 'Ark\\Backend',
+    iterationPath: 'Ark\\Sprint 15',
+  },
+  '4050': {
+    id: '4050',
+    title: 'Search results pagination bug',
+    type: 'Bug',
+    state: 'Active',
+    areaPath: 'Ark\\Frontend',
+    iterationPath: 'Ark\\Sprint 14',
+  },
+  '3950': {
+    id: '3950',
+    title: 'Feature flag management epic',
+    type: 'Epic',
+    state: 'New',
+    areaPath: 'Ark\\Platform',
+    iterationPath: 'Ark\\Sprint 16',
+  },
 };
 
 export class MockAzureService implements AzureService {
   async resolveWorkItem(id: string): Promise<WorkItemInfo | null> {
     await delay(400 + Math.random() * 200);
     return MOCK_WORK_ITEMS[id] ?? null;
+  }
+
+  async searchWorkItems(query: string): Promise<WorkItemInfo[]> {
+    await delay(300 + Math.random() * 200);
+    const q = query.toLowerCase();
+    return Object.values(MOCK_WORK_ITEMS).filter(
+      (item) => item.id.includes(q) || item.title.toLowerCase().includes(q),
+    );
   }
 
   async createWorkItem(_data: {

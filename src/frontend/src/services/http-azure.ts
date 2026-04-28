@@ -5,7 +5,15 @@ export class HttpAzureService implements AzureService {
   async resolveWorkItem(id: string): Promise<WorkItemInfo | null> {
     const res = await fetch(`/api/azure/workitems/${id}`);
     if (!res.ok) return null;
-    return res.json();
+    const item = await res.json();
+    return { ...item, id: String(item.id) };
+  }
+
+  async searchWorkItems(query: string): Promise<WorkItemInfo[]> {
+    const res = await fetch(`/api/azure/workitems?q=${encodeURIComponent(query)}`);
+    if (!res.ok) return [];
+    const items = await res.json();
+    return items.map((item: Record<string, unknown>) => ({ ...item, id: String(item.id) }));
   }
 
   async createWorkItem(data: {

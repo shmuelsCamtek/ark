@@ -19,18 +19,12 @@ function getCredential(): TokenCredential {
 async function authHeaders(): Promise<Record<string, string>> {
   if (PAT) {
     const encoded = Buffer.from(`:${PAT}`).toString('base64');
-    return {
-      Authorization: `Basic ${encoded}`,
-      'Content-Type': 'application/json-patch+json',
-    };
+    return { Authorization: `Basic ${encoded}` };
   }
 
   const token = await getCredential().getToken(AZURE_DEVOPS_SCOPE);
   if (!token) throw new Error('Failed to acquire Azure AD token');
-  return {
-    Authorization: `Bearer ${token.token}`,
-    'Content-Type': 'application/json-patch+json',
-  };
+  return { Authorization: `Bearer ${token.token}` };
 }
 
 export interface WorkItemResult {
@@ -102,10 +96,10 @@ export async function createWorkItem(params: {
   ];
 
   const url = `${ORG_URL}/${PROJECT}/_apis/wit/workitems/$${params.type}?api-version=7.1`;
-  const headers = await authHeaders();
+  const auth = await authHeaders();
   const res = await fetch(url, {
     method: 'POST',
-    headers,
+    headers: { ...auth, 'Content-Type': 'application/json-patch+json' },
     body: JSON.stringify(patchDoc),
   });
 
@@ -119,4 +113,56 @@ export async function createWorkItem(params: {
     id: data.id,
     url: data._links?.html?.href || `${ORG_URL}/${PROJECT}/_workitems/edit/${data.id}`,
   };
+}
+
+export async function searchWorkItems(query: string, top = 15): Promise<WorkItemResult[]> {
+  const escaped = query.replace(/'/g, "''");
+  const isNumeric = /^\d+$/.test(query);
+
+  let whereClause = `[System.TeamProject] = '${PROJECT}' AND [System.Title] CONTAINS '${escaped}'`;
+  if (isNumeric) {
+    whereClause = `[System.TeamProject] = '${PROJECT}' AND ([System.Title] CONTAINS '${escaped}' OR [System.Id] = ${query})`;
+  }
+
+  const wiql = `SELECT [System.Id] FROM WorkItems WHERE ${whereClause}`;
+
+  const auth = await authHeaders();
+  const wiqlUrl = `${ORG_URL}/${PROJECT}/_apis/wit/wiql?api-version=7.1&$top=${top}`;
+  const wiqlRes = await fetch(wiqlUrl, {
+    method: 'POST',
+    headers: { ...auth, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: wiql }),
+  });
+
+  if (!wiqlRes.ok) {
+    const text = await wiqlRes.text();
+    console.error('[azure] searchWorkItems WIQL failed:', wiqlRes.status, text);
+    return [];
+  }
+
+  const wiqlData = await wiqlRes.json();
+  const ids: number[] = (wiqlData.workItems || []).map((wi: { id: number }) => wi.id);
+  if (ids.length === 0) return [];
+
+  const fields = 'System.Id,System.Title,System.WorkItemType,System.State,System.AreaPath,System.IterationPath';
+  const detailUrl = `${ORG_URL}/${PROJECT}/_apis/wit/workitems?ids=${ids.join(',')}&fields=${fields}&api-version=7.1`;
+  const detailRes = await fetch(detailUrl, { headers: auth });
+
+  if (!detailRes.ok) {
+    console.error('[azure] searchWorkItems detail fetch failed:', detailRes.status);
+    return [];
+  }
+
+  const detailData = await detailRes.json();
+  return (detailData.value || []).map((item: Record<string, unknown>) => {
+    const f = (item.fields || {}) as Record<string, string>;
+    return {
+      id: item.id as number,
+      title: f['System.Title'] || '',
+      type: f['System.WorkItemType'] || '',
+      state: f['System.State'] || '',
+      areaPath: f['System.AreaPath'],
+      iterationPath: f['System.IterationPath'],
+    };
+  });
 }

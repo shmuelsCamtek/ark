@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getWorkItem, createWorkItem, getCurrentUser } from '../services/azureDevOps.ts';
+import { getWorkItem, createWorkItem, getCurrentUser, searchWorkItems } from '../services/azureDevOps.ts';
 
 export const azureRouter = Router();
 
@@ -15,6 +15,19 @@ azureRouter.get('/me', async (_req, res) => {
   } catch (err) {
     console.error('Azure /me error:', err);
     res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
+
+// Search work items by title or ID
+azureRouter.get('/workitems', async (req, res) => {
+  try {
+    const q = ((req.query.q as string) || '').trim();
+    if (!q || q.length < 2) { res.json([]); return; }
+    const results = await searchWorkItems(q, 15);
+    res.json(results);
+  } catch (err) {
+    console.error('Azure search error:', err);
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 
