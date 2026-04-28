@@ -14,6 +14,8 @@ interface ResolvedItem {
   area: string;
   state: string;
   assignedTo?: string;
+  description?: string;
+  reproSteps?: string;
   children: number;
   color: string;
   notFound?: boolean;
@@ -38,6 +40,8 @@ function toResolved(item: WorkItemInfo): ResolvedItem {
     area: item.areaPath || '',
     state: item.state,
     assignedTo: item.assignedTo,
+    description: item.description,
+    reproSteps: item.reproSteps,
     children: 0,
     color: workItemColor(item.type),
     attachments: item.attachments,
@@ -158,6 +162,8 @@ export function OnboardingPage() {
         workItemType: hasItem ? resolved.type : undefined,
         workItemState: hasItem ? resolved.state : undefined,
         workItemAssignedTo: hasItem ? resolved.assignedTo : undefined,
+        workItemDescription: hasItem ? resolved.description : undefined,
+        workItemReproSteps: hasItem ? resolved.reproSteps : undefined,
         epicId: hasItem ? String(resolved.id) : undefined,
         epicName: hasItem ? resolved.title : undefined,
         supportingDocs,

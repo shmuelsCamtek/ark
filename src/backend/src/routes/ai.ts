@@ -8,7 +8,7 @@ aiRouter.post('/chat', async (req, res) => {
   try {
     const { messages, draftContext } = req.body;
     const response = await chatWithCoach(messages, draftContext || '');
-    res.json({ text: response });
+    res.json(response);
   } catch (err) {
     console.error('AI chat error:', err);
     res.status(500).json({ error: 'AI service unavailable' });

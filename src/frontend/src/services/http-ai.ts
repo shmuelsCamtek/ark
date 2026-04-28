@@ -20,6 +20,37 @@ export class HttpAiService implements AiService {
       }),
     });
     const data = await res.json();
+
+    // Handle quiz response
+    if (data.quiz && data.quiz.question && Array.isArray(data.quiz.options)) {
+      return {
+        id: msgId(),
+        type: 'quiz',
+        text: data.text || '',
+        quiz: { question: data.quiz.question, options: data.quiz.options },
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // Handle structured response with suggestions
+    if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+      const first = data.suggestions[0];
+      // Structured suggestion: { field, options }
+      if (first.field && first.options) {
+        return {
+          id: msgId(),
+          type: first.field === 'criteria' ? 'criteria-bundle' : 'suggestion',
+          text: data.text,
+          field: first.field,
+          criteria: first.field === 'criteria'
+            ? first.options.map((s: string, i: number) => ({ id: `ac-http-${i}`, text: s, source: 'ai' as const }))
+            : undefined,
+          value: first.field !== 'criteria' ? first.options[0] : undefined,
+          timestamp: new Date().toISOString(),
+        };
+      }
+    }
+
     return {
       id: msgId(),
       type: 'ai',

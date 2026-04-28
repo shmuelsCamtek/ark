@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { type AiService, MockAiService } from '../services/ai';
+import { type AiService } from '../services/ai';
 import { type AzureService, MockAzureService } from '../services/azure';
 import { HttpAiService } from '../services/http-ai';
 import { HttpAzureService } from '../services/http-azure';
@@ -15,10 +15,12 @@ const ServicesContext = createContext<Services | null>(null);
 
 export function ServicesProvider({ children }: { children: ReactNode }) {
   const services = useMemo<Services>(() => {
+    // AI coach always uses real backend
+    const ai = new HttpAiService();
     if (USE_MOCKS) {
-      return { ai: new MockAiService(), azure: new MockAzureService() };
+      return { ai, azure: new MockAzureService() };
     }
-    return { ai: new HttpAiService(), azure: new HttpAzureService() };
+    return { ai, azure: new HttpAzureService() };
   }, []);
 
   return (

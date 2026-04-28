@@ -1,14 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ARK_TOKENS } from '../../tokens';
 import { Ico } from '../ui/icons';
+import { useServices } from '../../context/ServicesContext';
+import type { CoachMessage } from '../../types';
 
 interface SuggestMessage {
   role: 'user' | 'ai';
   text?: string;
-  kind?: 'suggestions' | 'criteria-bundle' | 'ack';
+  kind?: 'suggestions' | 'criteria-bundle' | 'ack' | 'quiz';
   intro?: string;
   field?: string;
   options?: string[];
+  quizQuestion?: string;
+  quizAnswered?: boolean;
 }
 
 interface ScanResultInput {
@@ -25,51 +29,20 @@ interface SuggestChatProps {
     want: string;
     benefit: string;
     criteria: { id: string | number; text: string }[];
+    workItemId?: string;
+    workItemType?: string;
+    workItemState?: string;
+    workItemAssignedTo?: string;
+    workItemDescription?: string;
+    workItemReproSteps?: string;
+    epicName?: string;
+    supportingDocs?: { name: string; kind: string; scanned: boolean }[];
   };
   onApply: (field: string, value: string) => void;
   activeField: string;
   setActiveField: (f: string) => void;
   scanSuggestions?: ScanResultInput[];
 }
-
-const INITIAL_MESSAGES: SuggestMessage[] = [
-  {
-    role: 'ai',
-    text: "I scanned recent tickets and stories in **Support-Platform / Billing** and your area's glossary. A few suggestions:",
-  },
-  {
-    role: 'ai',
-    kind: 'suggestions',
-    intro: 'Tighter **titles** for this story:',
-    field: 'title',
-    options: [
-      'Smart retry for failed Pro renewals',
-      'Auto-recover declined subscription payments',
-      'Reduce involuntary churn from card declines',
-    ],
-  },
-  {
-    role: 'ai',
-    kind: 'suggestions',
-    intro: '**Personas** common in your backlog:',
-    field: 'persona',
-    options: [
-      'Support engineer',
-      'Tier\u20112 billing support specialist',
-      'Customer success manager',
-    ],
-  },
-  {
-    role: 'ai',
-    kind: 'criteria-bundle',
-    intro: 'Likely **acceptance criteria** based on similar stories:',
-    options: [
-      'Given a card-decline failure, when the retry runs, then a follow-up email is sent to the customer with a payment-update link.',
-      'Given a renewal succeeds on retry, when processed, then the support timeline shows the recovery and the open alert auto-closes.',
-      'Given all retries fail, when escalated, then the ticket inherits the customer\u2019s tier and SLA from their account.',
-    ],
-  },
-];
 
 const QUICK_CHIPS = [
   'Suggest more ACs',
@@ -90,17 +63,104 @@ function fieldLabel(f: string): string {
   return labels[f] || f;
 }
 
-export function SuggestChat({ storyState: _storyState, onApply, activeField: _activeField, setActiveField: _setActiveField, scanSuggestions = [] }: SuggestChatProps) {
-  const [messages, setMessages] = useState<SuggestMessage[]>(INITIAL_MESSAGES);
+function buildDraftContext(storyState: SuggestChatProps['storyState'], activeField: string): string {
+  const ctx: Record<string, unknown> = {
+    title: storyState.title,
+    background: storyState.background,
+    persona: storyState.persona,
+    want: storyState.want,
+    benefit: storyState.benefit,
+    criteria: storyState.criteria.map((c) => c.text),
+    activeField,
+  };
+  if (storyState.workItemId) ctx.workItemId = storyState.workItemId;
+  if (storyState.workItemType) ctx.workItemType = storyState.workItemType;
+  if (storyState.workItemState) ctx.workItemState = storyState.workItemState;
+  if (storyState.workItemAssignedTo) ctx.workItemAssignedTo = storyState.workItemAssignedTo;
+  if (storyState.workItemDescription) ctx.workItemDescription = storyState.workItemDescription;
+  if (storyState.workItemReproSteps) ctx.workItemReproSteps = storyState.workItemReproSteps;
+  if (storyState.epicName) ctx.epicName = storyState.epicName;
+  if (storyState.supportingDocs?.length) ctx.supportingDocs = storyState.supportingDocs;
+  return JSON.stringify(ctx);
+}
+
+function toCoachMessages(msgs: SuggestMessage[]): CoachMessage[] {
+  return msgs
+    .filter((m) => m.role === 'user' || (m.role === 'ai' && m.text && !m.kind))
+    .map((m, i) => ({
+      id: `conv-${i}`,
+      type: m.role === 'user' ? 'user' as const : 'ai' as const,
+      text: m.text ?? '',
+      timestamp: new Date().toISOString(),
+    }));
+}
+
+function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
+  if (coach.type === 'quiz' && coach.quiz) {
+    return {
+      role: 'ai',
+      kind: 'quiz',
+      text: coach.text,
+      quizQuestion: coach.quiz.question,
+      options: coach.quiz.options,
+    };
+  }
+  if (coach.type === 'criteria-bundle') {
+    return {
+      role: 'ai',
+      kind: 'criteria-bundle',
+      intro: coach.text,
+      options: coach.criteria?.map((c) => c.text) ?? [],
+    };
+  }
+  if (coach.type === 'suggestion' && coach.field) {
+    return {
+      role: 'ai',
+      kind: 'suggestions',
+      intro: coach.text,
+      field: coach.field,
+      options: coach.value ? [coach.value] : [],
+    };
+  }
+  return { role: 'ai', text: coach.text };
+}
+
+export function SuggestChat({ storyState, onApply, activeField, setActiveField: _setActiveField, scanSuggestions = [] }: SuggestChatProps) {
+  const { ai } = useServices();
+  const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set());
   const [processedScans, setProcessedScans] = useState(0);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, typing]);
+
+  // Initial contextual suggestions for real mode
+  useEffect(() => {
+    if (initialLoaded) return;
+    let cancelled = false;
+    setTyping(true);
+    const ctx = buildDraftContext(storyState, activeField);
+    ai.chat(
+      [{ id: 'init', type: 'user', text: 'I\'m starting a new user story. Based on what I have so far, what should I focus on?', timestamp: new Date().toISOString() }],
+      ctx,
+    ).then((response) => {
+      if (cancelled) return;
+      setTyping(false);
+      setMessages((prev) => [...prev, coachToSuggestMessage(response)]);
+      setInitialLoaded(true);
+    }).catch(() => {
+      if (cancelled) return;
+      setTyping(false);
+      setMessages((prev) => [...prev, { role: 'ai', text: 'I\'m having trouble connecting. Try sending a message and I\'ll do my best to help.' }]);
+      setInitialLoaded(true);
+    });
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Process new scan suggestions into chat messages
   useEffect(() => {
@@ -113,7 +173,7 @@ export function SuggestChat({ storyState: _storyState, onApply, activeField: _ac
           newMessages.push({
             role: 'ai',
             kind: 'criteria-bundle',
-            intro: `📄 I scanned **${scan.docName}** and found these likely acceptance criteria:`,
+            intro: `\u{1F4C4} I scanned **${scan.docName}** and found these likely acceptance criteria:`,
             options: allOptions,
           });
         }
@@ -139,29 +199,76 @@ export function SuggestChat({ storyState: _storyState, onApply, activeField: _ac
     ]);
   };
 
+  const handleQuizAnswer = useCallback((msgIdx: number, answer: string) => {
+    // Mark quiz as answered
+    setMessages((prev) => prev.map((m, i) => i === msgIdx ? { ...m, quizAnswered: true } : m));
+    // Send the answer as a user message
+    const userMsg: SuggestMessage = { role: 'user', text: answer };
+    setMessages((m) => [...m, userMsg]);
+    setTyping(true);
+
+    const ctx = buildDraftContext(storyState, activeField);
+    const conversationMsgs = toCoachMessages([...messages, userMsg]);
+    ai.chat(conversationMsgs, ctx).then((response) => {
+      setMessages((m) => [...m, coachToSuggestMessage(response)]);
+    }).catch(() => {
+      setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn\'t process that. Please try again.' }]);
+    }).finally(() => {
+      setTyping(false);
+    });
+  }, [ai, messages, storyState, activeField]);
+
+  const sendMessage = useCallback(async (text: string) => {
+    const userMsg: SuggestMessage = { role: 'user', text };
+    setMessages((m) => [...m, userMsg]);
+    setTyping(true);
+    try {
+      const ctx = buildDraftContext(storyState, activeField);
+      const conversationMsgs = toCoachMessages([...messages, userMsg]);
+      const response = await ai.chat(conversationMsgs, ctx);
+      setMessages((m) => [...m, coachToSuggestMessage(response)]);
+    } catch {
+      setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn\'t process that. Please try again.' }]);
+    } finally {
+      setTyping(false);
+    }
+  }, [ai, messages, storyState, activeField]);
+
+  const handleChip = useCallback(async (chip: string) => {
+    if (chip === 'Suggest more ACs') {
+      setMessages((m) => [...m, { role: 'user', text: chip }]);
+      setTyping(true);
+      try {
+        const ctx = buildDraftContext(storyState, activeField);
+        const response = await ai.suggestField('acceptanceCriteria', storyState.criteria.map((c) => c.text).join('; '), ctx);
+        setMessages((m) => [...m, coachToSuggestMessage(response)]);
+      } catch {
+        setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn\'t generate suggestions right now.' }]);
+      } finally {
+        setTyping(false);
+      }
+    } else if (chip === 'Tighten the benefit') {
+      setMessages((m) => [...m, { role: 'user', text: chip }]);
+      setTyping(true);
+      try {
+        const ctx = buildDraftContext(storyState, activeField);
+        const response = await ai.suggestField('benefit', storyState.benefit, ctx);
+        setMessages((m) => [...m, coachToSuggestMessage(response)]);
+      } catch {
+        setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn\'t generate suggestions right now.' }]);
+      } finally {
+        setTyping(false);
+      }
+    } else {
+      await sendMessage(chip);
+    }
+  }, [ai, storyState, activeField, sendMessage]);
+
   const send = () => {
     if (!input.trim()) return;
     const userText = input;
-    setMessages((m) => [...m, { role: 'user', text: userText }]);
     setInput('');
-    setTyping(true);
-    setTimeout(() => {
-      setTyping(false);
-      setMessages((m) => [
-        ...m,
-        {
-          role: 'ai',
-          kind: 'suggestions',
-          intro: 'Tighter options for the **benefit**:',
-          field: 'benefit',
-          options: [
-            'my team recovers 80% of declined renewals without human intervention.',
-            'I can stop opening manual tickets for every card decline \u2014 saving ~5 hours per week per support engineer.',
-            'customers on Pro stay in service through transient payment issues, reducing involuntary churn.',
-          ],
-        },
-      ]);
-    }, 1100);
+    sendMessage(userText);
   };
 
   return (
@@ -196,7 +303,7 @@ export function SuggestChat({ storyState: _storyState, onApply, activeField: _ac
         style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 14 }}
       >
         {messages.map((m, i) => (
-          <SuggestMsg key={i} msg={m} msgIdx={i} onApply={handleApply} usedSuggestions={usedSuggestions} />
+          <SuggestMsg key={i} msg={m} msgIdx={i} onApply={handleApply} usedSuggestions={usedSuggestions} onQuizAnswer={handleQuizAnswer} />
         ))}
         {typing && (
           <div style={{ display: 'flex', gap: 4, padding: '4px 0 4px 32px', alignItems: 'center' }}>
@@ -221,7 +328,8 @@ export function SuggestChat({ storyState: _storyState, onApply, activeField: _ac
         {QUICK_CHIPS.map((c) => (
           <button
             key={c}
-            onClick={() => setInput(c)}
+            onClick={() => handleChip(c)}
+            disabled={typing}
             style={{
               border: `1px solid ${ARK_TOKENS.border}`,
               background: ARK_TOKENS.surface,
@@ -229,8 +337,9 @@ export function SuggestChat({ storyState: _storyState, onApply, activeField: _ac
               borderRadius: 12,
               fontSize: 11,
               color: ARK_TOKENS.inkMuted,
-              cursor: 'pointer',
+              cursor: typing ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
+              opacity: typing ? 0.5 : 1,
             }}
           >
             {c}
@@ -275,15 +384,15 @@ export function SuggestChat({ storyState: _storyState, onApply, activeField: _ac
           />
           <button
             onClick={send}
-            disabled={!input.trim()}
+            disabled={!input.trim() || typing}
             style={{
               width: 26,
               height: 26,
               borderRadius: 13,
               border: 'none',
-              background: input.trim() ? ARK_TOKENS.ink : ARK_TOKENS.border,
+              background: input.trim() && !typing ? ARK_TOKENS.ink : ARK_TOKENS.border,
               color: '#fff',
-              cursor: input.trim() ? 'pointer' : 'not-allowed',
+              cursor: input.trim() && !typing ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -298,6 +407,145 @@ export function SuggestChat({ storyState: _storyState, onApply, activeField: _ac
   );
 }
 
+function QuizOptions({
+  question,
+  options,
+  answered,
+  onAnswer,
+}: {
+  question: string;
+  options: string[];
+  answered: boolean;
+  onAnswer: (answer: string) => void;
+}) {
+  const [customText, setCustomText] = useState('');
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const lastIdx = options.length - 1;
+  const isLastOpenText = /something else|other|custom/i.test(options[lastIdx] || '');
+
+  const handleSelect = (idx: number) => {
+    if (answered) return;
+    if (isLastOpenText && idx === lastIdx) {
+      // Show text input instead of answering immediately
+      setSelectedIdx(idx);
+      return;
+    }
+    setSelectedIdx(idx);
+    onAnswer(options[idx]);
+  };
+
+  const handleCustomSubmit = () => {
+    if (!customText.trim()) return;
+    onAnswer(customText.trim());
+  };
+
+  const LETTERS = 'ABCDEFGHIJ';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {question && (
+        <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: ARK_TOKENS.ink, marginBottom: 2 }}>
+          {question}
+        </div>
+      )}
+      {options.map((opt, i) => {
+        const isSelected = selectedIdx === i;
+        const isOpenTextOption = isLastOpenText && i === lastIdx;
+        const showCustomInput = isOpenTextOption && isSelected && !answered;
+
+        return (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <button
+              onClick={() => handleSelect(i)}
+              disabled={answered}
+              style={{
+                textAlign: 'left',
+                padding: '8px 10px',
+                border: `1px solid ${isSelected ? ARK_TOKENS.ai : ARK_TOKENS.border}`,
+                background: isSelected ? ARK_TOKENS.aiFaint : ARK_TOKENS.surface,
+                borderRadius: ARK_TOKENS.r2,
+                fontSize: 12.5,
+                lineHeight: 1.5,
+                color: answered && !isSelected ? ARK_TOKENS.inkMuted : ARK_TOKENS.ink,
+                cursor: answered ? 'default' : 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex',
+                gap: 8,
+                alignItems: 'center',
+                transition: 'all 0.12s',
+                opacity: answered && !isSelected ? 0.5 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (!answered) {
+                  (e.currentTarget as HTMLElement).style.borderColor = ARK_TOKENS.ai;
+                  (e.currentTarget as HTMLElement).style.background = ARK_TOKENS.aiFaint;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!answered && !isSelected) {
+                  (e.currentTarget as HTMLElement).style.borderColor = ARK_TOKENS.border;
+                  (e.currentTarget as HTMLElement).style.background = ARK_TOKENS.surface;
+                }
+              }}
+            >
+              <span
+                style={{
+                  width: 20, height: 20, borderRadius: 10,
+                  border: `1.5px solid ${isSelected ? ARK_TOKENS.ai : ARK_TOKENS.borderStrong}`,
+                  background: isSelected ? ARK_TOKENS.ai : 'transparent',
+                  color: isSelected ? '#fff' : ARK_TOKENS.inkMuted,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, flexShrink: 0,
+                  transition: 'all 0.12s',
+                }}
+              >
+                {isSelected ? <Ico.check size={10} /> : LETTERS[i]}
+              </span>
+              <span style={{ flex: 1 }}>{opt}</span>
+            </button>
+            {showCustomInput && (
+              <div className="ark-fadein" style={{ display: 'flex', gap: 6, paddingLeft: 28 }}>
+                <input
+                  autoFocus
+                  value={customText}
+                  onChange={(e) => setCustomText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCustomSubmit(); }}
+                  placeholder="Type your answer\u2026"
+                  style={{
+                    flex: 1,
+                    border: `1px solid ${ARK_TOKENS.borderStrong}`,
+                    borderRadius: ARK_TOKENS.r,
+                    padding: '6px 10px',
+                    fontSize: 12,
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    background: ARK_TOKENS.surface,
+                  }}
+                />
+                <button
+                  onClick={handleCustomSubmit}
+                  disabled={!customText.trim()}
+                  style={{
+                    width: 26, height: 26, borderRadius: 13,
+                    border: 'none',
+                    background: customText.trim() ? ARK_TOKENS.ai : ARK_TOKENS.border,
+                    color: '#fff',
+                    cursor: customText.trim() ? 'pointer' : 'not-allowed',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Ico.arrow size={11} dir="up" />
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function renderBold(text: string): string {
   return (text || '').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 }
@@ -307,11 +555,13 @@ function SuggestMsg({
   msgIdx,
   onApply,
   usedSuggestions,
+  onQuizAnswer,
 }: {
   msg: SuggestMessage;
   msgIdx: number;
   onApply: (msgIdx: number, optIdx: number, field: string, text: string) => void;
   usedSuggestions: Set<string>;
+  onQuizAnswer: (msgIdx: number, answer: string) => void;
 }) {
   if (msg.role === 'user') {
     return (
@@ -405,6 +655,15 @@ function SuggestMsg({
               );
             })}
           </div>
+        )}
+
+        {msg.kind === 'quiz' && msg.options && (
+          <QuizOptions
+            question={msg.quizQuestion || ''}
+            options={msg.options}
+            answered={!!msg.quizAnswered}
+            onAnswer={(answer) => onQuizAnswer(msgIdx, answer)}
+          />
         )}
       </div>
     </div>

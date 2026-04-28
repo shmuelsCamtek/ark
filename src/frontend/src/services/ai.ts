@@ -26,20 +26,81 @@ const AC_SUGGESTIONS: AcceptanceCriterion[] = [
 ];
 
 export class MockAiService implements AiService {
-  async chat(_messages: CoachMessage[], _draftContext: string): Promise<CoachMessage> {
+  async chat(messages: CoachMessage[], _draftContext: string): Promise<CoachMessage> {
     await delay(800 + Math.random() * 600);
-    const responses = [
-      'That sounds like a solid approach. Have you considered edge cases around error handling?',
-      'Great start! I\'d suggest adding acceptance criteria around the unhappy path — what happens when things go wrong?',
-      'This narrative is clear. One thing to consider: who else is affected by this change besides the primary persona?',
-      'I can help refine that. Try being more specific about the measurable outcome in your "so that" clause.',
+    const lastMsg = messages[messages.length - 1];
+    const userText = lastMsg?.text?.toLowerCase() ?? '';
+
+    // Contextual mock responses based on user message
+    if (userText.includes('suggest more ac') || userText.includes('acceptance criteria')) {
+      return {
+        id: msgId(),
+        type: 'criteria-bundle',
+        text: 'Here are some additional acceptance criteria to consider:',
+        criteria: AC_SUGGESTIONS,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    if (userText.includes('tighten the benefit') || userText.includes('benefit')) {
+      return {
+        id: msgId(),
+        type: 'suggestion',
+        text: 'Here are some tighter benefit statements:',
+        field: 'benefit',
+        value: 'I can reduce manual triage from 2 hours to 15 minutes daily',
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    if (userText.includes('split')) {
+      return {
+        id: msgId(),
+        type: 'ai',
+        text: 'This story could be split into two: (1) the core retry logic and (2) the notification/alerting piece. That way each can be independently estimated and tested.',
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    const responses: CoachMessage[] = [
+      {
+        id: msgId(),
+        type: 'quiz',
+        text: 'I want to help you refine this story.',
+        quiz: {
+          question: 'What would you like to focus on first?',
+          options: [
+            'Sharpen the acceptance criteria for edge cases',
+            'Clarify who the primary persona is',
+            'Make the benefit more measurable',
+            'Something else\u2026',
+          ],
+        },
+        timestamp: new Date().toISOString(),
+      },
+      {
+        id: msgId(),
+        type: 'quiz',
+        text: 'This narrative is clear, but I have a question.',
+        quiz: {
+          question: 'Who else is affected by this change besides the primary persona?',
+          options: [
+            'End users / customers',
+            'Internal support team',
+            'DevOps / infrastructure team',
+            'Something else\u2026',
+          ],
+        },
+        timestamp: new Date().toISOString(),
+      },
+      {
+        id: msgId(),
+        type: 'ai',
+        text: 'Great start! I\'d suggest adding acceptance criteria around the unhappy path \u2014 what happens when things go wrong?',
+        timestamp: new Date().toISOString(),
+      },
     ];
-    return {
-      id: msgId(),
-      type: 'ai',
-      text: responses[Math.floor(Math.random() * responses.length)],
-      timestamp: new Date().toISOString(),
-    };
+    return responses[Math.floor(Math.random() * responses.length)];
   }
 
   async suggestField(field: string, _currentValue: string, _draftContext: string): Promise<CoachMessage> {

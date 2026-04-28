@@ -20,6 +20,7 @@ const MOCK_WORK_ITEMS: Record<string, WorkItemInfo> = {
     assignedTo: 'Dana Levy',
     areaPath: 'Ark\\Frontend',
     iterationPath: 'Ark\\Sprint 14',
+    description: 'Current onboarding has a 40% drop-off rate at step 3 (Azure DevOps connection). Users report confusion about which work item ID to enter. We need to simplify the flow and add search-by-title capability to reduce friction and improve activation rates.',
     attachments: [
       { id: 'att-1', name: 'onboarding-wireframe.png', url: '#', size: 245000 },
       { id: 'att-2', name: 'user-research-findings.pdf', url: '#', size: 1830000 },
@@ -44,6 +45,8 @@ const MOCK_WORK_ITEMS: Record<string, WorkItemInfo> = {
     state: 'New',
     areaPath: 'Ark\\Platform',
     iterationPath: 'Ark\\Sprint 14',
+    description: 'The main dashboard takes over 8 seconds to load when the user has more than 50 stories. The API returns all stories in a single payload with no pagination.',
+    reproSteps: '1. Create or import 50+ story drafts\n2. Navigate to /stories dashboard\n3. Observe load time exceeds 8 seconds\n4. Chrome DevTools shows the /api/drafts response is 2.4MB uncompressed',
   },
   '4200': {
     id: '4200',

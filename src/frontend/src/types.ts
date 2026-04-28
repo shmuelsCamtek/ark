@@ -39,12 +39,14 @@ export interface StoryDraft {
   workItemType?: string;
   workItemState?: string;
   workItemAssignedTo?: string;
+  workItemDescription?: string;
+  workItemReproSteps?: string;
   createdAt: string;
   updatedAt: string;
   completionPct: number;
 }
 
-export type CoachMessageType = 'user' | 'ai' | 'suggestion' | 'criteria-bundle' | 'ack';
+export type CoachMessageType = 'user' | 'ai' | 'suggestion' | 'criteria-bundle' | 'ack' | 'quiz';
 
 export interface CoachMessage {
   id: string;
@@ -53,6 +55,7 @@ export interface CoachMessage {
   field?: string;
   value?: string;
   criteria?: AcceptanceCriterion[];
+  quiz?: { question: string; options: string[] };
   used?: boolean;
   timestamp: string;
 }
@@ -80,5 +83,7 @@ export interface WorkItemInfo {
   assignedTo?: string;
   areaPath?: string;
   iterationPath?: string;
+  description?: string;
+  reproSteps?: string;
   attachments?: WorkItemAttachment[];
 }

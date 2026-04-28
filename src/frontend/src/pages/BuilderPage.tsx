@@ -282,7 +282,17 @@ export function BuilderPage() {
 
         {/* MIDDLE: AI Coach */}
         <SuggestChat
-          storyState={{ title, background, persona, want, benefit, criteria }}
+          storyState={{
+            title, background, persona, want, benefit, criteria,
+            workItemId: draft?.workItemId,
+            workItemType: draft?.workItemType,
+            workItemState: draft?.workItemState,
+            workItemAssignedTo: draft?.workItemAssignedTo,
+            workItemDescription: draft?.workItemDescription,
+            workItemReproSteps: draft?.workItemReproSteps,
+            epicName: draft?.epicName,
+            supportingDocs: docs.map(d => ({ name: d.name, kind: d.kind, scanned: !!d.scanned })),
+          }}
           onApply={applySuggestion}
           activeField={activeField}
           setActiveField={setActiveField}

@@ -42,6 +42,8 @@ export interface WorkItemResult {
   assignedTo?: string;
   areaPath?: string;
   iterationPath?: string;
+  description?: string;
+  reproSteps?: string;
   attachments?: WorkItemAttachment[];
 }
 
@@ -106,6 +108,8 @@ export async function getWorkItem(id: string): Promise<WorkItemResult | null> {
     assignedTo: fields['System.AssignedTo']?.displayName || fields['System.AssignedTo'] || undefined,
     areaPath: fields['System.AreaPath'],
     iterationPath: fields['System.IterationPath'],
+    description: fields['System.Description'] || undefined,
+    reproSteps: fields['Microsoft.VSTS.TCM.ReproSteps'] || undefined,
     attachments: attachments.length > 0 ? attachments : undefined,
   };
 }
