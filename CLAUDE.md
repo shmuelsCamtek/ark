@@ -40,6 +40,7 @@ cd src/frontend
 npm install
 npm run dev        # starts Vite dev server on http://localhost:5173
 npx tsc --noEmit   # type-check without emitting
+npm run build      # production build (runs tsc + vite build)
 ```
 
 By default the frontend runs with mock services. To use the real backend:
@@ -53,6 +54,7 @@ cd src/backend
 npm install
 cp .env.example .env   # then fill in API keys
 npm run dev             # starts Express on http://localhost:3001 (watch mode)
+npm run typecheck       # tsc --noEmit
 ```
 
 Required `.env` keys:
@@ -132,6 +134,7 @@ src/backend/                           # Express API server
 - Mock services in `services/` — switch to HTTP clients via `VITE_USE_MOCKS=false`
 - Custom router with `useNavigate()`, `useParams()`, `usePath()`
 - Design tokens in `tokens.ts` mirroring `ARK_TOKENS` from design handoff
+- `AppInitializer` wraps the router and bootstraps drafts + Azure connection on mount via `useAppInit()`
 
 ## Design Reference
 
