@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ARK_TOKENS } from '../tokens';
-import { TopBar, Btn, Ico, TextInput, TextArea, AzureMark } from '../components/ui';
+import { TopBar, Btn, Ico, TextInput, TextArea } from '../components/ui';
 import { useParams, useNavigate } from '../router';
 import { useApp, createEmptyDraft } from '../context/AppContext';
 import { Field } from '../components/builder/Field';
@@ -8,8 +8,8 @@ import { PersonaRow } from '../components/builder/PersonaRow';
 import { NarrativeRow } from '../components/builder/NarrativeRow';
 import { DocsList, type DocItem, type ScanResult } from '../components/builder/DocsList';
 import { UiChangePreview } from '../components/builder/UiChangePreview';
-import { WorkItemPreview } from '../components/builder/WorkItemPreview';
 import { SuggestChat } from '../components/builder/SuggestChat';
+import { evaluateCompletion } from '../lib/storyCompletion';
 
 export function BuilderPage() {
   const params = useParams();
@@ -36,7 +36,7 @@ export function BuilderPage() {
   const draft = getDraft(editId || draftId);
 
   const [title, setTitle] = useState(draft?.title || '');
-  const [background, setBackground] = useState('');
+  const [background, setBackground] = useState(draft?.background || '');
   const [persona, setPersona] = useState(draft?.persona || '');
   const [want, setWant] = useState(draft?.narrative.iWantTo || '');
   const [benefit, setBenefit] = useState(draft?.narrative.soThat || '');
@@ -59,14 +59,18 @@ export function BuilderPage() {
   // Sync back to draft on changes
   useEffect(() => {
     const id = editId || draftId;
-    const filled = [title, persona, want, benefit].filter(Boolean).length;
-    const total = 6;
+    const result = evaluateCompletion({
+      title, background, persona,
+      narrative: { iWantTo: want, soThat: benefit },
+      acceptanceCriteria: criteria,
+    });
     updateDraft(id, {
       title,
+      background,
       persona,
       narrative: { asA: persona, iWantTo: want, soThat: benefit },
       acceptanceCriteria: criteria.map((c) => ({ id: String(c.id), text: c.text, source: 'manual' as const })),
-      completionPct: Math.round((filled + (criteria.length >= 2 ? 1 : 0) + (background ? 1 : 0)) / total * 100),
+      completionPct: Math.round((result.filled / result.total) * 100),
     });
   }, [title, background, persona, want, benefit, criteria, editId, draftId, updateDraft]);
 
@@ -121,7 +125,14 @@ export function BuilderPage() {
     setNewCriterion('');
   };
 
+  const completionResult = evaluateCompletion({
+    title, background, persona,
+    narrative: { iWantTo: want, soThat: benefit },
+    acceptanceCriteria: criteria,
+  });
+
   const handlePush = () => {
+    if (!completionResult.complete) return;
     navigate(`/stories/${editId || draftId}/push`);
   };
 
@@ -134,7 +145,13 @@ export function BuilderPage() {
             <Btn icon={<Ico.check size={14} />} onClick={() => navigate('/stories')}>
               Save as draft
             </Btn>
-            <Btn variant="primary" icon={<Ico.arrow size={14} />} onClick={handlePush}>
+            <Btn
+              variant="primary"
+              icon={<Ico.arrow size={14} />}
+              onClick={handlePush}
+              disabled={!completionResult.complete}
+              title={completionResult.complete ? undefined : `Add: ${completionResult.missing.join(', ')}`}
+            >
               Push to Azure
             </Btn>
           </div>
@@ -142,9 +159,34 @@ export function BuilderPage() {
       />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* LEFT: Form */}
-        <div className="ark-scroll" style={{ flex: '1 1 520px', overflowY: 'auto', minWidth: 0 }}>
-          <div style={{ maxWidth: 620, padding: '32px 40px 80px' }}>
+        {/* LEFT: AI Coach */}
+        <SuggestChat
+          storyState={{
+            title, background, persona, want, benefit, criteria,
+            workItemId: draft?.workItemId,
+            workItemType: draft?.workItemType,
+            workItemState: draft?.workItemState,
+            workItemAssignedTo: draft?.workItemAssignedTo,
+            workItemDescription: draft?.workItemDescription,
+            workItemReproSteps: draft?.workItemReproSteps,
+            epicName: draft?.epicName,
+            supportingDocs: docs.map(d => {
+              const scan = scanResults.find(s => s.docId === d.id);
+              return {
+                name: d.name, kind: d.kind, scanned: !!d.scanned,
+                ...(scan && { summary: scan.summary, acceptanceCriteria: scan.acceptanceCriteria, edgeCases: scan.edgeCases }),
+              };
+            }),
+          }}
+          onApply={applySuggestion}
+          activeField={activeField}
+          setActiveField={setActiveField}
+          scanSuggestions={scanSuggestionsForChat}
+        />
+
+        {/* RIGHT: Form */}
+        <div className="ark-scroll" style={{ flex: '1 1 0', overflowY: 'auto', minWidth: 0 }}>
+          <div style={{ padding: '32px 40px 80px' }}>
             {/* Heading */}
             <div style={{ marginBottom: 28 }}>
               <h1 style={{ fontSize: 29, fontWeight: 600, margin: '0 0 6px', letterSpacing: -0.4 }}>New user story</h1>
@@ -285,52 +327,6 @@ export function BuilderPage() {
           </div>
         </div>
 
-        {/* MIDDLE: AI Coach */}
-        <SuggestChat
-          storyState={{
-            title, background, persona, want, benefit, criteria,
-            workItemId: draft?.workItemId,
-            workItemType: draft?.workItemType,
-            workItemState: draft?.workItemState,
-            workItemAssignedTo: draft?.workItemAssignedTo,
-            workItemDescription: draft?.workItemDescription,
-            workItemReproSteps: draft?.workItemReproSteps,
-            epicName: draft?.epicName,
-            supportingDocs: docs.map(d => {
-              const scan = scanResults.find(s => s.docId === d.id);
-              return {
-                name: d.name, kind: d.kind, scanned: !!d.scanned,
-                ...(scan && { summary: scan.summary, acceptanceCriteria: scan.acceptanceCriteria, edgeCases: scan.edgeCases }),
-              };
-            }),
-          }}
-          onApply={applySuggestion}
-          activeField={activeField}
-          setActiveField={setActiveField}
-          scanSuggestions={scanSuggestionsForChat}
-        />
-
-        {/* RIGHT: Azure DevOps preview */}
-        <div style={{ flex: '0 0 520px', borderLeft: `1px solid ${ARK_TOKENS.border}`, background: ARK_TOKENS.surface, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <div style={{ padding: '14px 20px', borderBottom: `1px solid ${ARK_TOKENS.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <AzureMark size={14} />
-            <div style={{ fontSize: 14, fontWeight: 600, color: ARK_TOKENS.inkMuted, letterSpacing: 0.2 }}>Azure DevOps preview</div>
-          </div>
-          <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
-            <WorkItemPreview
-              title={title}
-              background={background}
-              persona={persona}
-              want={want}
-              benefit={benefit}
-              criteria={criteria.map((c) => ({ id: c.id, text: c.text }))}
-              docs={docs}
-              showUiChange={showUiChange}
-              workItemState={draft?.workItemState}
-              workItemAssignedTo={draft?.workItemAssignedTo}
-            />
-          </div>
-        </div>
       </div>
     </div>
   );

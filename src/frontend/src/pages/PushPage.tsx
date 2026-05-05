@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ARK_TOKENS } from '../tokens';
 import { TopBar, Btn, Ico, AzureMark } from '../components/ui';
 import { WorkItemPreview } from '../components/builder/WorkItemPreview';
 import { useParams, useNavigate } from '../router';
 import { useApp } from '../context/AppContext';
+import { evaluateDraft } from '../lib/storyCompletion';
 
 type Stage = 'review' | 'pushing' | 'done';
 
@@ -16,10 +17,17 @@ export function PushPage() {
   const [stage, setStage] = useState<Stage>('review');
   const [progress, setProgress] = useState(0);
 
+  const completion = evaluateDraft(draft);
+  useEffect(() => {
+    if (stage === 'review' && draft && !completion.complete) {
+      navigate(`/stories/${id}/edit`);
+    }
+  }, [stage, draft, completion.complete, id, navigate]);
+
   const storyTitle = draft?.title || 'Untitled story';
   const storyData = {
     title: storyTitle,
-    background: '',
+    background: draft?.background || '',
     persona: draft?.persona || '',
     want: draft?.narrative.iWantTo || '',
     benefit: draft?.narrative.soThat || '',

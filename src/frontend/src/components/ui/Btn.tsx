@@ -14,6 +14,7 @@ interface BtnProps {
   style?: CSSProperties;
   fullWidth?: boolean;
   type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
+  title?: string;
 }
 
 const sizes: Record<BtnSize, CSSProperties> = {
@@ -60,7 +61,7 @@ const hoverStyles: Record<BtnVariant, CSSProperties> = {
   danger: { background: ARK_TOKENS.dangerBg, transform: 'scale(0.98)' },
 };
 
-export function Btn({ variant = 'default', size = 'md', icon, children, onClick, disabled, style, fullWidth, type }: BtnProps) {
+export function Btn({ variant = 'default', size = 'md', icon, children, onClick, disabled, style, fullWidth, type, title }: BtnProps) {
   const [hover, setHover] = useState(false);
 
   return (
@@ -68,6 +69,7 @@ export function Btn({ variant = 'default', size = 'md', icon, children, onClick,
       type={type || 'button'}
       onClick={onClick}
       disabled={disabled}
+      title={title}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{

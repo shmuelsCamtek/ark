@@ -3,6 +3,7 @@ import { TopBar, Btn, Badge, Avatar, Ico } from '../components/ui';
 import { ARK_TOKENS } from '../tokens';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from '../router';
+import { evaluateDraft } from '../lib/storyCompletion';
 
 interface DraftDisplay {
   id: string;
@@ -36,22 +37,15 @@ export function StoriesPage() {
   const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
 
   const displayDrafts: DraftDisplay[] = drafts.map((d) => {
-    const fields = [
-      d.title, d.persona, d.narrative.asA, d.narrative.iWantTo, d.narrative.soThat,
-      d.acceptanceCriteria.length > 0 ? 'filled' : '',
-      d.supportingDocs.length > 0 ? 'filled' : '',
-      d.uiChanges.length > 0 ? 'filled' : '',
-      d.epicId ? 'filled' : '',
-    ];
-    const filled = fields.filter(Boolean).length;
+    const c = evaluateDraft(d);
     return {
       id: d.id,
       title: d.title || 'Untitled story',
       persona: d.persona || 'No persona',
       area: d.epicName ? `Stories · ${d.epicName}` : 'Stories',
       epic: d.epicId ? { id: `#${d.epicId}`, title: d.epicName || '' } : null,
-      filled,
-      total: 9,
+      filled: c.filled,
+      total: c.total,
       lastEdited: formatTimeAgo(d.updatedAt),
       owner: 'Maya Kowalski',
       ownerColor: '#1994FF',

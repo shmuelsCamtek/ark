@@ -1,0 +1,8 @@
+- [] add anotiaion for each filed by user. 
+- [] ** High ** onwer must apporve under "Approve by: " 
+    - Must for complition.
+- [] options to add notes
+    - general.
+    - comment like word.
+- [] UI looks very buzzy.
+- 

@@ -287,9 +287,9 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
   return (
     <div
       style={{
-        flex: '0 0 518px',
-        borderLeft: `1px solid ${ARK_TOKENS.border}`,
-        background: ARK_TOKENS.surface,
+        flex: '1 1 0',
+        borderRight: `1px solid ${ARK_TOKENS.border}`,
+        background: ARK_TOKENS.bg,
         display: 'flex',
         flexDirection: 'column',
         minWidth: 0,
@@ -297,7 +297,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
     >
       {/* Header */}
       <div style={{ padding: '14px 18px', borderBottom: `1px solid ${ARK_TOKENS.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 22, height: 22, borderRadius: 11, background: ARK_TOKENS.ai, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 22, height: 22, borderRadius: 11, background: ARK_TOKENS.azure, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Ico.sparkle size={11} />
         </div>
         <div style={{ flex: 1 }}>
@@ -474,8 +474,8 @@ function QuizOptions({
               style={{
                 textAlign: 'left',
                 padding: '8px 10px',
-                border: `1px solid ${isSelected ? ARK_TOKENS.ai : ARK_TOKENS.border}`,
-                background: isSelected ? ARK_TOKENS.aiFaint : ARK_TOKENS.surface,
+                border: `1px solid ${isSelected ? ARK_TOKENS.azure : ARK_TOKENS.border}`,
+                background: isSelected ? ARK_TOKENS.azureFaint : ARK_TOKENS.surface,
                 borderRadius: ARK_TOKENS.r2,
                 fontSize: 15,
                 lineHeight: 1.5,
@@ -490,8 +490,8 @@ function QuizOptions({
               }}
               onMouseEnter={(e) => {
                 if (!answered) {
-                  (e.currentTarget as HTMLElement).style.borderColor = ARK_TOKENS.ai;
-                  (e.currentTarget as HTMLElement).style.background = ARK_TOKENS.aiFaint;
+                  (e.currentTarget as HTMLElement).style.borderColor = ARK_TOKENS.azure;
+                  (e.currentTarget as HTMLElement).style.background = ARK_TOKENS.azureFaint;
                 }
               }}
               onMouseLeave={(e) => {
@@ -504,8 +504,8 @@ function QuizOptions({
               <span
                 style={{
                   width: 20, height: 20, borderRadius: 10,
-                  border: `1.5px solid ${isSelected ? ARK_TOKENS.ai : ARK_TOKENS.borderStrong}`,
-                  background: isSelected ? ARK_TOKENS.ai : 'transparent',
+                  border: `1.5px solid ${isSelected ? ARK_TOKENS.azure : ARK_TOKENS.borderStrong}`,
+                  background: isSelected ? ARK_TOKENS.azure : 'transparent',
                   color: isSelected ? '#fff' : ARK_TOKENS.inkMuted,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700, flexShrink: 0,
@@ -541,7 +541,7 @@ function QuizOptions({
                   style={{
                     width: 26, height: 26, borderRadius: 13,
                     border: 'none',
-                    background: customText.trim() ? ARK_TOKENS.ai : ARK_TOKENS.border,
+                    background: customText.trim() ? ARK_TOKENS.azure : ARK_TOKENS.border,
                     color: '#fff',
                     cursor: customText.trim() ? 'pointer' : 'not-allowed',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -600,7 +600,7 @@ function SuggestMsg({
       <div
         style={{
           width: 22, height: 22, borderRadius: 11,
-          background: ARK_TOKENS.ai, color: '#fff',
+          background: ARK_TOKENS.azure, color: '#fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0, marginTop: 1,
         }}

@@ -31,6 +31,7 @@ function createEmptyDraft(overrides?: Partial<StoryDraft>): StoryDraft {
   return {
     id: crypto.randomUUID(),
     title: '',
+    background: '',
     persona: '',
     narrative: { asA: '', iWantTo: '', soThat: '' },
     acceptanceCriteria: [],

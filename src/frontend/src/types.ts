@@ -24,6 +24,7 @@ export interface UiChange {
 export interface StoryDraft {
   id: string;
   title: string;
+  background?: string;
   persona: string;
   narrative: {
     asA: string;
