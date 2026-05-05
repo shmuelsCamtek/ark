@@ -26,10 +26,17 @@ type AppContextValue = AppState & AppActions;
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+function randomId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function createEmptyDraft(overrides?: Partial<StoryDraft>): StoryDraft {
   const now = new Date().toISOString();
   return {
-    id: crypto.randomUUID(),
+    id: randomId(),
     title: '',
     background: '',
     persona: '',
