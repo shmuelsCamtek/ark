@@ -42,10 +42,7 @@ npm run dev        # starts Vite dev server on http://localhost:5173
 npx tsc --noEmit   # type-check without emitting
 ```
 
-By default the frontend runs with mock services. To use the real backend:
-```bash
-VITE_USE_MOCKS=false npm run dev
-```
+The frontend always talks to the real backend (`/api`). The Vite dev server proxies `/api` to `localhost:3001`, so the backend (and a valid `ANTHROPIC_API_KEY` + `AZURE_DEVOPS_PAT`) must be running for any frontend session.
 
 ### Backend
 ```bash
@@ -94,8 +91,8 @@ src/frontend/                          # Vite + React app
 │   │   ├── AppContext.tsx             # Global state: drafts, azure connection, user
 │   │   └── ServicesContext.tsx         # DI for AI + Azure services (mock/real)
 │   ├── services/
-│   │   ├── ai.ts                      # AiService interface + MockAiService
-│   │   └── azure.ts                   # AzureService interface + MockAzureService
+│   │   ├── ai.ts                      # AiService interface
+│   │   └── azure.ts                   # AzureService interface
 │   ├── components/
 │   │   ├── ui/                        # Shared primitives (Btn, Badge, TextInput, TopBar, icons, etc.)
 │   │   └── builder/                   # Builder sub-components (Field, PersonaRow, SuggestChat, etc.)
@@ -129,7 +126,7 @@ src/backend/                           # Express API server
 **Key patterns:**
 - Inline styles matching design spec (not Tailwind classes for component internals)
 - Tailwind used for layout utilities and base styles
-- Mock services in `services/` — switch to HTTP clients via `VITE_USE_MOCKS=false`
+- Frontend services (`services/http-ai.ts`, `services/http-azure.ts`) always call the real backend — no mock fallback
 - Custom router with `useNavigate()`, `useParams()`, `usePath()`
 - Design tokens in `tokens.ts` mirroring `ARK_TOKENS` from design handoff
 

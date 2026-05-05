@@ -1,10 +1,8 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { type AiService } from '../services/ai';
-import { type AzureService, MockAzureService } from '../services/azure';
+import { type AzureService } from '../services/azure';
 import { HttpAiService } from '../services/http-ai';
 import { HttpAzureService } from '../services/http-azure';
-
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false';
 
 interface Services {
   ai: AiService;
@@ -14,14 +12,10 @@ interface Services {
 const ServicesContext = createContext<Services | null>(null);
 
 export function ServicesProvider({ children }: { children: ReactNode }) {
-  const services = useMemo<Services>(() => {
-    // AI coach always uses real backend
-    const ai = new HttpAiService();
-    if (USE_MOCKS) {
-      return { ai, azure: new MockAzureService() };
-    }
-    return { ai, azure: new HttpAzureService() };
-  }, []);
+  const services = useMemo<Services>(
+    () => ({ ai: new HttpAiService(), azure: new HttpAzureService() }),
+    [],
+  );
 
   return (
     <ServicesContext.Provider value={services}>
