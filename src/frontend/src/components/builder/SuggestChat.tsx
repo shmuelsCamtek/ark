@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ARK_TOKENS } from '../../tokens';
 import { Ico } from '../ui/icons';
 import { useServices } from '../../context/ServicesContext';
-import type { CoachMessage } from '../../types';
+import type { CoachMessage, WorkItemComment, WorkItemInfo } from '../../types';
 
 interface SuggestMessage {
   role: 'user' | 'ai';
@@ -35,6 +35,9 @@ interface SuggestChatProps {
     workItemAssignedTo?: string;
     workItemDescription?: string;
     workItemReproSteps?: string;
+    workItemTechnicalDescription?: string;
+    workItemDiscussion?: WorkItemComment[];
+    linkedWorkItems?: WorkItemInfo[];
     epicName?: string;
     supportingDocs?: { name: string; kind: string; scanned: boolean; summary?: string; acceptanceCriteria?: string[]; edgeCases?: string[] }[];
   };
@@ -62,6 +65,31 @@ function fieldLabel(f: string): string {
   return labels[f] || f;
 }
 
+function patchStoryState(
+  s: SuggestChatProps['storyState'],
+  field: string,
+  value: string,
+): SuggestChatProps['storyState'] {
+  switch (field) {
+    case 'title': return { ...s, title: value };
+    case 'background': return { ...s, background: value };
+    case 'persona': return { ...s, persona: value };
+    case 'want': return { ...s, want: value };
+    case 'benefit': return { ...s, benefit: value };
+    case 'criteria':
+      return { ...s, criteria: [...s.criteria, { id: `applied-${Date.now()}`, text: value }] };
+    default: return s;
+  }
+}
+
+function nextEmptyField(s: SuggestChatProps['storyState']): string | null {
+  if (!s.background?.trim()) return 'Background';
+  if (!s.persona?.trim() || !s.want?.trim() || !s.benefit?.trim()) return 'Narrative (persona, desire, benefit)';
+  if (!s.title?.trim()) return 'Title';
+  if (s.criteria.length === 0) return 'Acceptance Criteria';
+  return null;
+}
+
 function buildDraftContext(storyState: SuggestChatProps['storyState'], activeField: string): string {
   const ctx: Record<string, unknown> = {
     title: storyState.title,
@@ -78,20 +106,54 @@ function buildDraftContext(storyState: SuggestChatProps['storyState'], activeFie
   if (storyState.workItemAssignedTo) ctx.workItemAssignedTo = storyState.workItemAssignedTo;
   if (storyState.workItemDescription) ctx.workItemDescription = storyState.workItemDescription;
   if (storyState.workItemReproSteps) ctx.workItemReproSteps = storyState.workItemReproSteps;
+  if (storyState.workItemTechnicalDescription) ctx.workItemTechnicalDescription = storyState.workItemTechnicalDescription;
+  if (storyState.workItemDiscussion?.length) ctx.workItemDiscussion = storyState.workItemDiscussion;
+  if (storyState.linkedWorkItems?.length) ctx.linkedWorkItems = storyState.linkedWorkItems;
   if (storyState.epicName) ctx.epicName = storyState.epicName;
   if (storyState.supportingDocs?.length) ctx.supportingDocs = storyState.supportingDocs;
   return JSON.stringify(ctx);
 }
 
 function toCoachMessages(msgs: SuggestMessage[]): CoachMessage[] {
-  return msgs
-    .filter((m) => m.role === 'user' || (m.role === 'ai' && m.text && !m.kind))
-    .map((m, i) => ({
-      id: `conv-${i}`,
-      type: m.role === 'user' ? 'user' as const : 'ai' as const,
-      text: m.text ?? '',
-      timestamp: new Date().toISOString(),
-    }));
+  // Convert UI messages into API conversation turns. Render the AI's structured
+  // turns (quiz / suggestions / criteria-bundle) as text so the model can see
+  // what it previously asked or offered. Drop pure-noise ack messages.
+  const out: CoachMessage[] = [];
+  for (const m of msgs) {
+    if (m.role === 'user') {
+      const text = (m.text ?? '').trim();
+      if (!text) continue;
+      out.push({ id: `conv-${out.length}`, type: 'user', text, timestamp: new Date().toISOString() });
+      continue;
+    }
+    if (m.role === 'ai') {
+      if (m.kind === 'ack') continue;
+      const parts: string[] = [];
+      if (m.text) parts.push(m.text);
+      if (m.intro) parts.push(m.intro);
+      if (m.kind === 'quiz' && m.quizQuestion) {
+        parts.push(`(Quiz: ${m.quizQuestion} — options: ${(m.options ?? []).join(' / ')})`);
+      } else if ((m.kind === 'suggestions' || m.kind === 'criteria-bundle') && m.options?.length) {
+        parts.push(`(Offered ${m.kind === 'criteria-bundle' ? 'acceptance criteria' : 'options'}: ${m.options.join(' / ')})`);
+      }
+      const text = parts.join('\n').trim();
+      if (!text) continue;
+      out.push({ id: `conv-${out.length}`, type: 'ai', text, timestamp: new Date().toISOString() });
+    }
+  }
+  // Anthropic requires alternating user/assistant turns. Merge any consecutive
+  // same-role messages into one (defense against edge cases like the apply
+  // signal arriving right after another user turn).
+  const merged: CoachMessage[] = [];
+  for (const m of out) {
+    const last = merged[merged.length - 1];
+    if (last && last.type === m.type) {
+      merged[merged.length - 1] = { ...last, text: `${last.text}\n\n${m.text}` };
+    } else {
+      merged.push(m);
+    }
+  }
+  return merged;
 }
 
 function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
@@ -196,6 +258,44 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
         text: field === 'criteria' ? 'Added.' : `Applied to ${fieldLabel(field)}.`,
       },
     ]);
+
+    // Skip the follow-up call if one is already in flight (e.g. user rapid-clicks
+    // multiple criteria chips). The coach will pick up state when the pending call
+    // returns.
+    if (typing) return;
+
+    const patched = patchStoryState(storyState, field, text);
+    const truncated = text.length > 120 ? text.slice(0, 117) + '…' : text;
+    const next = nextEmptyField(patched);
+    const tail = next
+      ? `Now help me with **${next}** — the next empty field. Ask me a clarifying question (quiz) or draft a value.`
+      : `All four fields are filled now. Ask me via quiz whether I want to refine any of them or add more acceptance criteria.`;
+    const signal: CoachMessage = {
+      id: `apply-${Date.now()}`,
+      type: 'user',
+      text:
+        field === 'criteria'
+          ? `I added "${truncated}" to Acceptance Criteria. ${tail}`
+          : `I applied your suggestion to ${fieldLabel(field)}: "${truncated}". ${tail}`,
+      timestamp: new Date().toISOString(),
+    };
+    const aiConvo: CoachMessage[] = [...toCoachMessages(messages), signal];
+    const ctx = buildDraftContext(patched, activeField);
+
+    setTyping(true);
+    ai.chat(aiConvo, ctx)
+      .then((response) => {
+        setMessages((m) => [...m, coachToSuggestMessage(response)]);
+      })
+      .catch(() => {
+        setMessages((m) => [
+          ...m,
+          { role: 'ai', text: 'Sorry, I couldn’t continue. Please try again.' },
+        ]);
+      })
+      .finally(() => {
+        setTyping(false);
+      });
   };
 
   const handleQuizAnswer = useCallback((msgIdx: number, answer: string) => {

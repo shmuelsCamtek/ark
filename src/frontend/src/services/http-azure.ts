@@ -1,12 +1,23 @@
 import type { WorkItemInfo } from '../types';
 import type { AzureService } from './azure';
 
+function normalizeWorkItem(raw: Record<string, unknown>): WorkItemInfo {
+  const linked = Array.isArray(raw.linkedWorkItems)
+    ? (raw.linkedWorkItems as Record<string, unknown>[]).map(normalizeWorkItem)
+    : undefined;
+  return {
+    ...(raw as unknown as WorkItemInfo),
+    id: String(raw.id),
+    linkedWorkItems: linked,
+  };
+}
+
 export class HttpAzureService implements AzureService {
   async resolveWorkItem(id: string): Promise<WorkItemInfo | null> {
     const res = await fetch(`/api/azure/workitems/${id}`);
     if (!res.ok) return null;
     const item = await res.json();
-    return { ...item, id: String(item.id) };
+    return normalizeWorkItem(item);
   }
 
   async searchWorkItems(query: string): Promise<WorkItemInfo[]> {

@@ -42,6 +42,9 @@ export interface StoryDraft {
   workItemAssignedTo?: string;
   workItemDescription?: string;
   workItemReproSteps?: string;
+  workItemTechnicalDescription?: string;
+  workItemDiscussion?: WorkItemComment[];
+  linkedWorkItems?: WorkItemInfo[];
   createdAt: string;
   updatedAt: string;
   completionPct: number;
@@ -76,6 +79,14 @@ export interface WorkItemAttachment {
   size: number;
 }
 
+export interface WorkItemComment {
+  author: string;
+  createdDate: string;
+  text: string;
+}
+
+export type WorkItemLinkType = 'Parent' | 'Child' | 'Related' | 'Predecessor' | 'Successor';
+
 export interface WorkItemInfo {
   id: string;
   title: string;
@@ -86,5 +97,9 @@ export interface WorkItemInfo {
   iterationPath?: string;
   description?: string;
   reproSteps?: string;
+  technicalDescription?: string;
   attachments?: WorkItemAttachment[];
+  discussion?: WorkItemComment[];
+  linkedWorkItems?: WorkItemInfo[];
+  linkType?: WorkItemLinkType;
 }

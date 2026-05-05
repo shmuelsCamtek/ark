@@ -4,7 +4,7 @@ import { ArkLogo, Btn, Badge, Ico } from '../components/ui';
 import { useNavigate } from '../router';
 import { useApp, createEmptyDraft } from '../context/AppContext';
 import { HttpAzureService } from '../services/http-azure';
-import type { WorkItemInfo, WorkItemAttachment } from '../types';
+import type { WorkItemInfo, WorkItemAttachment, WorkItemComment } from '../types';
 
 interface ResolvedItem {
   id: number;
@@ -16,10 +16,13 @@ interface ResolvedItem {
   assignedTo?: string;
   description?: string;
   reproSteps?: string;
+  technicalDescription?: string;
   children: number;
   color: string;
   notFound?: boolean;
   attachments?: WorkItemAttachment[];
+  discussion?: WorkItemComment[];
+  linkedWorkItems?: WorkItemInfo[];
 }
 
 function workItemColor(type: string): string {
@@ -42,9 +45,12 @@ function toResolved(item: WorkItemInfo): ResolvedItem {
     assignedTo: item.assignedTo,
     description: item.description,
     reproSteps: item.reproSteps,
-    children: 0,
+    technicalDescription: item.technicalDescription,
+    children: item.linkedWorkItems?.length ?? 0,
     color: workItemColor(item.type),
     attachments: item.attachments,
+    discussion: item.discussion,
+    linkedWorkItems: item.linkedWorkItems,
   };
 }
 
@@ -164,6 +170,9 @@ export function OnboardingPage() {
         workItemAssignedTo: hasItem ? resolved.assignedTo : undefined,
         workItemDescription: hasItem ? resolved.description : undefined,
         workItemReproSteps: hasItem ? resolved.reproSteps : undefined,
+        workItemTechnicalDescription: hasItem ? resolved.technicalDescription : undefined,
+        workItemDiscussion: hasItem ? resolved.discussion : undefined,
+        linkedWorkItems: hasItem ? resolved.linkedWorkItems : undefined,
         epicId: hasItem ? String(resolved.id) : undefined,
         epicName: hasItem ? resolved.title : undefined,
         supportingDocs,

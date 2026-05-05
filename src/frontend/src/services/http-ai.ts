@@ -6,6 +6,15 @@ function msgId() {
   return `ai-http-${nextId++}`;
 }
 
+const SOMETHING_ELSE = 'Something else…';
+const SOMETHING_ELSE_RE = /something else|other|custom/i;
+
+function normalizeQuizOptions(raw: unknown[]): string[] {
+  const cleaned = raw.filter((o): o is string => typeof o === 'string' && o.trim().length > 0);
+  const hasEscape = cleaned.some((o) => SOMETHING_ELSE_RE.test(o));
+  return hasEscape ? cleaned : [...cleaned, SOMETHING_ELSE];
+}
+
 export class HttpAiService implements AiService {
   async chat(messages: CoachMessage[], draftContext: string): Promise<CoachMessage> {
     const res = await fetch('/api/ai/chat', {
@@ -21,13 +30,15 @@ export class HttpAiService implements AiService {
     });
     const data = await res.json();
 
-    // Handle quiz response
+    // Handle quiz response — defensively normalize options so the user always
+    // has a "Something else…" escape hatch even if the model misbehaves.
     if (data.quiz && data.quiz.question && Array.isArray(data.quiz.options)) {
+      const options = normalizeQuizOptions(data.quiz.options);
       return {
         id: msgId(),
         type: 'quiz',
         text: data.text || '',
-        quiz: { question: data.quiz.question, options: data.quiz.options },
+        quiz: { question: data.quiz.question, options },
         timestamp: new Date().toISOString(),
       };
     }

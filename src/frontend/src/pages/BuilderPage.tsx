@@ -169,6 +169,9 @@ export function BuilderPage() {
             workItemAssignedTo: draft?.workItemAssignedTo,
             workItemDescription: draft?.workItemDescription,
             workItemReproSteps: draft?.workItemReproSteps,
+            workItemTechnicalDescription: draft?.workItemTechnicalDescription,
+            workItemDiscussion: draft?.workItemDiscussion,
+            linkedWorkItems: draft?.linkedWorkItems,
             epicName: draft?.epicName,
             supportingDocs: docs.map(d => {
               const scan = scanResults.find(s => s.docId === d.id);
