@@ -284,6 +284,15 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
     sendMessage(userText);
   };
 
+  let activeQuizIdx = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].kind === 'quiz' && !messages[i].quizAnswered) {
+      activeQuizIdx = i;
+      break;
+    }
+  }
+  const activeQuiz = activeQuizIdx >= 0 ? messages[activeQuizIdx] : null;
+
   return (
     <div
       style={{
@@ -336,29 +345,40 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
         )}
       </div>
 
-      {/* Quick chips */}
-      <div style={{ padding: '4px 14px 10px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {QUICK_CHIPS.map((c) => (
-          <button
-            key={c}
-            onClick={() => handleChip(c)}
-            disabled={typing}
-            style={{
-              border: `1px solid ${ARK_TOKENS.border}`,
-              background: ARK_TOKENS.surface,
-              padding: '4px 10px',
-              borderRadius: 12,
-              fontSize: 13,
-              color: ARK_TOKENS.inkMuted,
-              cursor: typing ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-              opacity: typing ? 0.5 : 1,
-            }}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
+      {/* Active quiz options OR quick chips */}
+      {activeQuiz ? (
+        <div style={{ padding: '4px 14px 10px' }}>
+          <QuizOptions
+            question={activeQuiz.quizQuestion || ''}
+            options={activeQuiz.options || []}
+            answered={false}
+            onAnswer={(answer) => handleQuizAnswer(activeQuizIdx, answer)}
+          />
+        </div>
+      ) : (
+        <div style={{ padding: '4px 14px 10px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {QUICK_CHIPS.map((c) => (
+            <button
+              key={c}
+              onClick={() => handleChip(c)}
+              disabled={typing}
+              style={{
+                border: `1px solid ${ARK_TOKENS.border}`,
+                background: ARK_TOKENS.surface,
+                padding: '4px 10px',
+                borderRadius: 12,
+                fontSize: 13,
+                color: ARK_TOKENS.inkMuted,
+                cursor: typing ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: typing ? 0.5 : 1,
+              }}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Composer */}
       <div style={{ padding: '0 14px 14px' }}>
@@ -382,7 +402,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
                 send();
               }
             }}
-            placeholder="Ask the coach\u2026"
+            placeholder={activeQuiz ? 'Pick an option above\u2026' : 'Ask the coach\u2026'}
             rows={1}
             style={{
               flex: 1,
@@ -670,11 +690,11 @@ function SuggestMsg({
           </div>
         )}
 
-        {msg.kind === 'quiz' && msg.options && (
+        {msg.kind === 'quiz' && msg.options && msg.quizAnswered && (
           <QuizOptions
             question={msg.quizQuestion || ''}
             options={msg.options}
-            answered={!!msg.quizAnswered}
+            answered={true}
             onAnswer={(answer) => onQuizAnswer(msgIdx, answer)}
           />
         )}
