@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getWorkItem, createWorkItem, getCurrentUser, searchWorkItems } from '../services/azureDevOps.ts';
+import { getWorkItemGraph, createWorkItem, getCurrentUser, searchWorkItems } from '../services/azureDevOps.ts';
 
 export const azureRouter = Router();
 
@@ -31,10 +31,10 @@ azureRouter.get('/workitems', async (req, res) => {
   }
 });
 
-// Resolve a work item by ID
+// Resolve a work item by ID, including its discussion and a 3-hop linked-item graph
 azureRouter.get('/workitems/:id', async (req, res) => {
   try {
-    const item = await getWorkItem(req.params.id);
+    const item = await getWorkItemGraph(req.params.id);
     if (!item) {
       res.status(404).json({ error: 'Work item not found' });
       return;

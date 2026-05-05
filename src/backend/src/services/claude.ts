@@ -47,28 +47,72 @@ function parseDraftContext(raw: string | DraftContext): DraftContext {
   }
 }
 
-function parseStructuredResponse(text: string): CoachResponse {
-  // Try to parse entire response as JSON
+function tryParseCoach(s: string): CoachResponse | null {
   try {
-    const parsed = JSON.parse(text);
-    if (parsed.text) return parsed;
+    const parsed = JSON.parse(s);
+    if (parsed && typeof parsed === 'object' && typeof parsed.text === 'string') {
+      return parsed as CoachResponse;
+    }
   } catch {
-    // Not valid JSON — check for embedded JSON block
+    /* fall through */
   }
+  return null;
+}
 
-  // Try to extract JSON from markdown code block
-  const jsonMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  if (jsonMatch) {
-    try {
-      const parsed = JSON.parse(jsonMatch[1]);
-      if (parsed.text) return parsed;
-    } catch {
-      // Fall through
+// Walk braces to extract the first balanced JSON object substring.
+// Tolerates trailing junk after the object's matching close-brace
+// (e.g. extra "]" the model sometimes appends).
+function extractJsonObject(text: string): string | null {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) { escape = false; continue; }
+    if (inString) {
+      if (ch === '\\') escape = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+function parseStructuredResponse(text: string): CoachResponse {
+  // 1. Whole response is JSON.
+  const direct = tryParseCoach(text);
+  if (direct) return direct;
+
+  // 2. JSON inside a markdown code fence (with or without trailing garbage).
+  const fence = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (fence) {
+    const fenced = tryParseCoach(fence[1]);
+    if (fenced) return fenced;
+    const balanced = extractJsonObject(fence[1]);
+    if (balanced) {
+      const recovered = tryParseCoach(balanced);
+      if (recovered) return recovered;
     }
   }
 
-  // Plain text response
-  return { text };
+  // 3. JSON object embedded anywhere in the response (prose preamble case).
+  const anywhere = extractJsonObject(text);
+  if (anywhere) {
+    const recovered = tryParseCoach(anywhere);
+    if (recovered) return recovered;
+  }
+
+  // 4. Plain text — strip any code fences so the user never sees raw markdown.
+  const stripped = text.replace(/```(?:json)?\s*[\s\S]*?```/g, '').trim();
+  return { text: stripped || text };
 }
 
 export async function chatWithCoach(

@@ -1,3 +1,22 @@
+interface ContextComment {
+  author: string;
+  createdDate: string;
+  text: string;
+}
+
+interface ContextWorkItemNode {
+  id: number;
+  title: string;
+  type: string;
+  state: string;
+  description?: string;
+  reproSteps?: string;
+  technicalDescription?: string;
+  linkType?: string;
+  discussion?: ContextComment[];
+  linkedWorkItems?: ContextWorkItemNode[];
+}
+
 interface DraftContext {
   title?: string;
   background?: string;
@@ -12,12 +31,61 @@ interface DraftContext {
   workItemAssignedTo?: string;
   workItemDescription?: string;
   workItemReproSteps?: string;
+  workItemTechnicalDescription?: string;
+  workItemDiscussion?: ContextComment[];
+  linkedWorkItems?: ContextWorkItemNode[];
   epicName?: string;
   supportingDocs?: { name: string; kind: string; scanned: boolean; summary?: string; acceptanceCriteria?: string[]; edgeCases?: string[] }[];
 }
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function truncate(s: string, max: number): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max).trimEnd() + '…';
+}
+
+function renderComments(
+  comments: ContextComment[],
+  maxItems: number,
+  maxLen: number,
+  indent: string,
+): string[] {
+  const lines: string[] = [];
+  for (const c of comments.slice(0, maxItems)) {
+    const txt = stripHtml(c.text || '');
+    if (!txt) continue;
+    const author = c.author || 'Unknown';
+    const when = c.createdDate ? c.createdDate.slice(0, 10) : '';
+    lines.push(`${indent}- **${author}**${when ? ` (${when})` : ''}: ${truncate(txt, maxLen)}`);
+  }
+  return lines;
+}
+
+function renderLinkedNode(node: ContextWorkItemNode, indent: string): string[] {
+  const lines: string[] = [];
+  const linkLabel = node.linkType ? `${node.linkType} · ` : '';
+  lines.push(`${indent}- [${linkLabel}${node.type} #${node.id}] ${node.title} — ${node.state}`);
+  const childIndent = indent + '  ';
+  if (node.description) {
+    lines.push(`${childIndent}${truncate(stripHtml(node.description), 300)}`);
+  }
+  if (node.technicalDescription) {
+    lines.push(`${childIndent}Tech: ${truncate(stripHtml(node.technicalDescription), 300)}`);
+  }
+  if (node.reproSteps) {
+    lines.push(`${childIndent}Repro: ${truncate(stripHtml(node.reproSteps), 300)}`);
+  }
+  if (node.discussion?.length) {
+    lines.push(`${childIndent}Recent comments:`);
+    lines.push(...renderComments(node.discussion, 3, 200, childIndent + '  '));
+  }
+  for (const child of node.linkedWorkItems ?? []) {
+    lines.push(...renderLinkedNode(child, childIndent));
+  }
+  return lines;
 }
 
 function buildWorkItemSection(ctx: DraftContext): string {
@@ -34,7 +102,22 @@ function buildWorkItemSection(ctx: DraftContext): string {
     lines.push(`- **Description**: ${stripHtml(ctx.workItemDescription)}`);
   }
   if (ctx.workItemReproSteps) {
-    lines.push(`- **Repro steps / technical description**: ${stripHtml(ctx.workItemReproSteps)}`);
+    lines.push(`- **Repro steps**: ${stripHtml(ctx.workItemReproSteps)}`);
+  }
+  if (ctx.workItemTechnicalDescription) {
+    lines.push(`- **Technical description**: ${stripHtml(ctx.workItemTechnicalDescription)}`);
+  }
+  if (ctx.workItemDiscussion && ctx.workItemDiscussion.length > 0) {
+    lines.push('');
+    lines.push('### Discussion (most recent first)');
+    lines.push(...renderComments(ctx.workItemDiscussion, 10, 500, ''));
+  }
+  if (ctx.linkedWorkItems && ctx.linkedWorkItems.length > 0) {
+    lines.push('');
+    lines.push('### Linked items');
+    for (const node of ctx.linkedWorkItems) {
+      lines.push(...renderLinkedNode(node, ''));
+    }
   }
   if (ctx.supportingDocs && ctx.supportingDocs.length > 0) {
     lines.push(`- Attached documents: ${ctx.supportingDocs.map(d => `${d.name} (${d.kind}${d.scanned ? ', scanned' : ''})`).join(', ')}`);
@@ -106,6 +189,19 @@ export function buildCoachSystemPrompt(draftContext: DraftContext): string {
 - **Benefit (So that…)**: Measurable business outcome tied to the persona's goals
 - **Acceptance Criteria**: Given/When/Then format, covering happy path + key edge cases, each independently testable
 
+## How to drive this conversation
+Walk the user through filling the four fields in this order: **Background → Narrative (persona / want / benefit) → Title → Acceptance Criteria**.
+
+For each field:
+- **If empty**: draft a value from the source work item and its discussion / linked items. If you lack information you need to draft well (for example, the persona for the narrative), ask first with a quiz before drafting.
+- **If already filled**: do not overwrite. Review what's there and offer an improvement as a \`suggestions\` JSON. The user decides whether to apply it.
+
+**You drive the conversation forward.** After a field has been addressed (you drafted it, the user accepted a suggestion, or the user answered your quiz), immediately move to the **next empty field** in the order above — do not linger, do not wait for the user to ask "what's next?". A short acknowledgement plus the next question/draft is the right shape; never end a turn at "great, that's done" without advancing.
+
+After producing initial Acceptance Criteria as a \`suggestions\` block with \`field: "criteria"\`, ask via quiz whether the user wants to add more. Loop until they say no, then stop.
+
+If no work item is linked, or its content is unavailable, skip the ingestion and drive the conversation from whatever is already in the form, asking the user for what's missing.
+
 ## Current draft state
 ### Filled fields
 ${filled.length > 0 ? filled.join('\n') : '_(none)_'}
@@ -114,6 +210,12 @@ ${filled.length > 0 ? filled.join('\n') : '_(none)_'}
 ${empty.length > 0 ? empty.join('\n') : '_(all filled!)_'}
 ${activeFieldNote}
 ${buildWorkItemSection(draftContext)}
+## Response format — strict
+Your entire reply is **either** a single JSON object **or** plain prose. Never both. Specifically:
+- If you have suggestions or a quiz, your reply is **only** the JSON code block (\`\`\`json … \`\`\`) — no prose before it, no prose after it. Put the conversational text inside the JSON's \`"text"\` field, not outside.
+- If you have no suggestions and no quiz, reply with plain prose — no JSON, no code fence.
+- The JSON must be syntactically valid. Do not append extra brackets, commas, or stray characters.
+
 ## Your behavior
 - Be concise, helpful, and encouraging
 - Proactively suggest improvements for weak fields
@@ -123,11 +225,11 @@ ${buildWorkItemSection(draftContext)}
   { "text": "brief conversational intro", "suggestions": [{ "field": "fieldName", "options": ["option1", "option2", "option3"] }] }
   \`\`\`
   Valid field names: title, background, persona, want, benefit, criteria
-- **When you need to ask a clarifying question**, return a quiz format — multiple-choice options where the last option is always "Something else…" (to let the user type a custom answer):
+- **When you need to ask a clarifying question**, return a quiz format with multiple-choice options:
   \`\`\`json
   { "text": "brief intro", "quiz": { "question": "Your question here?", "options": ["Option A", "Option B", "Option C", "Something else\u2026"] } }
   \`\`\`
-  Keep options to 3-5 (including "Something else…"). Make each option specific and actionable, not vague.
+  **Mandatory:** at least 2 distinct concrete options PLUS a final option whose text is exactly "Something else…" — minimum 3 total, maximum 5. A quiz with only one option, or without "Something else…" as the last option, is invalid. Make each concrete option specific and actionable, not vague.
 - For purely informational responses (explanations, feedback with no question), return plain text — no JSON wrapper
 - Keep responses under 150 words unless the user asks for detail
 - Focus on one or two improvements at a time, don't overwhelm`;
