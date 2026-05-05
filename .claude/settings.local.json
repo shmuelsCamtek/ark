@@ -4,7 +4,10 @@
       "Bash(wc:*)",
       "Bash(find:*)",
       "Bash(cd:*)",
-      "Bash(npm cache:*)"
+      "Bash(npm cache:*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   },
   "hooks": {
@@ -14,9 +17,9 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
+            "command": "$j = [Console]::In.ReadToEnd() | ConvertFrom-Json; if ($j.tool_input.command -match 'git\\s+(commit|add)\\b') { if (Test-Path 'src/backend/.env.example') { $c = Get-Content 'src/backend/.env.example' -Raw; if ($c -match 'sk-ant-api[0-9]+') { @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; permissionDecision = 'deny'; permissionDecisionReason = 'BLOCKED: src/backend/.env.example contains a real Anthropic API key (sk-ant-...). Restore the placeholder before committing; move the real key to .env (gitignored).' } } | ConvertTo-Json -Depth 5 -Compress } } }",
             "if": "Bash(git *)",
-            "command": "$j = [Console]::In.ReadToEnd() | ConvertFrom-Json; if ($j.tool_input.command -match 'git\\s+(commit|add)\\b') { if (Test-Path 'src/backend/.env.example') { $c = Get-Content 'src/backend/.env.example' -Raw; if ($c -match 'sk-ant-api[0-9]+') { @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; permissionDecision = 'deny'; permissionDecisionReason = 'BLOCKED: src/backend/.env.example contains a real Anthropic API key (sk-ant-...). Restore the placeholder before committing; move the real key to .env (gitignored).' } } | ConvertTo-Json -Depth 5 -Compress } } }"
+            "shell": "powershell"
           }
         ]
       }
