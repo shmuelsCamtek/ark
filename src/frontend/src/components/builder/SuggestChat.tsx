@@ -13,6 +13,7 @@ interface SuggestMessage {
   options?: string[];
   quizQuestion?: string;
   quizAnswered?: boolean;
+  quizAnswer?: string;
 }
 
 interface SuggestChatProps {
@@ -285,8 +286,8 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
   };
 
   const handleQuizAnswer = useCallback((msgIdx: number, answer: string) => {
-    // Mark quiz as answered
-    setMessages((prev) => prev.map((m, i) => i === msgIdx ? { ...m, quizAnswered: true } : m));
+    // Mark quiz as answered and remember the answer for compact rendering
+    setMessages((prev) => prev.map((m, i) => i === msgIdx ? { ...m, quizAnswered: true, quizAnswer: answer } : m));
     // Send the answer as a user message
     const userMsg: SuggestMessage = { role: 'user', text: answer };
     setMessages((m) => [...m, userMsg]);
@@ -411,7 +412,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
         style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 14 }}
       >
         {messages.map((m, i) => (
-          <SuggestMsg key={i} msg={m} msgIdx={i} onApply={handleApply} usedSuggestions={usedSuggestions} onQuizAnswer={handleQuizAnswer} />
+          <SuggestMsg key={i} msg={m} msgIdx={i} onApply={handleApply} usedSuggestions={usedSuggestions} />
         ))}
         {typing && (
           <div style={{ display: 'flex', gap: 4, padding: '4px 0 4px 32px', alignItems: 'center' }}>
@@ -674,13 +675,11 @@ function SuggestMsg({
   msgIdx,
   onApply,
   usedSuggestions,
-  onQuizAnswer,
 }: {
   msg: SuggestMessage;
   msgIdx: number;
   onApply: (msgIdx: number, optIdx: number, field: string, text: string) => void;
   usedSuggestions: Set<string>;
-  onQuizAnswer: (msgIdx: number, answer: string) => void;
 }) {
   if (msg.role === 'user') {
     return (
@@ -776,13 +775,19 @@ function SuggestMsg({
           </div>
         )}
 
-        {msg.kind === 'quiz' && msg.options && msg.quizAnswered && (
-          <QuizOptions
-            question={msg.quizQuestion || ''}
-            options={msg.options}
-            answered={true}
-            onAnswer={(answer) => onQuizAnswer(msgIdx, answer)}
-          />
+        {msg.kind === 'quiz' && msg.quizAnswered && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {msg.quizQuestion && (
+              <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.5, color: ARK_TOKENS.ink }}>
+                {msg.quizQuestion}
+              </div>
+            )}
+            {msg.quizAnswer && (
+              <div style={{ fontSize: 14, lineHeight: 1.5, color: ARK_TOKENS.inkMuted }}>
+                → {msg.quizAnswer}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
