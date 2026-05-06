@@ -2,7 +2,14 @@ const ORG_URL = process.env.AZURE_DEVOPS_ORG || 'https://dev.azure.com/AzCamtek'
 const PROJECT = process.env.AZURE_DEVOPS_PROJECT || 'Falcon';
 
 function authHeaders(token: string): Record<string, string> {
-  return { Authorization: `Bearer ${token}` };
+  return { Authorization: `Bearer ${token}`, Accept: 'application/json' };
+}
+
+async function logFetchFailure(label: string, url: string, res: Response): Promise<void> {
+  const contentType = res.headers.get('content-type') || '';
+  const body = await res.text().catch(() => '');
+  const snippet = body.replace(/\s+/g, ' ').slice(0, 200);
+  console.error(`[azure] ${label} failed: ${res.status} ${res.statusText} | url=${url} | content-type=${contentType} | body=${snippet}`);
 }
 
 export interface FetchedAttachment {
@@ -135,16 +142,29 @@ function extractWorkItemId(url: string | undefined): number | null {
 }
 
 async function fetchWorkItemRaw(id: number, token: string): Promise<RawWorkItem | null> {
-  const url = `${ORG_URL}/${PROJECT}/_apis/wit/workitems/${id}?$expand=relations&api-version=7.1`;
-  const res = await fetch(url, { headers: authHeaders(token) });
-  if (!res.ok) return null;
-  return (await res.json()) as RawWorkItem;
+  // Try project-scoped first (works when item is in PROJECT), then fall back to org-level.
+  const projectUrl = `${ORG_URL}/${PROJECT}/_apis/wit/workitems/${id}?$expand=relations&api-version=7.1`;
+  let res = await fetch(projectUrl, { headers: authHeaders(token) });
+  if (res.ok) return (await res.json()) as RawWorkItem;
+  if (res.status !== 404) {
+    await logFetchFailure(`fetchWorkItemRaw ${id} (project)`, projectUrl, res);
+    return null;
+  }
+
+  const orgUrl = `${ORG_URL}/_apis/wit/workitems/${id}?$expand=relations&api-version=7.1`;
+  res = await fetch(orgUrl, { headers: authHeaders(token) });
+  if (res.ok) return (await res.json()) as RawWorkItem;
+  await logFetchFailure(`fetchWorkItemRaw ${id} (org)`, orgUrl, res);
+  return null;
 }
 
 async function fetchComments(id: number, token: string): Promise<WorkItemComment[]> {
-  const url = `${ORG_URL}/${PROJECT}/_apis/wit/workItems/${id}/comments?api-version=7.1-preview.4&$top=50&order=desc`;
+  const url = `${ORG_URL}/_apis/wit/workItems/${id}/comments?api-version=7.1-preview.4&$top=50&order=desc`;
   const res = await fetch(url, { headers: authHeaders(token) });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    await logFetchFailure(`fetchComments ${id}`, url, res);
+    return [];
+  }
   const data = (await res.json()) as {
     comments?: Array<{
       createdBy?: { displayName?: string };
