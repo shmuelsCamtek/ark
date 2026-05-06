@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Btn, Badge, TextInput, TextArea, Avatar, StateDot, TopBar, AzureMark, Ico } from '../components/ui';
+import { useApp } from '../context/AppContext';
 
 export function DevPage() {
+  const { user } = useApp();
   const [text, setText] = useState('');
   const [area, setArea] = useState('');
 
@@ -58,7 +60,7 @@ export function DevPage() {
         {/* Avatar */}
         <Section title="Avatar">
           <Row>
-            <Avatar name="Maya Kowalski" />
+            <Avatar name={user?.displayName ?? 'Demo User'} />
             <Avatar name="John Doe" size={36} />
             <Avatar name="Alice" size={24} />
             <Avatar name="Bob Smith" size={40} color="#7E57C2" />

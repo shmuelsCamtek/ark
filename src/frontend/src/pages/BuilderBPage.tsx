@@ -3,6 +3,7 @@ import { ARK_TOKENS } from '../tokens';
 import { TopBar, Btn, Badge, Ico, AzureMark, Avatar } from '../components/ui';
 import { WorkItemPreview } from '../components/builder/WorkItemPreview';
 import { useNavigate } from '../router';
+import { useApp } from '../context/AppContext';
 
 interface ChatMessage {
   role: 'user' | 'ai';
@@ -11,7 +12,7 @@ interface ChatMessage {
 }
 
 const INITIAL_MESSAGES: ChatMessage[] = [
-  { role: 'ai', text: "Hi Maya! I'll help you turn your idea into a story the dev team can run with. Start by describing what you want to build — in your own words." },
+  { role: 'ai', text: "Hi! I'll help you turn your idea into a story the dev team can run with. Start by describing what you want to build — in your own words." },
   { role: 'user', text: "Failed Pro renewals are eating my team's day. Every time a card declines we open a ticket, retry by hand a few days later, and email the customer. I want this to retry automatically and only escalate to a real ticket if it truly fails." },
   { role: 'ai', text: "Good starting point — I can see the 'who', 'what' and 'why'. Two quick questions so we nail the acceptance criteria:\n\n**1.** How many retries, and over what window? (1 day? 7 days?)\n**2.** When all retries fail, who picks it up — the same support engineer, or the Tier\u20112 billing queue?" },
   { role: 'user', text: "Three retries over 7 days feels right (1, 3, 7 days). When all retries fail, route it to the Tier\u20112 billing queue with the customer\u2019s tier + SLA attached so they don\u2019t have to look it up." },
@@ -155,6 +156,7 @@ export function BuilderBPage() {
 }
 
 function ChatMsg({ msg }: { msg: ChatMessage }) {
+  const { user } = useApp();
   if (msg.role === 'ai') {
     return (
       <div style={{ display: 'flex', gap: 12, animation: 'ark-fadein 0.3s' }}>
@@ -194,7 +196,7 @@ function ChatMsg({ msg }: { msg: ChatMessage }) {
           {msg.text}
         </div>
       </div>
-      <Avatar name="Maya Kowalski" size={32} />
+      <Avatar name={user?.displayName || 'You'} size={32} />
     </div>
   );
 }

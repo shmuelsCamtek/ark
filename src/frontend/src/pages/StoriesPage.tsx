@@ -31,7 +31,7 @@ function formatTimeAgo(dateStr: string): string {
 }
 
 export function StoriesPage() {
-  const { drafts } = useApp();
+  const { drafts, user } = useApp();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export function StoriesPage() {
       filled: c.filled,
       total: c.total,
       lastEdited: formatTimeAgo(d.updatedAt),
-      owner: 'Maya Kowalski',
+      owner: user?.displayName || 'You',
       ownerColor: '#1994FF',
       acCount: d.acceptanceCriteria.length,
     };
