@@ -153,3 +153,13 @@ button:focus-visible {
 .ark-thinking {
   animation: ark-thinking-glow 1.8s ease-in-out infinite;
 }
+
+/* Gentle opacity pulse for the coach status icon while non-idle */
+@keyframes ark-icon-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+.ark-icon-pulse {
+  animation: ark-icon-pulse 1.6s ease-in-out infinite;
+}

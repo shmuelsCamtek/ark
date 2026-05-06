@@ -436,16 +436,27 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
   }
   const activeQuiz = activeQuizIdx >= 0 ? messages[activeQuizIdx] : null;
 
+  type StatusKind = 'idle' | 'thinking' | 'scanning' | 'added';
+  let coachStatusKind: StatusKind = 'idle';
   let coachStatus = 'Idle';
   if (typing) {
+    coachStatusKind = 'thinking';
     coachStatus = 'Thinking…';
   } else if (scanningDocNames.length > 0) {
+    coachStatusKind = 'scanning';
     const first = scanningDocNames[0];
     const rest = scanningDocNames.length - 1;
     coachStatus = rest > 0 ? `Scanning ${first} (+${rest})…` : `Scanning ${first}…`;
   } else if (recentlyAddedDocName) {
+    coachStatusKind = 'added';
     coachStatus = `Added ${recentlyAddedDocName} to context`;
   }
+  const STATUS_COLOR: Record<StatusKind, string> = {
+    idle: ARK_TOKENS.inkSubtle,
+    thinking: ARK_TOKENS.azure,
+    scanning: ARK_TOKENS.warning,
+    added: ARK_TOKENS.success,
+  };
 
   return (
     <div
@@ -475,7 +486,15 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
             {coachStatus}
           </div>
         </div>
-        <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: ARK_TOKENS.inkSubtle, padding: 4, borderRadius: 3 }}>
+        <button
+          className={coachStatusKind !== 'idle' ? 'ark-icon-pulse' : undefined}
+          style={{
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            color: STATUS_COLOR[coachStatusKind],
+            padding: 4, borderRadius: 3,
+            transition: 'color 0.3s ease',
+          }}
+        >
           <Ico.gear size={14} />
         </button>
       </div>
