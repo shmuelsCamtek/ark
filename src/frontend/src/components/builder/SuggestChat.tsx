@@ -382,6 +382,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
 
   return (
     <div
+      className={typing ? 'ark-thinking' : undefined}
       style={{
         flex: '1 1 0',
         borderRight: `1px solid ${ARK_TOKENS.border}`,

@@ -131,3 +131,25 @@ button:focus-visible {
 @keyframes ark-spin {
   to { transform: rotate(360deg); }
 }
+
+/* Pulse animation for the coach typing dots */
+@keyframes ark-pulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1); }
+}
+
+/* Fade-in animation for chat messages and option panels */
+@keyframes ark-fadein {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Thinking glow — applied to the chat panel while the coach is processing */
+@keyframes ark-thinking-glow {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(126, 87, 194, 0); }
+  50%      { box-shadow: inset 0 0 24px 0 rgba(126, 87, 194, 0.18); }
+}
+
+.ark-thinking {
+  animation: ark-thinking-glow 1.8s ease-in-out infinite;
+}
