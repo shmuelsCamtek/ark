@@ -7,10 +7,13 @@ interface AzureConnection {
   project?: string;
 }
 
+export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
+
 interface AppState {
   drafts: StoryDraft[];
   azureConnection: AzureConnection;
   user: UserProfile | null;
+  authStatus: AuthStatus;
 }
 
 interface AppActions {
@@ -20,6 +23,7 @@ interface AppActions {
   getDraft: (id: string) => StoryDraft | undefined;
   setAzureConnection: (conn: AzureConnection) => void;
   setUser: (user: UserProfile) => void;
+  setAuthStatus: (status: AuthStatus) => void;
 }
 
 type AppContextValue = AppState & AppActions;
@@ -51,71 +55,13 @@ function createEmptyDraft(overrides?: Partial<StoryDraft>): StoryDraft {
   };
 }
 
-const SAMPLE_DRAFTS: StoryDraft[] = [
-  createEmptyDraft({
-    id: 'draft-1',
-    title: 'Enable batch export for monthly reports',
-    persona: 'Operations Manager',
-    narrative: {
-      asA: 'Operations Manager',
-      iWantTo: 'export multiple reports at once',
-      soThat: 'I can share them with stakeholders without manual effort',
-    },
-    acceptanceCriteria: [
-      { id: 'ac-1', text: 'User can select multiple reports from the list', source: 'manual' },
-      { id: 'ac-2', text: 'Export generates a ZIP file with all selected reports', source: 'ai' },
-    ],
-    epicId: '3994',
-    epicName: 'Reporting Improvements',
-    completionPct: 72,
-    createdAt: '2026-04-25T10:00:00Z',
-    updatedAt: '2026-04-26T14:30:00Z',
-  }),
-  createEmptyDraft({
-    id: 'draft-2',
-    title: 'Improve error messages for API timeouts',
-    persona: 'Support Lead',
-    narrative: {
-      asA: 'Support Lead',
-      iWantTo: 'see clear error messages when API calls time out',
-      soThat: '',
-    },
-    acceptanceCriteria: [
-      { id: 'ac-3', text: 'Timeout errors display user-friendly message', source: 'manual' },
-    ],
-    epicId: '4102',
-    epicName: 'Platform Reliability',
-    completionPct: 45,
-    createdAt: '2026-04-24T09:00:00Z',
-    updatedAt: '2026-04-26T16:00:00Z',
-  }),
-  createEmptyDraft({
-    id: 'draft-3',
-    title: 'Add dashboard widget for deployment status',
-    persona: 'DevOps Engineer',
-    narrative: {
-      asA: 'DevOps Engineer',
-      iWantTo: 'see deployment status on my dashboard',
-      soThat: 'I can quickly identify failed deployments',
-    },
-    acceptanceCriteria: [],
-    supportingDocs: [],
-    completionPct: 28,
-    createdAt: '2026-04-23T11:00:00Z',
-    updatedAt: '2026-04-25T08:00:00Z',
-  }),
-];
-
 export { createEmptyDraft };
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [drafts, setDrafts] = useState<StoryDraft[]>(SAMPLE_DRAFTS);
-  const [azureConnection, setAzureConnection] = useState<AzureConnection>({
-    connected: true,
-    orgUrl: 'https://dev.azure.com/contoso',
-    project: 'Ark',
-  });
+  const [drafts, setDrafts] = useState<StoryDraft[]>([]);
+  const [azureConnection, setAzureConnection] = useState<AzureConnection>({ connected: false });
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
 
   const addDraft = useCallback((draft: StoryDraft) => {
     setDrafts((prev) => [draft, ...prev]);
@@ -138,7 +84,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ drafts, azureConnection, user, addDraft, updateDraft, deleteDraft, getDraft, setAzureConnection, setUser }}
+      value={{
+        drafts, azureConnection, user, authStatus,
+        addDraft, updateDraft, deleteDraft, getDraft,
+        setAzureConnection, setUser, setAuthStatus,
+      }}
     >
       {children}
     </AppContext.Provider>

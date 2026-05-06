@@ -1,30 +1,8 @@
-import { InteractiveBrowserCredential, type TokenCredential } from '@azure/identity';
-
 const ORG_URL = process.env.AZURE_DEVOPS_ORG || 'https://dev.azure.com/AzCamtek';
 const PROJECT = process.env.AZURE_DEVOPS_PROJECT || 'Falcon';
-const PAT = process.env.AZURE_DEVOPS_PAT || '';
 
-const AZURE_DEVOPS_SCOPE = '499b84ac-1321-427f-aa17-267ca6975798/.default';
-let credential: TokenCredential | null = null;
-
-function getCredential(): TokenCredential {
-  if (!credential) {
-    credential = new InteractiveBrowserCredential({
-      tenantId: process.env.AZURE_TENANT_ID || 'organizations',
-    });
-  }
-  return credential;
-}
-
-async function authHeaders(): Promise<Record<string, string>> {
-  if (PAT) {
-    const encoded = Buffer.from(`:${PAT}`).toString('base64');
-    return { Authorization: `Basic ${encoded}` };
-  }
-
-  const token = await getCredential().getToken(AZURE_DEVOPS_SCOPE);
-  if (!token) throw new Error('Failed to acquire Azure AD token');
-  return { Authorization: `Bearer ${token.token}` };
+function authHeaders(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}` };
 }
 
 export interface WorkItemAttachment {
@@ -79,33 +57,6 @@ const LINK_TYPE_MAP: Record<string, LinkRelation> = {
 const DEFAULT_MAX_DEPTH = 3;
 const DEFAULT_MAX_NODES = 50;
 
-export interface AzureUserProfile {
-  id: string;
-  displayName: string;
-  email: string;
-}
-
-export async function getCurrentUser(): Promise<AzureUserProfile | null> {
-  const url = `${ORG_URL}/_apis/connectionData?api-version=7.1-preview`;
-  console.log('[azure] getCurrentUser: acquiring auth headers...');
-  const headers = await authHeaders();
-  console.log('[azure] getCurrentUser: fetching', url);
-  const res = await fetch(url, { headers });
-  if (!res.ok) {
-    const text = await res.text();
-    console.error('[azure] getCurrentUser failed:', res.status, text);
-    return null;
-  }
-
-  const data = await res.json();
-  const user = data.authenticatedUser;
-  return {
-    id: user?.id ?? '',
-    displayName: user?.providerDisplayName ?? '',
-    email: user?.properties?.Account?.$value ?? '',
-  };
-}
-
 type RawWorkItem = {
   id: number;
   fields?: Record<string, unknown>;
@@ -158,18 +109,22 @@ function parseWorkItem(data: RawWorkItem): WorkItemResult {
   };
 }
 
-async function fetchWorkItemRaw(id: number): Promise<RawWorkItem | null> {
+function extractWorkItemId(url: string | undefined): number | null {
+  if (!url) return null;
+  const m = url.match(/\/workItems\/(\d+)/i);
+  return m ? Number(m[1]) : null;
+}
+
+async function fetchWorkItemRaw(id: number, token: string): Promise<RawWorkItem | null> {
   const url = `${ORG_URL}/${PROJECT}/_apis/wit/workitems/${id}?$expand=relations&api-version=7.1`;
-  const headers = await authHeaders();
-  const res = await fetch(url, { headers });
+  const res = await fetch(url, { headers: authHeaders(token) });
   if (!res.ok) return null;
   return (await res.json()) as RawWorkItem;
 }
 
-async function fetchComments(id: number): Promise<WorkItemComment[]> {
+async function fetchComments(id: number, token: string): Promise<WorkItemComment[]> {
   const url = `${ORG_URL}/${PROJECT}/_apis/wit/workItems/${id}/comments?api-version=7.1-preview.4&$top=50&order=desc`;
-  const headers = await authHeaders();
-  const res = await fetch(url, { headers });
+  const res = await fetch(url, { headers: authHeaders(token) });
   if (!res.ok) return [];
   const data = (await res.json()) as {
     comments?: Array<{
@@ -185,19 +140,14 @@ async function fetchComments(id: number): Promise<WorkItemComment[]> {
   }));
 }
 
-function extractWorkItemId(url: string | undefined): number | null {
-  if (!url) return null;
-  const m = url.match(/\/workItems\/(\d+)/i);
-  return m ? Number(m[1]) : null;
-}
-
-export async function getWorkItem(id: string): Promise<WorkItemResult | null> {
-  const data = await fetchWorkItemRaw(Number(id));
+export async function getWorkItem(id: string, token: string): Promise<WorkItemResult | null> {
+  const data = await fetchWorkItemRaw(Number(id), token);
   return data ? parseWorkItem(data) : null;
 }
 
 export async function getWorkItemGraph(
   rootId: string,
+  token: string,
   opts: { maxDepth?: number; maxNodes?: number } = {},
 ): Promise<WorkItemNode | null> {
   const maxDepth = opts.maxDepth ?? DEFAULT_MAX_DEPTH;
@@ -227,8 +177,8 @@ export async function getWorkItemGraph(
     const fetched = await Promise.all(
       toProcess.map(async (item) => {
         const [raw, comments] = await Promise.all([
-          fetchWorkItemRaw(item.id),
-          fetchComments(item.id),
+          fetchWorkItemRaw(item.id, token),
+          fetchComments(item.id, token),
         ]);
         return { item, raw, comments };
       }),
@@ -291,13 +241,16 @@ export async function getWorkItemGraph(
   return rootNode;
 }
 
-export async function createWorkItem(params: {
-  title: string;
-  description: string;
-  type: string;
-  acceptanceCriteria: string;
-  parentId?: string;
-}): Promise<{ id: number; url: string }> {
+export async function createWorkItem(
+  params: {
+    title: string;
+    description: string;
+    type: string;
+    acceptanceCriteria: string;
+    parentId?: string;
+  },
+  token: string,
+): Promise<{ id: number; url: string }> {
   const patchDoc = [
     { op: 'add', path: '/fields/System.Title', value: params.title },
     { op: 'add', path: '/fields/System.Description', value: params.description },
@@ -305,10 +258,9 @@ export async function createWorkItem(params: {
   ];
 
   const url = `${ORG_URL}/${PROJECT}/_apis/wit/workitems/$${params.type}?api-version=7.1`;
-  const auth = await authHeaders();
   const res = await fetch(url, {
     method: 'POST',
-    headers: { ...auth, 'Content-Type': 'application/json-patch+json' },
+    headers: { ...authHeaders(token), 'Content-Type': 'application/json-patch+json' },
     body: JSON.stringify(patchDoc),
   });
 
@@ -324,7 +276,7 @@ export async function createWorkItem(params: {
   };
 }
 
-export async function searchWorkItems(query: string, top = 15): Promise<WorkItemResult[]> {
+export async function searchWorkItems(query: string, token: string, top = 15): Promise<WorkItemResult[]> {
   const escaped = query.replace(/'/g, "''");
   const isNumeric = /^\d+$/.test(query);
 
@@ -335,11 +287,10 @@ export async function searchWorkItems(query: string, top = 15): Promise<WorkItem
 
   const wiql = `SELECT [System.Id] FROM WorkItems WHERE ${whereClause}`;
 
-  const auth = await authHeaders();
   const wiqlUrl = `${ORG_URL}/${PROJECT}/_apis/wit/wiql?api-version=7.1&$top=${top}`;
   const wiqlRes = await fetch(wiqlUrl, {
     method: 'POST',
-    headers: { ...auth, 'Content-Type': 'application/json' },
+    headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: wiql }),
   });
 
@@ -355,7 +306,7 @@ export async function searchWorkItems(query: string, top = 15): Promise<WorkItem
 
   const fields = 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.AreaPath,System.IterationPath';
   const detailUrl = `${ORG_URL}/${PROJECT}/_apis/wit/workitems?ids=${ids.join(',')}&fields=${fields}&api-version=7.1`;
-  const detailRes = await fetch(detailUrl, { headers: auth });
+  const detailRes = await fetch(detailUrl, { headers: authHeaders(token) });
 
   if (!detailRes.ok) {
     console.error('[azure] searchWorkItems detail fetch failed:', detailRes.status);
