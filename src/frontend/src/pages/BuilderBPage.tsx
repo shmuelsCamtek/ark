@@ -123,7 +123,7 @@ export function BuilderBPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-                  placeholder="Reply to the coach, or ask a question\u2026"
+                  placeholder="Reply to the coach, or ask a question…"
                   rows={2}
                   style={{ flex: 1, border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontFamily: 'inherit', fontSize: 17, lineHeight: 1.5 }}
                 />

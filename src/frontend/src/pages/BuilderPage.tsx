@@ -413,7 +413,7 @@ export function BuilderPage() {
                     <TextInput
                       value={newCriterion}
                       onChange={setNewCriterion}
-                      placeholder="Given\u2026 when\u2026 then\u2026"
+                      placeholder="Given… when… then…"
                     />
                   </div>
                   <Btn onClick={addCriterion} icon={<Ico.plus size={12} />}>Add</Btn>

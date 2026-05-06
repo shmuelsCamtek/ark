@@ -103,7 +103,7 @@ export function PushPage() {
           <div style={{ width: 56, height: 56, margin: '0 auto 16px', borderRadius: 28, background: ARK_TOKENS.azureFaint, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <AzureMark size={32} />
           </div>
-          <h2 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 600 }}>Sending to Azure DevOps\u2026</h2>
+          <h2 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 600 }}>Sending to Azure DevOps…</h2>
           <div style={{ fontSize: 16, color: ARK_TOKENS.inkMuted, marginBottom: 20 }}>This usually takes 2-3 seconds.</div>
           <div style={{ height: 6, background: ARK_TOKENS.border, borderRadius: 3, overflow: 'hidden', marginBottom: 16 }}>
             <div style={{ height: '100%', width: `${progress}%`, background: ARK_TOKENS.azure, transition: 'width 0.4s ease' }} />

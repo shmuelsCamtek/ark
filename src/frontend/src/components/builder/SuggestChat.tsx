@@ -552,7 +552,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
                 send();
               }
             }}
-            placeholder={activeQuiz ? 'Pick an option above\u2026' : 'Ask the coach\u2026'}
+            placeholder={activeQuiz ? 'Pick an option above…' : 'Ask the coach…'}
             rows={1}
             style={{
               flex: 1,
@@ -693,7 +693,7 @@ function QuizOptions({
                   value={customText}
                   onChange={(e) => setCustomText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleCustomSubmit(); }}
-                  placeholder="Type your answer\u2026"
+                  placeholder="Type your answer…"
                   style={{
                     flex: 1,
                     border: `1px solid ${ARK_TOKENS.borderStrong}`,
