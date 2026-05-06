@@ -51,6 +51,8 @@ interface SuggestChatProps {
   activeField: string;
   setActiveField: (f: string) => void;
   attachmentsReady?: boolean;
+  scanningDocNames?: string[];
+  recentlyAddedDocName?: string | null;
 }
 
 const QUICK_CHIPS = [
@@ -192,7 +194,7 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
   return { role: 'ai', text: coach.text };
 }
 
-export function SuggestChat({ storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true }: SuggestChatProps) {
+export function SuggestChat({ storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null }: SuggestChatProps) {
   const { ai } = useServices();
   const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
@@ -434,6 +436,17 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
   }
   const activeQuiz = activeQuizIdx >= 0 ? messages[activeQuizIdx] : null;
 
+  let coachStatus = 'Idle';
+  if (typing) {
+    coachStatus = 'Thinking…';
+  } else if (scanningDocNames.length > 0) {
+    const first = scanningDocNames[0];
+    const rest = scanningDocNames.length - 1;
+    coachStatus = rest > 0 ? `Scanning ${first} (+${rest})…` : `Scanning ${first}…`;
+  } else if (recentlyAddedDocName) {
+    coachStatus = `Added ${recentlyAddedDocName} to context`;
+  }
+
   return (
     <div
       className={typing ? 'ark-thinking' : undefined}
@@ -453,7 +466,14 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 16, fontWeight: 600 }}>Ark Coach</div>
-          <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle }}>Reading your backlog</div>
+          <div
+            style={{
+              fontSize: 13, color: ARK_TOKENS.inkSubtle,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}
+          >
+            {coachStatus}
+          </div>
         </div>
         <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: ARK_TOKENS.inkSubtle, padding: 4, borderRadius: 3 }}>
           <Ico.gear size={14} />

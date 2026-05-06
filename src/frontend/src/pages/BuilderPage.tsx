@@ -74,8 +74,10 @@ export function BuilderPage() {
       }));
   });
   const [showUiChange, setShowUiChange] = useState(false);
+  const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
   const autoScanFiredRef = useRef(false);
   const pendingScanIdsRef = useRef<Set<string>>(new Set());
+  const prevScanCountRef = useRef(0);
 
   // Sync back to draft on changes
   useEffect(() => {
@@ -195,6 +197,19 @@ export function BuilderPage() {
     .filter((d) => pendingScanIdsRef.current.has(d.id))
     .every((d) => !d.scanning);
 
+  const scanningDocNames = docs.filter((d) => d.scanning).map((d) => d.name);
+
+  // Flash "Added <doc> to context" briefly whenever a new scan lands.
+  useEffect(() => {
+    if (scanResults.length > prevScanCountRef.current) {
+      const last = scanResults[scanResults.length - 1];
+      setRecentlyAdded(last.docName);
+      prevScanCountRef.current = scanResults.length;
+      const t = setTimeout(() => setRecentlyAdded(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [scanResults]);
+
   const fields = [
     { id: 'title', label: 'Title', filled: !!title },
     { id: 'background', label: 'Background', filled: !!background },
@@ -278,6 +293,8 @@ export function BuilderPage() {
           activeField={activeField}
           setActiveField={setActiveField}
           attachmentsReady={attachmentsReady}
+          scanningDocNames={scanningDocNames}
+          recentlyAddedDocName={recentlyAdded}
         />
 
         {/* RIGHT: Form */}
