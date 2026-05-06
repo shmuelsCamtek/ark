@@ -19,7 +19,8 @@
       "Bash(npm uninstall *)",
       "Bash(git status *)",
       "Bash(git restore *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(xargs ls -la)"
     ]
   }
 }
