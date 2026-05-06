@@ -73,6 +73,7 @@ export function BuilderPage() {
   const [showUiChange, setShowUiChange] = useState(false);
   const [scanSuggestionsForChat, setScanSuggestionsForChat] = useState<ScanResult[]>([]);
   const autoScanFiredRef = useRef(false);
+  const pendingScanIdsRef = useRef<Set<string>>(new Set());
 
   // Sync back to draft on changes
   useEffect(() => {
@@ -165,6 +166,11 @@ export function BuilderPage() {
     const current = getDraft(id);
     if (!current?.supportingDocs?.length) return;
     autoScanFiredRef.current = true;
+    const pending = new Set<string>();
+    for (const sd of current.supportingDocs) {
+      if (!sd.scanned && sd.url) pending.add(sd.id);
+    }
+    pendingScanIdsRef.current = pending;
     for (const sd of current.supportingDocs) {
       if (sd.scanned || !sd.url) continue;
       const docItem: DocItem = {
@@ -177,6 +183,10 @@ export function BuilderPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId, draftId]);
+
+  const attachmentsReady = docs
+    .filter((d) => pendingScanIdsRef.current.has(d.id))
+    .every((d) => !d.scanning);
 
   const fields = [
     { id: 'title', label: 'Title', filled: !!title },
@@ -254,6 +264,7 @@ export function BuilderPage() {
           activeField={activeField}
           setActiveField={setActiveField}
           scanSuggestions={scanSuggestionsForChat}
+          attachmentsReady={attachmentsReady}
         />
 
         {/* RIGHT: Form */}

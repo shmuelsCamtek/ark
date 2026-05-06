@@ -45,6 +45,7 @@ interface SuggestChatProps {
   activeField: string;
   setActiveField: (f: string) => void;
   scanSuggestions?: ScanResultInput[];
+  attachmentsReady?: boolean;
 }
 
 const QUICK_CHIPS = [
@@ -186,7 +187,7 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
   return { role: 'ai', text: coach.text };
 }
 
-export function SuggestChat({ storyState, onApply, activeField, setActiveField: _setActiveField, scanSuggestions = [] }: SuggestChatProps) {
+export function SuggestChat({ storyState, onApply, activeField, setActiveField: _setActiveField, scanSuggestions = [], attachmentsReady = true }: SuggestChatProps) {
   const { ai } = useServices();
   const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
@@ -200,9 +201,15 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, typing]);
 
+  // Show typing indicator while we wait for mount-time attachments to scan
+  useEffect(() => {
+    if (!initialLoaded && !attachmentsReady) setTyping(true);
+  }, [attachmentsReady, initialLoaded]);
+
   // Initial contextual suggestions for real mode
   useEffect(() => {
     if (initialLoaded) return;
+    if (!attachmentsReady) return;
     let cancelled = false;
     setTyping(true);
     const ctx = buildDraftContext(storyState, activeField);
@@ -221,10 +228,11 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
       setInitialLoaded(true);
     });
     return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [attachmentsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Process new scan suggestions into chat messages
   useEffect(() => {
+    if (!initialLoaded) return;
     if (scanSuggestions.length > processedScans) {
       const newScans = scanSuggestions.slice(processedScans);
       const newMessages: SuggestMessage[] = [];
@@ -244,7 +252,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
       }
       setProcessedScans(scanSuggestions.length);
     }
-  }, [scanSuggestions, processedScans]);
+  }, [scanSuggestions, processedScans, initialLoaded]);
 
   const handleApply = (msgIdx: number, optIdx: number, field: string, text: string) => {
     onApply(field, text);
