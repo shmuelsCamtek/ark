@@ -78,6 +78,7 @@ export function OnboardingPage() {
   const [searchResults, setSearchResults] = useState<WorkItemInfo[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
+  const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Debounced search
@@ -85,11 +86,16 @@ export function OnboardingPage() {
     if (!workItemId || workItemId.length < 2) {
       setSearchResults([]);
       setShowDropdown(false);
+      setSearching(false);
       return;
     }
     // If we already have a resolved item matching the current input, don't search
-    if (resolved && String(resolved.id) === workItemId) return;
+    if (resolved && String(resolved.id) === workItemId) {
+      setSearching(false);
+      return;
+    }
 
+    setSearching(true);
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
@@ -126,6 +132,8 @@ export function OnboardingPage() {
         if (cancelled) return;
         setSearchResults([]);
         setShowDropdown(false);
+      } finally {
+        if (!cancelled) setSearching(false);
       }
     }, 400);
     return () => { cancelled = true; clearTimeout(t); };
@@ -272,7 +280,14 @@ export function OnboardingPage() {
                         fontFamily: ARK_TOKENS.mono, fontWeight: 600,
                       }}
                     />
-                    {resolved && !resolved.notFound && (
+                    {searching ? (
+                      <div
+                        title="Looking up…"
+                        style={{ color: ARK_TOKENS.inkSubtle, padding: '0 12px', display: 'flex', alignItems: 'center' }}
+                      >
+                        <Spinner size={14} />
+                      </div>
+                    ) : resolved && !resolved.notFound && (
                       <div style={{ color: ARK_TOKENS.success, padding: '0 12px', display: 'flex', alignItems: 'center' }}>
                         <Ico.check size={14} />
                       </div>
