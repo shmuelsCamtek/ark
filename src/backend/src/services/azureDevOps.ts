@@ -5,6 +5,25 @@ function authHeaders(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
+export interface FetchedAttachment {
+  base64: string;
+  mimeType: string;
+}
+
+export async function fetchAzureAttachment(url: string, token: string): Promise<FetchedAttachment | null> {
+  if (!url.startsWith(ORG_URL)) {
+    throw new Error('Attachment URL is outside the configured Azure DevOps organization');
+  }
+  const res = await fetch(url, { headers: authHeaders(token) });
+  if (!res.ok) {
+    console.error('[azure] fetchAzureAttachment failed:', res.status, await res.text().catch(() => ''));
+    return null;
+  }
+  const buf = Buffer.from(await res.arrayBuffer());
+  const contentType = (res.headers.get('content-type') || '').split(';')[0].trim();
+  return { base64: buf.toString('base64'), mimeType: contentType || 'application/octet-stream' };
+}
+
 export interface WorkItemAttachment {
   id: string;
   name: string;

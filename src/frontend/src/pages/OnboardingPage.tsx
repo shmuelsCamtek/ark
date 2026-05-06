@@ -159,6 +159,7 @@ export function OnboardingPage() {
           name: att.name,
           type,
           scanned: false,
+          url: att.url,
         };
       });
 

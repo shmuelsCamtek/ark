@@ -19,12 +19,34 @@ export interface ScanResult {
   edgeCases: string[];
 }
 
+export interface UploadedDocPayload {
+  content: string;
+  mimeType: string;
+}
+
 interface DocsListProps {
   docs: DocItem[];
   scanResults: ScanResult[];
   onRemove: (id: string) => void;
   onAdd: (doc: DocItem) => void;
-  onScan: (doc: DocItem) => void;
+  onScan: (doc: DocItem, payload?: UploadedDocPayload) => void;
+}
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error || new Error('Failed to read file'));
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== 'string') {
+        reject(new Error('Unexpected FileReader result'));
+        return;
+      }
+      const comma = result.indexOf(',');
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function DocIcon({ kind }: { kind: string }) {
@@ -48,6 +70,7 @@ export function DocsList({ docs, scanResults, onRemove, onAdd, onScan }: DocsLis
 
   const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    e.target.value = '';
     files.forEach((f) => {
       const kind: DocItem['kind'] = f.type.startsWith('image') ? 'image' : f.name.endsWith('.pdf') ? 'pdf' : 'file';
       const doc: DocItem = {
@@ -57,9 +80,16 @@ export function DocsList({ docs, scanResults, onRemove, onAdd, onScan }: DocsLis
         kind,
       };
       onAdd(doc);
-      onScan(doc);
+      readFileAsBase64(f)
+        .then((content) => {
+          const mimeType = f.type || 'application/octet-stream';
+          onScan(doc, { content, mimeType });
+        })
+        .catch((err) => {
+          console.error('[docs] failed to read file', f.name, err);
+          onScan(doc);
+        });
     });
-    e.target.value = '';
   };
 
   const totalACs = scanResults.reduce((sum, r) => sum + r.acceptanceCriteria.length, 0);

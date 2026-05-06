@@ -16,9 +16,11 @@ interface AppState {
   authStatus: AuthStatus;
 }
 
+type DraftUpdater = Partial<StoryDraft> | ((current: StoryDraft) => Partial<StoryDraft>);
+
 interface AppActions {
   addDraft: (draft: StoryDraft) => void;
-  updateDraft: (id: string, updates: Partial<StoryDraft>) => void;
+  updateDraft: (id: string, updates: DraftUpdater) => void;
   deleteDraft: (id: string) => void;
   getDraft: (id: string) => StoryDraft | undefined;
   setAzureConnection: (conn: AzureConnection) => void;
@@ -67,9 +69,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDrafts((prev) => [draft, ...prev]);
   }, []);
 
-  const updateDraft = useCallback((id: string, updates: Partial<StoryDraft>) => {
+  const updateDraft = useCallback((id: string, updates: DraftUpdater) => {
     setDrafts((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d)),
+      prev.map((d) => {
+        if (d.id !== id) return d;
+        const patch = typeof updates === 'function' ? updates(d) : updates;
+        return { ...d, ...patch, updatedAt: new Date().toISOString() };
+      }),
     );
   }, []);
 

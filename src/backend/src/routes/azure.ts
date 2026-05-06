@@ -1,6 +1,12 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import { getWorkItemGraph, createWorkItem, searchWorkItems } from '../services/azureDevOps.ts';
+import {
+  getWorkItemGraph,
+  createWorkItem,
+  searchWorkItems,
+  fetchAzureAttachment,
+} from '../services/azureDevOps.ts';
 import { getAccessToken } from '../services/auth.ts';
+import { scanDocument } from '../services/documentScanner.ts';
 
 export const azureRouter = Router();
 
@@ -21,6 +27,28 @@ async function withAzureToken(req: Request, res: Response, next: NextFunction) {
 }
 
 azureRouter.use(withAzureToken);
+
+// Fetch an Azure DevOps attachment and run it through the document scanner
+azureRouter.post('/attachments/scan', async (req, res) => {
+  const { url, name } = (req.body || {}) as { url?: string; name?: string };
+  if (!url || !name) {
+    res.status(400).json({ error: 'url and name are required' });
+    return;
+  }
+  try {
+    const fetched = await fetchAzureAttachment(url, req.azureDevOpsToken!);
+    if (!fetched) {
+      res.status(404).json({ error: 'Attachment not found' });
+      return;
+    }
+    const result = await scanDocument(fetched.base64, fetched.mimeType, name);
+    res.json({ ...result, mimeType: fetched.mimeType });
+  } catch (err) {
+    console.error('Attachment scan error:', err);
+    const message = err instanceof Error ? err.message : 'Failed to scan attachment';
+    res.status(500).json({ error: message });
+  }
+});
 
 // Search work items by title or ID
 azureRouter.get('/workitems', async (req, res) => {

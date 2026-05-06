@@ -9,7 +9,11 @@ export interface SupportingDoc {
   name: string;
   type: 'pdf' | 'image' | 'other';
   scanned: boolean;
+  url?: string;
+  mimeType?: string;
   summary?: string;
+  acceptanceCriteria?: string[];
+  edgeCases?: string[];
 }
 
 export interface UiChange {

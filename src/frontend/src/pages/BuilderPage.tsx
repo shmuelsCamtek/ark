@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ARK_TOKENS } from '../tokens';
 import { TopBar, Btn, Ico, TextInput, TextArea } from '../components/ui';
 import { useParams, useNavigate } from '../router';
@@ -6,10 +6,16 @@ import { useApp, createEmptyDraft } from '../context/AppContext';
 import { Field } from '../components/builder/Field';
 import { PersonaRow } from '../components/builder/PersonaRow';
 import { NarrativeRow } from '../components/builder/NarrativeRow';
-import { DocsList, type DocItem, type ScanResult } from '../components/builder/DocsList';
+import { DocsList, type DocItem, type ScanResult, type UploadedDocPayload } from '../components/builder/DocsList';
 import { UiChangePreview } from '../components/builder/UiChangePreview';
 import { SuggestChat } from '../components/builder/SuggestChat';
 import { evaluateCompletion } from '../lib/storyCompletion';
+import { scanUploadedDoc, scanAzureAttachment, type ScanResultPayload } from '../services/scan';
+import type { SupportingDoc } from '../types';
+
+function docKindToSupportingType(kind: DocItem['kind']): SupportingDoc['type'] {
+  return kind === 'pdf' ? 'pdf' : kind === 'image' ? 'image' : 'other';
+}
 
 export function BuilderPage() {
   const params = useParams();
@@ -52,9 +58,21 @@ export function BuilderPage() {
       return { id: sd.id, name: sd.name, size: '', kind, scanned: sd.scanned };
     });
   });
-  const [scanResults, setScanResults] = useState<ScanResult[]>([]);
+  const [scanResults, setScanResults] = useState<ScanResult[]>(() => {
+    if (!draft?.supportingDocs?.length) return [];
+    return draft.supportingDocs
+      .filter((sd) => sd.scanned)
+      .map((sd) => ({
+        docId: sd.id,
+        docName: sd.name,
+        summary: sd.summary || '',
+        acceptanceCriteria: sd.acceptanceCriteria || [],
+        edgeCases: sd.edgeCases || [],
+      }));
+  });
   const [showUiChange, setShowUiChange] = useState(false);
   const [scanSuggestionsForChat, setScanSuggestionsForChat] = useState<ScanResult[]>([]);
+  const autoScanFiredRef = useRef(false);
 
   // Sync back to draft on changes
   useEffect(() => {
@@ -84,30 +102,81 @@ export function BuilderPage() {
     setActiveField(field);
   };
 
-  const handleDocScan = (doc: DocItem) => {
-    // Mark doc as scanning
-    setDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, scanning: true } : d));
-
-    // Simulate scan with mock results after delay
-    setTimeout(() => {
-      const result: ScanResult = {
-        docId: doc.id,
-        docName: doc.name,
-        summary: `Scanned "${doc.name}" and extracted actionable criteria.`,
-        acceptanceCriteria: [
-          `Given the ${doc.kind === 'pdf' ? 'policy document' : 'screenshot'} is reviewed, when requirements are extracted, then all edge cases from the document are covered.`,
-          'Given the extracted criteria conflict with existing ACs, when compared, then the user is prompted to resolve duplicates.',
-        ],
-        edgeCases: [
-          'Legacy accounts on annual billing may have different retry windows.',
-        ],
+  const persistScanResult = (
+    doc: DocItem,
+    payload: ScanResultPayload,
+    uploadedMimeType?: string,
+  ) => {
+    const id = editId || draftId;
+    const sr: ScanResult = {
+      docId: doc.id,
+      docName: doc.name,
+      summary: payload.summary,
+      acceptanceCriteria: payload.acceptanceCriteria,
+      edgeCases: payload.edgeCases,
+    };
+    setDocs((prev) => prev.map((d) => (d.id === doc.id ? { ...d, scanning: false, scanned: true } : d)));
+    setScanResults((prev) => (prev.some((p) => p.docId === doc.id) ? prev : [...prev, sr]));
+    setScanSuggestionsForChat((prev) => (prev.some((p) => p.docId === doc.id) ? prev : [...prev, sr]));
+    updateDraft(id, (current) => {
+      const existing = current.supportingDocs || [];
+      const idx = existing.findIndex((s) => s.id === doc.id);
+      const merged: SupportingDoc = {
+        id: doc.id,
+        name: doc.name,
+        type: docKindToSupportingType(doc.kind),
+        scanned: true,
+        url: existing[idx]?.url,
+        mimeType: payload.mimeType ?? existing[idx]?.mimeType ?? uploadedMimeType,
+        summary: payload.summary,
+        acceptanceCriteria: payload.acceptanceCriteria,
+        edgeCases: payload.edgeCases,
       };
-
-      setDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, scanning: false, scanned: true } : d));
-      setScanResults((prev) => [...prev, result]);
-      setScanSuggestionsForChat((prev) => [...prev, result]);
-    }, 1800);
+      const supportingDocs = idx >= 0 ? existing.map((s, i) => (i === idx ? merged : s)) : [...existing, merged];
+      return { supportingDocs };
+    });
   };
+
+  const handleDocScan = async (doc: DocItem, payload?: UploadedDocPayload) => {
+    setDocs((prev) => prev.map((d) => (d.id === doc.id ? { ...d, scanning: true } : d)));
+    try {
+      let result: ScanResultPayload | null = null;
+      if (payload) {
+        result = await scanUploadedDoc(doc.name, payload.mimeType, payload.content);
+      } else {
+        const id = editId || draftId;
+        const url = getDraft(id)?.supportingDocs?.find((s) => s.id === doc.id)?.url;
+        if (url) result = await scanAzureAttachment(url, doc.name);
+      }
+      if (result) {
+        persistScanResult(doc, result, payload?.mimeType);
+        return;
+      }
+    } catch (err) {
+      console.error('[builder] doc scan failed', err);
+    }
+    setDocs((prev) => prev.map((d) => (d.id === doc.id ? { ...d, scanning: false } : d)));
+  };
+
+  // Auto-scan: any unscanned supporting doc with a URL (Azure attachment) on mount
+  useEffect(() => {
+    if (autoScanFiredRef.current) return;
+    const id = editId || draftId;
+    const current = getDraft(id);
+    if (!current?.supportingDocs?.length) return;
+    autoScanFiredRef.current = true;
+    for (const sd of current.supportingDocs) {
+      if (sd.scanned || !sd.url) continue;
+      const docItem: DocItem = {
+        id: sd.id,
+        name: sd.name,
+        size: '',
+        kind: sd.type === 'pdf' ? 'pdf' : sd.type === 'image' ? 'image' : 'file',
+      };
+      void handleDocScan(docItem);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId, draftId]);
 
   const fields = [
     { id: 'title', label: 'Title', filled: !!title },
