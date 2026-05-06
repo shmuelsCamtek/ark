@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type CSSProperties } from 'react';
 import { ARK_TOKENS } from '../../tokens';
 import { Ico } from '../ui/icons';
 import { useServices } from '../../context/ServicesContext';
@@ -14,6 +14,7 @@ interface SuggestMessage {
   quizQuestion?: string;
   quizAnswered?: boolean;
   quizAnswer?: string;
+  bundleResolved?: boolean;
 }
 
 interface SuggestChatProps {
@@ -285,6 +286,59 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
       });
   };
 
+  const handleIgnoreSuggestion = (msgIdx: number, field: string) => {
+    setMessages((prev) => prev.map((m, i) => (i === msgIdx ? { ...m, bundleResolved: true } : m)));
+    setMessages((prev) => [...prev, { role: 'ai', kind: 'ack', text: `Skipped ${fieldLabel(field)}.` }]);
+    if (typing) return;
+
+    const next = nextEmptyField(storyState);
+    const tail = next && next.toLowerCase() !== fieldLabel(field).toLowerCase()
+      ? `Move on to **${next}** — ask me a clarifying question (quiz) or draft a value.`
+      : `Move on to whatever empty field is next — ask me a clarifying question (quiz) or draft a value.`;
+    const signal: CoachMessage = {
+      id: `ignore-${Date.now()}`,
+      type: 'user',
+      text: `I'm skipping ${fieldLabel(field)} for now. ${tail}`,
+      timestamp: new Date().toISOString(),
+    };
+    const aiConvo: CoachMessage[] = [...toCoachMessages(messages), signal];
+    const ctx = buildDraftContext(storyState, activeField);
+
+    setTyping(true);
+    ai.chat(aiConvo, ctx)
+      .then((response) => setMessages((m) => [...m, coachToSuggestMessage(response)]))
+      .catch(() => setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn’t continue. Please try again.' }]))
+      .finally(() => setTyping(false));
+  };
+
+  const handleApplyCustom = (msgIdx: number, field: string, text: string) => {
+    onApply(field, text);
+    setMessages((prev) => prev.map((m, i) => (i === msgIdx ? { ...m, bundleResolved: true } : m)));
+    setMessages((prev) => [...prev, { role: 'ai', kind: 'ack', text: `Applied to ${fieldLabel(field)}.` }]);
+    if (typing) return;
+
+    const patched = patchStoryState(storyState, field, text);
+    const truncated = text.length > 120 ? text.slice(0, 117) + '…' : text;
+    const next = nextEmptyField(patched);
+    const tail = next
+      ? `Now help me with **${next}** — the next empty field. Ask me a clarifying question (quiz) or draft a value.`
+      : `All four fields are filled now. Ask me via quiz whether I want to refine any of them or add more acceptance criteria.`;
+    const signal: CoachMessage = {
+      id: `apply-custom-${Date.now()}`,
+      type: 'user',
+      text: `I wrote my own value for ${fieldLabel(field)}: "${truncated}". ${tail}`,
+      timestamp: new Date().toISOString(),
+    };
+    const aiConvo: CoachMessage[] = [...toCoachMessages(messages), signal];
+    const ctx = buildDraftContext(patched, activeField);
+
+    setTyping(true);
+    ai.chat(aiConvo, ctx)
+      .then((response) => setMessages((m) => [...m, coachToSuggestMessage(response)]))
+      .catch(() => setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn’t continue. Please try again.' }]))
+      .finally(() => setTyping(false));
+  };
+
   const handleQuizAnswer = useCallback((msgIdx: number, answer: string) => {
     // Mark quiz as answered and remember the answer for compact rendering
     setMessages((prev) => prev.map((m, i) => i === msgIdx ? { ...m, quizAnswered: true, quizAnswer: answer } : m));
@@ -413,7 +467,15 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
         style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 14 }}
       >
         {messages.map((m, i) => (
-          <SuggestMsg key={i} msg={m} msgIdx={i} onApply={handleApply} usedSuggestions={usedSuggestions} />
+          <SuggestMsg
+            key={i}
+            msg={m}
+            msgIdx={i}
+            onApply={handleApply}
+            usedSuggestions={usedSuggestions}
+            onIgnore={handleIgnoreSuggestion}
+            onApplyCustom={handleApplyCustom}
+          />
         ))}
         {typing && (
           <div style={{ display: 'flex', gap: 4, padding: '4px 0 4px 32px', alignItems: 'center' }}>
@@ -676,11 +738,15 @@ function SuggestMsg({
   msgIdx,
   onApply,
   usedSuggestions,
+  onIgnore,
+  onApplyCustom,
 }: {
   msg: SuggestMessage;
   msgIdx: number;
   onApply: (msgIdx: number, optIdx: number, field: string, text: string) => void;
   usedSuggestions: Set<string>;
+  onIgnore: (msgIdx: number, field: string) => void;
+  onApplyCustom: (msgIdx: number, field: string, text: string) => void;
 }) {
   if (msg.role === 'user') {
     return (
@@ -727,7 +793,7 @@ function SuggestMsg({
           />
         )}
 
-        {(msg.kind === 'suggestions' || msg.kind === 'criteria-bundle') && msg.options && (
+        {(msg.kind === 'suggestions' || msg.kind === 'criteria-bundle') && msg.options && !(msg.kind === 'suggestions' && msg.bundleResolved) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {msg.options.map((opt, i) => {
               const used = usedSuggestions.has(`${msgIdx}-${i}`);
@@ -773,6 +839,14 @@ function SuggestMsg({
                 </button>
               );
             })}
+            {msg.kind === 'suggestions' && msg.field && (
+              <SuggestionActions
+                msgIdx={msgIdx}
+                field={msg.field}
+                onIgnore={onIgnore}
+                onApplyCustom={onApplyCustom}
+              />
+            )}
           </div>
         )}
 
@@ -791,6 +865,100 @@ function SuggestMsg({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function SuggestionActions({
+  msgIdx,
+  field,
+  onIgnore,
+  onApplyCustom,
+}: {
+  msgIdx: number;
+  field: string;
+  onIgnore: (msgIdx: number, field: string) => void;
+  onApplyCustom: (msgIdx: number, field: string, text: string) => void;
+}) {
+  const [showCustom, setShowCustom] = useState(false);
+  const [customText, setCustomText] = useState('');
+
+  const submitCustom = () => {
+    const text = customText.trim();
+    if (!text) return;
+    onApplyCustom(msgIdx, field, text);
+  };
+
+  const buttonStyle: CSSProperties = {
+    border: 'none',
+    background: 'transparent',
+    padding: '4px 8px',
+    fontSize: 13,
+    color: ARK_TOKENS.inkMuted,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    borderRadius: 4,
+  };
+
+  return (
+    <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', gap: 4 }}>
+        <button
+          type="button"
+          onClick={() => onIgnore(msgIdx, field)}
+          style={buttonStyle}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = ARK_TOKENS.ink; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = ARK_TOKENS.inkMuted; }}
+        >
+          Ignore
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowCustom((v) => !v)}
+          style={buttonStyle}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = ARK_TOKENS.ink; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = ARK_TOKENS.inkMuted; }}
+        >
+          Something else…
+        </button>
+      </div>
+      {showCustom && (
+        <div className="ark-fadein" style={{ display: 'flex', gap: 6 }}>
+          <input
+            autoFocus
+            value={customText}
+            onChange={(e) => setCustomText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') submitCustom(); }}
+            placeholder={`Type your ${fieldLabel(field).toLowerCase()}…`}
+            style={{
+              flex: 1,
+              border: `1px solid ${ARK_TOKENS.borderStrong}`,
+              borderRadius: ARK_TOKENS.r,
+              padding: '6px 10px',
+              fontSize: 14,
+              fontFamily: 'inherit',
+              outline: 'none',
+              background: ARK_TOKENS.surface,
+            }}
+          />
+          <button
+            type="button"
+            onClick={submitCustom}
+            disabled={!customText.trim()}
+            style={{
+              width: 26, height: 26, borderRadius: 13,
+              border: 'none',
+              background: customText.trim() ? ARK_TOKENS.azure : ARK_TOKENS.border,
+              color: '#fff',
+              cursor: customText.trim() ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Ico.arrow size={11} dir="up" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
