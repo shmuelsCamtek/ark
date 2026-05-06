@@ -6,7 +6,9 @@
       "Bash(cd:*)",
       "Bash(npm cache:*)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh auth *)"
     ]
   },
   "hooks": {
