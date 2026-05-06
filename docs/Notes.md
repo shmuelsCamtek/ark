@@ -5,4 +5,9 @@
     - general.
     - comment like word.
 - [] UI looks very buzzy.
-- 
+- [] add user manual to chat context. 
+- [] producs add to sharpoint, talk with Gal.
+- [] the chat should challange the user ragarding the requests. 
+  - confilcs
+  - if it exists, or simillar feature. 
+  - Auther
