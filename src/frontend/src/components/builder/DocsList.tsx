@@ -15,6 +15,9 @@ export interface ScanResult {
   docId: string;
   docName: string;
   summary: string;
+  problemContext?: string;
+  stakeholders?: string[];
+  goals?: string[];
   acceptanceCriteria: string[];
   edgeCases: string[];
 }
@@ -92,9 +95,6 @@ export function DocsList({ docs, scanResults, onRemove, onAdd, onScan }: DocsLis
     });
   };
 
-  const totalACs = scanResults.reduce((sum, r) => sum + r.acceptanceCriteria.length, 0);
-  const totalEdges = scanResults.reduce((sum, r) => sum + r.edgeCases.length, 0);
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {docs.map((d) => (
@@ -162,7 +162,7 @@ export function DocsList({ docs, scanResults, onRemove, onAdd, onScan }: DocsLis
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = ARK_TOKENS.borderStrong; (e.currentTarget as HTMLElement).style.color = ARK_TOKENS.inkMuted; }}
       >
         <Ico.upload size={13} />
-        <span>Add documents — Ark will read them and suggest criteria</span>
+        <span>Add documents — Ark will read them and use them as context</span>
       </button>
       <input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp" style={{ display: 'none' }} onChange={handlePick} />
 
@@ -185,7 +185,7 @@ export function DocsList({ docs, scanResults, onRemove, onAdd, onScan }: DocsLis
               Ark scanned {scanResults.length} document{scanResults.length === 1 ? '' : 's'}
             </div>
             <div style={{ color: ARK_TOKENS.inkMuted }}>
-              Found {totalACs} likely acceptance criteria{totalEdges > 0 ? ` and ${totalEdges} edge case${totalEdges === 1 ? '' : 's'}` : ''}. See suggestions in the coach panel →
+              Using them as context across the whole story.
             </div>
           </div>
         </div>

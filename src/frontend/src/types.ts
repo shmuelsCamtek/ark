@@ -12,6 +12,9 @@ export interface SupportingDoc {
   url?: string;
   mimeType?: string;
   summary?: string;
+  problemContext?: string;
+  stakeholders?: string[];
+  goals?: string[];
   acceptanceCriteria?: string[];
   edgeCases?: string[];
 }

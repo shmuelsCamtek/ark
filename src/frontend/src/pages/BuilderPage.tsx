@@ -66,12 +66,14 @@ export function BuilderPage() {
         docId: sd.id,
         docName: sd.name,
         summary: sd.summary || '',
+        problemContext: sd.problemContext,
+        stakeholders: sd.stakeholders,
+        goals: sd.goals,
         acceptanceCriteria: sd.acceptanceCriteria || [],
         edgeCases: sd.edgeCases || [],
       }));
   });
   const [showUiChange, setShowUiChange] = useState(false);
-  const [scanSuggestionsForChat, setScanSuggestionsForChat] = useState<ScanResult[]>([]);
   const autoScanFiredRef = useRef(false);
   const pendingScanIdsRef = useRef<Set<string>>(new Set());
 
@@ -113,12 +115,14 @@ export function BuilderPage() {
       docId: doc.id,
       docName: doc.name,
       summary: payload.summary,
+      problemContext: payload.problemContext,
+      stakeholders: payload.stakeholders,
+      goals: payload.goals,
       acceptanceCriteria: payload.acceptanceCriteria,
       edgeCases: payload.edgeCases,
     };
     setDocs((prev) => prev.map((d) => (d.id === doc.id ? { ...d, scanning: false, scanned: true } : d)));
     setScanResults((prev) => (prev.some((p) => p.docId === doc.id) ? prev : [...prev, sr]));
-    setScanSuggestionsForChat((prev) => (prev.some((p) => p.docId === doc.id) ? prev : [...prev, sr]));
     updateDraft(id, (current) => {
       const existing = current.supportingDocs || [];
       const idx = existing.findIndex((s) => s.id === doc.id);
@@ -130,6 +134,9 @@ export function BuilderPage() {
         url: existing[idx]?.url,
         mimeType: payload.mimeType ?? existing[idx]?.mimeType ?? uploadedMimeType,
         summary: payload.summary,
+        problemContext: payload.problemContext,
+        stakeholders: payload.stakeholders,
+        goals: payload.goals,
         acceptanceCriteria: payload.acceptanceCriteria,
         edgeCases: payload.edgeCases,
       };
@@ -256,14 +263,20 @@ export function BuilderPage() {
               const scan = scanResults.find(s => s.docId === d.id);
               return {
                 name: d.name, kind: d.kind, scanned: !!d.scanned,
-                ...(scan && { summary: scan.summary, acceptanceCriteria: scan.acceptanceCriteria, edgeCases: scan.edgeCases }),
+                ...(scan && {
+                  summary: scan.summary,
+                  problemContext: scan.problemContext,
+                  stakeholders: scan.stakeholders,
+                  goals: scan.goals,
+                  acceptanceCriteria: scan.acceptanceCriteria,
+                  edgeCases: scan.edgeCases,
+                }),
               };
             }),
           }}
           onApply={applySuggestion}
           activeField={activeField}
           setActiveField={setActiveField}
-          scanSuggestions={scanSuggestionsForChat}
           attachmentsReady={attachmentsReady}
         />
 

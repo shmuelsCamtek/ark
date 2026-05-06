@@ -15,12 +15,6 @@ interface SuggestMessage {
   quizAnswered?: boolean;
 }
 
-interface ScanResultInput {
-  docName: string;
-  acceptanceCriteria: string[];
-  edgeCases: string[];
-}
-
 interface SuggestChatProps {
   storyState: {
     title: string;
@@ -39,12 +33,21 @@ interface SuggestChatProps {
     workItemDiscussion?: WorkItemComment[];
     linkedWorkItems?: WorkItemInfo[];
     epicName?: string;
-    supportingDocs?: { name: string; kind: string; scanned: boolean; summary?: string; acceptanceCriteria?: string[]; edgeCases?: string[] }[];
+    supportingDocs?: {
+      name: string;
+      kind: string;
+      scanned: boolean;
+      summary?: string;
+      problemContext?: string;
+      stakeholders?: string[];
+      goals?: string[];
+      acceptanceCriteria?: string[];
+      edgeCases?: string[];
+    }[];
   };
   onApply: (field: string, value: string) => void;
   activeField: string;
   setActiveField: (f: string) => void;
-  scanSuggestions?: ScanResultInput[];
   attachmentsReady?: boolean;
 }
 
@@ -187,13 +190,12 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
   return { role: 'ai', text: coach.text };
 }
 
-export function SuggestChat({ storyState, onApply, activeField, setActiveField: _setActiveField, scanSuggestions = [], attachmentsReady = true }: SuggestChatProps) {
+export function SuggestChat({ storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true }: SuggestChatProps) {
   const { ai } = useServices();
   const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set());
-  const [processedScans, setProcessedScans] = useState(0);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -229,39 +231,6 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
     });
     return () => { cancelled = true; };
   }, [attachmentsReady]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const readyForAcPhase = !!(
-    storyState.background?.trim() &&
-    storyState.persona?.trim() &&
-    storyState.want?.trim() &&
-    storyState.benefit?.trim() &&
-    storyState.title?.trim()
-  );
-
-  // Process new scan suggestions into chat messages
-  useEffect(() => {
-    if (!initialLoaded) return;
-    if (!readyForAcPhase) return;
-    if (scanSuggestions.length > processedScans) {
-      const newScans = scanSuggestions.slice(processedScans);
-      const newMessages: SuggestMessage[] = [];
-      for (const scan of newScans) {
-        const allOptions = [...scan.acceptanceCriteria, ...scan.edgeCases];
-        if (allOptions.length > 0) {
-          newMessages.push({
-            role: 'ai',
-            kind: 'criteria-bundle',
-            intro: `\u{1F4C4} I scanned **${scan.docName}** and found these likely acceptance criteria:`,
-            options: allOptions,
-          });
-        }
-      }
-      if (newMessages.length > 0) {
-        setMessages((prev) => [...prev, ...newMessages]);
-      }
-      setProcessedScans(scanSuggestions.length);
-    }
-  }, [scanSuggestions, processedScans, initialLoaded, readyForAcPhase]);
 
   const handleApply = (msgIdx: number, optIdx: number, field: string, text: string) => {
     onApply(field, text);

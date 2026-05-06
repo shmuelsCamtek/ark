@@ -1,5 +1,8 @@
 export interface ScanResultPayload {
   summary: string;
+  problemContext?: string;
+  stakeholders?: string[];
+  goals?: string[];
   acceptanceCriteria: string[];
   edgeCases: string[];
   mimeType?: string;

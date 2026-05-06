@@ -35,7 +35,17 @@ interface DraftContext {
   workItemDiscussion?: ContextComment[];
   linkedWorkItems?: ContextWorkItemNode[];
   epicName?: string;
-  supportingDocs?: { name: string; kind: string; scanned: boolean; summary?: string; acceptanceCriteria?: string[]; edgeCases?: string[] }[];
+  supportingDocs?: {
+    name: string;
+    kind: string;
+    scanned: boolean;
+    summary?: string;
+    problemContext?: string;
+    stakeholders?: string[];
+    goals?: string[];
+    acceptanceCriteria?: string[];
+    edgeCases?: string[];
+  }[];
 }
 
 function stripHtml(html: string): string {
@@ -125,12 +135,21 @@ function buildWorkItemSection(ctx: DraftContext): string {
       if (!doc.scanned) continue;
       lines.push(`\n### Document: ${doc.name}`);
       if (doc.summary) lines.push(`**Summary**: ${doc.summary}`);
+      if (doc.problemContext) lines.push(`**Problem context** (use to draft Background): ${doc.problemContext}`);
+      if (doc.stakeholders?.length) {
+        lines.push('**Stakeholders mentioned** (use to draft Persona):');
+        doc.stakeholders.forEach((s, i) => lines.push(`  ${i + 1}. ${s}`));
+      }
+      if (doc.goals?.length) {
+        lines.push('**Goals / desired outcomes** (use to draft Desire & Benefit):');
+        doc.goals.forEach((g, i) => lines.push(`  ${i + 1}. ${g}`));
+      }
       if (doc.acceptanceCriteria?.length) {
-        lines.push('**Extracted acceptance criteria**:');
+        lines.push('**Extracted acceptance criteria** (use during AC phase only):');
         doc.acceptanceCriteria.forEach((ac, i) => lines.push(`  ${i + 1}. ${ac}`));
       }
       if (doc.edgeCases?.length) {
-        lines.push('**Edge cases identified**:');
+        lines.push('**Edge cases identified** (use during AC phase only):');
         doc.edgeCases.forEach((ec, i) => lines.push(`  ${i + 1}. ${ec}`));
       }
     }
@@ -199,6 +218,8 @@ For each field:
 **You drive the conversation forward.** After a field has been addressed (you drafted it, the user accepted a suggestion, or the user answered your quiz), immediately move to the **next empty field** in the order above — do not linger, do not wait for the user to ask "what's next?". A short acknowledgement plus the next question/draft is the right shape; never end a turn at "great, that's done" without advancing.
 
 **Phase discipline.** Acceptance Criteria are the **last** phase. Do not surface AC suggestions (no \`field: "criteria"\` suggestions, no AC quizzes, no "here are likely ACs" prose) until **Background, Persona, Desire, Benefit, and Title** are all filled. If supporting documents contain extracted criteria or edge cases, hold them — use them only to inform earlier-phase drafts (Background framing, Persona hints, scope of the Desire/Benefit), and surface them as ACs only when the conversation reaches the AC phase.
+
+**Doc content discipline.** When drafting Background, Persona, Desire, Benefit, or Title, **paraphrase** the document's \`problemContext\` / \`stakeholders\` / \`goals\` — do not quote the document verbatim. Background should read as your own framing of the situation; Persona / Desire / Benefit should read as one synthesised user story, not a copy of the doc. Verbatim document content is reserved for the AC phase, where you may surface \`acceptanceCriteria\` and \`edgeCases\` as-is via a \`criteria\` suggestions block.
 
 After producing initial Acceptance Criteria as a \`suggestions\` block with \`field: "criteria"\`, ask via quiz whether the user wants to add more. Loop until they say no, then stop.
 
@@ -285,6 +306,9 @@ export function buildFieldSuggestionPrompt(
       if (!doc.scanned) continue;
       const parts: string[] = [`Document "${doc.name}"`];
       if (doc.summary) parts.push(`Summary: ${doc.summary}`);
+      if (doc.problemContext) parts.push(`Problem context: ${doc.problemContext}`);
+      if (doc.stakeholders?.length) parts.push(`Stakeholders: ${doc.stakeholders.join('; ')}`);
+      if (doc.goals?.length) parts.push(`Goals: ${doc.goals.join('; ')}`);
       if (doc.acceptanceCriteria?.length) parts.push(`Extracted ACs: ${doc.acceptanceCriteria.join('; ')}`);
       if (doc.edgeCases?.length) parts.push(`Edge cases: ${doc.edgeCases.join('; ')}`);
       contextParts.push(parts.join(' — '));

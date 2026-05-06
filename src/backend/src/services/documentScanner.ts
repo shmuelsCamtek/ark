@@ -11,13 +11,23 @@ function client(): Anthropic {
 
 export interface ScanResult {
   summary: string;
+  problemContext?: string;
+  stakeholders?: string[];
+  goals?: string[];
   acceptanceCriteria: string[];
   edgeCases: string[];
 }
 
 const ANALYSIS_INSTRUCTIONS =
-  'Analyze this document for a user story. Extract likely acceptance criteria and edge cases. ' +
-  'Return JSON: { "summary": "...", "acceptanceCriteria": ["..."], "edgeCases": ["..."] }';
+  'Analyze this document to inform a user story. Extract:\n' +
+  '- summary: 1-3 sentence overview of what this document is about\n' +
+  '- problemContext: the business problem or current situation the doc describes (used to draft the story Background)\n' +
+  '- stakeholders: roles, personas, or user types the doc mentions (used to draft the Persona)\n' +
+  '- goals: desired outcomes, capabilities, or motivations implied by the doc (used to draft "I want to…" / "So that…")\n' +
+  '- acceptanceCriteria: testable criteria the user story would need to satisfy\n' +
+  '- edgeCases: failure modes, boundary conditions, exception paths\n' +
+  '\n' +
+  'Return JSON: { "summary": "...", "problemContext": "...", "stakeholders": ["..."], "goals": ["..."], "acceptanceCriteria": ["..."], "edgeCases": ["..."] }';
 
 const TEXT_LIKE_MIME_PREFIXES = ['text/'];
 const TEXT_LIKE_MIME_TYPES = new Set([
@@ -210,8 +220,9 @@ export async function scanDocument(
     model: 'claude-sonnet-4-20250514',
     max_tokens: 1024,
     system:
-      'You are a document analyzer for user story writing. Extract testable acceptance criteria ' +
-      'and edge cases from documents. Always return valid JSON.',
+      'You are a document analyzer that prepares context for user-story writing. ' +
+      'Extract business context, stakeholders, goals, and testable acceptance criteria from documents. ' +
+      'Always return valid JSON.',
     messages,
   });
 
@@ -225,6 +236,9 @@ export async function scanDocument(
       const parsed = JSON.parse(candidate);
       return {
         summary: typeof parsed.summary === 'string' ? parsed.summary : '',
+        problemContext: typeof parsed.problemContext === 'string' && parsed.problemContext ? parsed.problemContext : undefined,
+        stakeholders: Array.isArray(parsed.stakeholders) && parsed.stakeholders.length ? parsed.stakeholders : undefined,
+        goals: Array.isArray(parsed.goals) && parsed.goals.length ? parsed.goals : undefined,
         acceptanceCriteria: Array.isArray(parsed.acceptanceCriteria) ? parsed.acceptanceCriteria : [],
         edgeCases: Array.isArray(parsed.edgeCases) ? parsed.edgeCases : [],
       };

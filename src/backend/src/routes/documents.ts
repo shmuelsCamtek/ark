@@ -8,7 +8,14 @@ interface StoredDocument {
   name: string;
   mimeType: string;
   content: string;
-  scanResult?: { summary: string; acceptanceCriteria: string[]; edgeCases: string[] };
+  scanResult?: {
+    summary: string;
+    problemContext?: string;
+    stakeholders?: string[];
+    goals?: string[];
+    acceptanceCriteria: string[];
+    edgeCases: string[];
+  };
 }
 
 const documents = new Map<string, StoredDocument>();
