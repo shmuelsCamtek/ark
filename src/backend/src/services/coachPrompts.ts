@@ -136,7 +136,7 @@ function buildWorkItemSection(ctx: DraftContext): string {
     }
   }
   lines.push('');
-  lines.push('Use this context to inform your suggestions — the description often contains requirements, constraints, and stakeholder expectations that should be reflected in the user story fields.');
+  lines.push('Use the source work item **and any attached documents** to inform every field — summaries and descriptions help shape the Background; stakeholders and roles in the discussion hint at the Persona, Desire, and Benefit; extracted criteria and edge cases are reference material for the Acceptance Criteria phase only.');
 
   return '\n\n' + lines.join('\n');
 }
@@ -197,6 +197,8 @@ For each field:
 - **If already filled**: do not overwrite. Review what's there and offer an improvement as a \`suggestions\` JSON. The user decides whether to apply it.
 
 **You drive the conversation forward.** After a field has been addressed (you drafted it, the user accepted a suggestion, or the user answered your quiz), immediately move to the **next empty field** in the order above — do not linger, do not wait for the user to ask "what's next?". A short acknowledgement plus the next question/draft is the right shape; never end a turn at "great, that's done" without advancing.
+
+**Phase discipline.** Acceptance Criteria are the **last** phase. Do not surface AC suggestions (no \`field: "criteria"\` suggestions, no AC quizzes, no "here are likely ACs" prose) until **Background, Persona, Desire, Benefit, and Title** are all filled. If supporting documents contain extracted criteria or edge cases, hold them — use them only to inform earlier-phase drafts (Background framing, Persona hints, scope of the Desire/Benefit), and surface them as ACs only when the conversation reaches the AC phase.
 
 After producing initial Acceptance Criteria as a \`suggestions\` block with \`field: "criteria"\`, ask via quiz whether the user wants to add more. Loop until they say no, then stop.
 

@@ -230,9 +230,18 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
     return () => { cancelled = true; };
   }, [attachmentsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const readyForAcPhase = !!(
+    storyState.background?.trim() &&
+    storyState.persona?.trim() &&
+    storyState.want?.trim() &&
+    storyState.benefit?.trim() &&
+    storyState.title?.trim()
+  );
+
   // Process new scan suggestions into chat messages
   useEffect(() => {
     if (!initialLoaded) return;
+    if (!readyForAcPhase) return;
     if (scanSuggestions.length > processedScans) {
       const newScans = scanSuggestions.slice(processedScans);
       const newMessages: SuggestMessage[] = [];
@@ -252,7 +261,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
       }
       setProcessedScans(scanSuggestions.length);
     }
-  }, [scanSuggestions, processedScans, initialLoaded]);
+  }, [scanSuggestions, processedScans, initialLoaded, readyForAcPhase]);
 
   const handleApply = (msgIdx: number, optIdx: number, field: string, text: string) => {
     onApply(field, text);
