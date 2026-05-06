@@ -104,7 +104,7 @@ export function StoriesPage() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search drafts…"
                 style={{
-                  flex: 1, border: 'none', outline: 'none', background: 'transparent',
+                  flex: 1, border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent',
                   fontSize: 16, fontFamily: 'inherit', color: ARK_TOKENS.ink,
                 }}
               />
