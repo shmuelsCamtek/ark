@@ -219,10 +219,9 @@ export function OnboardingPage() {
         {/* Connect to Azure DevOps */}
         {(
           <div className="ark-fadein">
-            <div style={{ fontSize: 13, fontWeight: 600, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 8 }}>CONNECT TO AZURE DEVOPS</div>
-            <h1 style={{ fontSize: 29, fontWeight: 600, margin: '0 0 8px', letterSpacing: -0.4 }}>Where should your story go?</h1>
+            <h1 style={{ fontSize: 29, fontWeight: 600, margin: '0 0 8px', letterSpacing: -0.4 }}>Pick a work item</h1>
             <p style={{ fontSize: 17, color: ARK_TOKENS.inkMuted, margin: '0 0 24px' }}>
-              Paste the Work Item ID this story belongs to, and pick the project type.
+              Search by ID or title.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 24 }}>
