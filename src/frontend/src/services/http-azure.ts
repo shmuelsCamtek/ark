@@ -31,5 +31,4 @@ export class HttpAzureService implements AzureService {
     const result = await res.json();
     return { id: String(result.id), url: result.url };
   }
-
 }

@@ -43,10 +43,9 @@ npx tsc --noEmit   # type-check without emitting
 npm run build      # production build (runs tsc + vite build)
 ```
 
-By default the frontend runs with mock services. To use the real backend:
-```bash
-VITE_USE_MOCKS=false npm run dev
-```
+Auth uses OAuth2 **device code flow** against Microsoft's pre-registered Azure CLI client (`04b07795-…`), so no Camtek App Registration is required. The backend (`services/auth.ts`) holds a single in-memory token state — when expired, the user re-authenticates. `AppInitializer` is the auth gate: it calls `GET /api/auth/me`, and on 401 starts the device flow (`POST /api/auth/device/start`) and polls (`POST /api/auth/device/poll`) until the user signs in via `microsoft.com/devicelogin`. The router only mounts when `authStatus === 'authenticated'`.
+
+No frontend env vars are needed. Optionally pin the tenant via backend `AZURE_TENANT_ID` (defaults to `organizations`).
 
 ### Backend
 ```bash
@@ -59,7 +58,8 @@ npm run typecheck       # tsc --noEmit
 
 Required `.env` keys:
 - `ANTHROPIC_API_KEY` — for AI coach (Claude API)
-- `AZURE_DEVOPS_ORG`, `AZURE_DEVOPS_PROJECT`, `AZURE_DEVOPS_PAT` — for Azure DevOps integration
+- `AZURE_DEVOPS_ORG`, `AZURE_DEVOPS_PROJECT` — Azure DevOps target org/project. Auth uses the OAuth2 device-code flow via Microsoft's Azure CLI public client; no PAT or App Registration needed.
+- `AZURE_TENANT_ID` *(optional)* — pin to your tenant GUID; defaults to `organizations` (any work/school account)
 
 The frontend Vite dev server proxies `/api` requests to `localhost:3001`.
 
@@ -78,7 +78,7 @@ No test framework is configured yet.
 - **Backend:** Node.js Express + tsx
 - **AI Coach:** Claude API via Anthropic SDK
 - **Persistence:** In-memory (ready for Cosmos DB swap)
-- **Auth:** Azure AD (user already logged in, token available)
+- **Auth:** OAuth2 device-code flow (backend-driven) via Microsoft's Azure CLI public client; no App Registration required
 - **No react-router-dom** — custom router in `src/router.tsx`
 
 ## Architecture
@@ -93,11 +93,13 @@ src/frontend/                          # Vite + React app
 │   ├── types.ts                       # Domain types (StoryDraft, CoachMessage, etc.)
 │   ├── tokens.ts                      # ARK_TOKENS design token object
 │   ├── context/
-│   │   ├── AppContext.tsx             # Global state: drafts, azure connection, user
-│   │   └── ServicesContext.tsx         # DI for AI + Azure services (mock/real)
+│   │   ├── AppContext.tsx             # Global state: drafts, user, authStatus
+│   │   └── ServicesContext.tsx         # DI for AI + Azure HTTP services
 │   ├── services/
-│   │   ├── ai.ts                      # AiService interface + MockAiService
-│   │   └── azure.ts                   # AzureService interface + MockAzureService
+│   │   ├── ai.ts                      # AiService interface
+│   │   ├── azure.ts                   # AzureService interface
+│   │   ├── http-ai.ts                 # HttpAiService (calls /api/ai)
+│   │   └── http-azure.ts              # HttpAzureService (calls /api/azure)
 │   ├── components/
 │   │   ├── ui/                        # Shared primitives (Btn, Badge, TextInput, TopBar, icons, etc.)
 │   │   └── builder/                   # Builder sub-components (Field, PersonaRow, SuggestChat, etc.)
@@ -115,26 +117,26 @@ src/frontend/                          # Vite + React app
 src/backend/                           # Express API server
 ├── src/
 │   ├── index.ts                       # Express app entry point
-│   ├── middleware/
-│   │   └── auth.ts                    # Azure AD token validation (placeholder)
 │   ├── routes/
+│   │   ├── auth.ts                    # /api/auth/me, /api/auth/device/start, /api/auth/device/poll
 │   │   ├── drafts.ts                  # GET/POST/PUT/DELETE /api/drafts
 │   │   ├── ai.ts                      # POST /api/ai/chat, /api/ai/suggest
-│   │   ├── azure.ts                   # GET/POST /api/azure/workitems
+│   │   ├── azure.ts                   # GET/POST /api/azure/workitems (gated on cached token)
 │   │   └── documents.ts              # POST /api/documents/upload, /:id/scan
 │   └── services/
+│       ├── auth.ts                    # Device flow + in-memory token cache + silent refresh
 │       ├── claude.ts                  # Claude API wrapper
-│       ├── azureDevOps.ts             # Azure DevOps REST client
+│       ├── azureDevOps.ts             # Azure DevOps REST client (each call takes a Bearer token)
 │       └── documentScanner.ts         # PDF/image → AI AC extraction
 ```
 
 **Key patterns:**
 - Inline styles matching design spec (not Tailwind classes for component internals)
 - Tailwind used for layout utilities and base styles
-- Mock services in `services/` — switch to HTTP clients via `VITE_USE_MOCKS=false`
+- HTTP services in `services/http-*.ts` call the Express backend; no mock services
 - Custom router with `useNavigate()`, `useParams()`, `usePath()`
 - Design tokens in `tokens.ts` mirroring `ARK_TOKENS` from design handoff
-- `AppInitializer` wraps the router and bootstraps drafts + Azure connection on mount via `useAppInit()`
+- `AppInitializer` is the auth gate: it calls `/api/auth/me`; on 401 it starts the device flow (`/api/auth/device/start`), shows the user_code + verification URI, and polls `/api/auth/device/poll` every 5s until authenticated. The router only mounts when `authStatus === 'authenticated'`.
 
 ## Design Reference
 
