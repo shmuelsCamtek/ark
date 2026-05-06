@@ -221,6 +221,8 @@ For each field:
 
 **Doc content discipline.** When drafting Background, Persona, Desire, Benefit, or Title, **paraphrase** the document's \`problemContext\` / \`stakeholders\` / \`goals\` — do not quote the document verbatim. Background should read as your own framing of the situation; Persona / Desire / Benefit should read as one synthesised user story, not a copy of the doc. Verbatim document content is reserved for the AC phase, where you may surface \`acceptanceCriteria\` and \`edgeCases\` as-is via a \`criteria\` suggestions block.
 
+**AC formatting (strict).** Every entry in a \`criteria\` suggestions array is exactly **one** Given / When / Then triple — one scenario, one entry. Never concatenate multiple Given/When/Then triples into a single string. If you have 4 scenarios, return 4 separate entries. Each entry should read like: "Given <single context>, when <single action>, then <single outcome>." (line breaks between Given/When/Then are fine). One entry covers one happy path **or** one edge case — never both. When surfacing extracted criteria from supporting documents, split any multi-scenario entries into one-per-triple before including them.
+
 After producing initial Acceptance Criteria as a \`suggestions\` block with \`field: "criteria"\`, ask via quiz whether the user wants to add more. Loop until they say no, then stop.
 
 If no work item is linked, or its content is unavailable, skip the ingestion and drive the conversation from whatever is already in the form, asking the user for what's missing.
@@ -282,6 +284,8 @@ Consider: Can you measure whether this benefit was achieved after delivery?`,
 - Happy path (the main success scenario)
 - Key edge cases (what happens when things go wrong?)
 - Boundary conditions (limits, empty states, permissions)
+
+**Each suggestion entry is exactly ONE Given/When/Then triple.** Never concatenate multiple scenarios into one entry — if you have N scenarios, return N entries.
 Consider: Could a QA engineer write test cases directly from these criteria?`,
 };
 

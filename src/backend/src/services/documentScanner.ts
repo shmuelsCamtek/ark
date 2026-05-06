@@ -24,8 +24,8 @@ const ANALYSIS_INSTRUCTIONS =
   '- problemContext: the business problem or current situation the doc describes (used to draft the story Background)\n' +
   '- stakeholders: roles, personas, or user types the doc mentions (used to draft the Persona)\n' +
   '- goals: desired outcomes, capabilities, or motivations implied by the doc (used to draft "I want to…" / "So that…")\n' +
-  '- acceptanceCriteria: testable criteria the user story would need to satisfy\n' +
-  '- edgeCases: failure modes, boundary conditions, exception paths\n' +
+  '- acceptanceCriteria: testable criteria in Given/When/Then form. Each array entry is EXACTLY ONE Given/When/Then triple — one scenario per entry. Never concatenate multiple triples into one string.\n' +
+  '- edgeCases: failure modes, boundary conditions, exception paths. Each entry is also exactly ONE Given/When/Then triple.\n' +
   '\n' +
   'Return JSON: { "summary": "...", "problemContext": "...", "stakeholders": ["..."], "goals": ["..."], "acceptanceCriteria": ["..."], "edgeCases": ["..."] }';
 
