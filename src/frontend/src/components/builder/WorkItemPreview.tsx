@@ -28,14 +28,20 @@ interface WorkItemPreviewProps {
   compact?: boolean;
   workItemState?: string;
   workItemAssignedTo?: string;
+  workItemType?: string;
+  workItemId?: string;
 }
 
-export function WorkItemPreview({ title, background, persona, want, benefit, criteria, docs, showUiChange, compact, workItemState, workItemAssignedTo }: WorkItemPreviewProps) {
+export function WorkItemPreview({ title, background, persona, want, benefit, criteria, docs, showUiChange, compact, workItemState, workItemAssignedTo, workItemType, workItemId }: WorkItemPreviewProps) {
   return (
     <div style={{ fontSize: 16, lineHeight: 1.55 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: 13, color: ARK_TOKENS.inkSubtle, fontWeight: 500, letterSpacing: 0.3 }}>
         <span style={{ width: 10, height: 10, background: ARK_TOKENS.azure, borderRadius: 1 }} />
-        <span>USER STORY · #4187 · NEW</span>
+        <span>
+          {(workItemType || 'User Story').toUpperCase()}
+          {workItemId ? ` · #${workItemId}` : ''}
+          {` · ${(workItemState || 'New').toUpperCase()}`}
+        </span>
       </div>
 
       <h2 style={{ fontSize: 23, fontWeight: 600, margin: '0 0 16px', letterSpacing: -0.3, lineHeight: 1.3 }}>

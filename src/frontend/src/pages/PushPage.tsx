@@ -34,6 +34,10 @@ export function PushPage() {
     criteria: draft?.acceptanceCriteria.map((ac) => ({ id: ac.id, text: ac.text })) || [],
     docs: [],
     showUiChange: false,
+    workItemType: draft?.workItemType,
+    workItemId: draft?.workItemId,
+    workItemState: draft?.workItemState,
+    workItemAssignedTo: draft?.workItemAssignedTo,
   };
 
   const newItemId = '#4187';

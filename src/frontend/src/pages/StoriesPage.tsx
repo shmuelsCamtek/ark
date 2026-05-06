@@ -13,11 +13,29 @@ interface DraftDisplay {
   epic: { id: string; title: string } | null;
   filled: number;
   total: number;
+  missing: string[];
   lastEdited: string;
   owner: string;
   ownerColor: string;
   acCount: number;
+  workItemType?: string;
+  workItemAssignedTo?: string;
 }
+
+const SHORT_MISSING_LABEL: Record<string, string> = {
+  'I want to': 'Want',
+  'So that': 'Benefit',
+  'Acceptance criteria (need 2+)': 'ACs',
+};
+
+const MISSING_TONE: Record<string, 'default' | 'azure' | 'success' | 'warning' | 'danger' | 'ai'> = {
+  'Title': 'ai',
+  'Background': 'azure',
+  'Persona': 'success',
+  'I want to': 'warning',
+  'So that': 'danger',
+  'Acceptance criteria (need 2+)': 'default',
+};
 
 function formatTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -46,10 +64,13 @@ export function StoriesPage() {
       epic: d.epicId ? { id: `#${d.epicId}`, title: d.epicName || '' } : null,
       filled: c.filled,
       total: c.total,
+      missing: c.missing,
       lastEdited: formatTimeAgo(d.updatedAt),
       owner: user?.displayName || 'You',
       ownerColor: '#1994FF',
       acCount: d.acceptanceCriteria.length,
+      workItemType: d.workItemType,
+      workItemAssignedTo: d.workItemAssignedTo,
     };
   });
 
@@ -184,10 +205,9 @@ function DraftRow({
       onMouseLeave={() => setHover(false)}
       onClick={onResume}
       style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 160px 120px 110px 80px',
-        gap: 16,
-        alignItems: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
         padding: '14px 18px',
         borderTop: isFirst ? 'none' : `1px solid ${ARK_TOKENS.border}`,
         background: hover ? ARK_TOKENS.surfaceAlt : 'transparent',
@@ -196,33 +216,49 @@ function DraftRow({
         transition: 'background 0.12s',
       }}
     >
-      {/* Title + persona/area */}
-      <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <div
-            style={{
-              fontSize: 17, fontWeight: 600, color: ARK_TOKENS.ink,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}
-          >
-            {d.title}
-          </div>
-          {d.acCount === 0 && <Badge tone="warning">Needs ACs</Badge>}
+      {/* Title row — spans full width, badges wrap onto subsequent lines */}
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+        <div
+          style={{
+            fontSize: 17, fontWeight: 600, color: ARK_TOKENS.ink,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            maxWidth: '100%',
+          }}
+        >
+          {d.title}
         </div>
+        {d.missing.map((m) => (
+          <Badge key={m} tone={MISSING_TONE[m] ?? 'warning'}>{SHORT_MISSING_LABEL[m] ?? m}</Badge>
+        ))}
+      </div>
+
+      {/* Parent work item — spans the full row */}
+      {d.epic && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: ARK_TOKENS.inkSubtle, minWidth: 0 }}>
+          {d.workItemType && <Badge tone="azure">{d.workItemType}</Badge>}
+          <span style={{ color: ARK_TOKENS.azure, fontVariantNumeric: 'tabular-nums' }}>{d.epic.id}</span>
+          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.epic.title}</span>
+        </div>
+      )}
+
+      {/* Data grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 160px 120px 110px 80px',
+          gap: 16,
+          alignItems: 'center',
+        }}
+      >
+      {/* Assignee / area */}
+      <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: ARK_TOKENS.inkMuted }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <Ico.user size={11} /> {d.persona}
+            <Ico.user size={11} /> Assigned: {d.workItemAssignedTo || 'Unassigned'}
           </span>
           <span style={{ color: ARK_TOKENS.inkSubtle }}>·</span>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.area}</span>
         </div>
-        {d.epic && (
-          <div style={{ marginTop: 4, fontSize: 13, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 8, background: '#773b93', borderRadius: 1, flexShrink: 0 }} />
-            <span style={{ color: ARK_TOKENS.azure, fontVariantNumeric: 'tabular-nums' }}>Epic {d.epic.id}</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.epic.title}</span>
-          </div>
-        )}
       </div>
 
       {/* Progress */}
@@ -247,8 +283,8 @@ function DraftRow({
         {d.lastEdited}
       </div>
 
-      {/* Owner */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Author */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <Avatar name={d.owner} size={22} color={d.ownerColor} />
         <div style={{ fontSize: 14, color: ARK_TOKENS.inkMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {d.owner.split(' ')[0]}
@@ -295,6 +331,7 @@ function DraftRow({
             <DraftMenuItem icon={<TrashIcon />} danger>Delete draft</DraftMenuItem>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
