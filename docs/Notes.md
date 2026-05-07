@@ -1,13 +1,13 @@
-- [] add anotiaion for each filed by user. 
-- [] ** High ** onwer must apporve under "Approve by: " 
-    - Must for complition.
-- [] options to add notes
-    - general.
-    - comment like word.
-- [] UI looks very buzzy.
-- [] add user manual to chat context. 
-- [] producs add to sharpoint, talk with Gal.
-- [] the chat should challange the user ragarding the requests. 
-  - confilcs
-  - if it exists, or simillar feature. 
-  - Auther
+- [ ] add anotiaion for each filed by user. 
+- [ ] **[[High]]** onwer must apporve under "Approve by: " 
+    - [ ] Must for complition.
+- [ ] options to add notes
+    - [ ] general.
+    - [ ] comment like word.
+- [x] UI looks very buzzy.
+- [ ] add user manual to chat context. 
+- [ ] producs add to sharpoint, talk with Gal.
+- [ ] the chat should challange the user ragarding the requests. 
+  - [ ] confilcs
+  - [ ] if it exists, or simillar feature. 
+  - [ ] Auther
