@@ -364,25 +364,6 @@ export function BuilderPage() {
             </Field>
 
             <Field
-              label="Supporting documents"
-              hint="Attach specs, screenshots, tickets, or recordings. The coach will read them and propose criteria."
-              filled={docs.length > 0}
-              active={activeField === 'docs'}
-              onActivate={() => setActiveField('docs')}
-            >
-              <DocsList
-                docs={docs}
-                scanResults={scanResults}
-                onRemove={(id) => {
-                  setDocs(docs.filter((d) => d.id !== id));
-                  setScanResults((prev) => prev.filter((r) => r.docId !== id));
-                }}
-                onAdd={(d) => setDocs([...docs, d])}
-                onScan={handleDocScan}
-              />
-            </Field>
-
-            <Field
               label="UI change"
               hint="Optional. Tick this if your story changes the user interface, then paste or upload the current window."
               filled={showUiChange}
@@ -398,7 +379,6 @@ export function BuilderPage() {
               filled={fields[5].filled}
               active={activeField === 'criteria'}
               onActivate={() => setActiveField('criteria')}
-              last
             >
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {criteria.map((c, i) => (
@@ -436,6 +416,26 @@ export function BuilderPage() {
                   <Btn onClick={addCriterion} icon={<Ico.plus size={12} />}>Add</Btn>
                 </div>
               </div>
+            </Field>
+
+            <Field
+              label="Supporting documents"
+              hint="Attach specs, screenshots, tickets, or recordings. The coach will read them and propose criteria."
+              filled={docs.length > 0}
+              active={activeField === 'docs'}
+              onActivate={() => setActiveField('docs')}
+              last
+            >
+              <DocsList
+                docs={docs}
+                scanResults={scanResults}
+                onRemove={(id) => {
+                  setDocs(docs.filter((d) => d.id !== id));
+                  setScanResults((prev) => prev.filter((r) => r.docId !== id));
+                }}
+                onAdd={(d) => setDocs([...docs, d])}
+                onScan={handleDocScan}
+              />
             </Field>
           </div>
         </div>

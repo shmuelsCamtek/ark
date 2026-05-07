@@ -57,14 +57,71 @@ function DocIcon({ kind }: { kind: string }) {
   return (
     <div
       style={{
-        width: 22, height: 22, borderRadius: 4,
+        width: 18, height: 18, borderRadius: 4,
         background: ARK_TOKENS.surfaceAlt,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         color, flexShrink: 0,
       }}
     >
-      {kind === 'image' ? <Ico.image size={14} /> : <Ico.file size={14} />}
+      {kind === 'image' ? <Ico.image size={12} /> : <Ico.file size={12} />}
     </div>
+  );
+}
+
+function StatusDot({ scanning, scanned }: { scanning?: boolean; scanned?: boolean }) {
+  if (scanning) {
+    return (
+      <span
+        title="Scanning…"
+        aria-label="Scanning"
+        style={{
+          width: 14, height: 14, flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          color: ARK_TOKENS.ai,
+        }}
+      >
+        <span
+          style={{
+            width: 10, height: 10,
+            border: '1.5px solid currentColor', borderRightColor: 'transparent',
+            borderRadius: '50%',
+            animation: 'ark-spin 0.8s linear infinite',
+          }}
+        />
+      </span>
+    );
+  }
+  if (scanned) {
+    return (
+      <span
+        title="Read by Ark"
+        aria-label="Read by Ark"
+        style={{
+          width: 14, height: 14, flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          color: ARK_TOKENS.ai,
+        }}
+      >
+        <Ico.sparkle size={11} />
+      </span>
+    );
+  }
+  return (
+    <span
+      title="Not scanned"
+      aria-label="Not scanned"
+      style={{
+        width: 14, height: 14, flexShrink: 0,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <span
+        style={{
+          width: 6, height: 6, borderRadius: '50%',
+          border: `1.5px solid ${ARK_TOKENS.inkSubtle}`,
+        }}
+      />
+    </span>
   );
 }
 
@@ -102,39 +159,28 @@ export function DocsList({ docs, scanResults, onRemove, onAdd, onScan }: DocsLis
           key={d.id}
           style={{
             display: 'flex', alignItems: 'center', gap: 10,
-            padding: '8px 10px',
+            padding: '6px 10px',
             border: `1px solid ${ARK_TOKENS.border}`,
             borderRadius: ARK_TOKENS.r2,
             background: ARK_TOKENS.surface,
           }}
         >
+          <StatusDot scanning={d.scanning} scanned={d.scanned} />
           <DocIcon kind={d.kind} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, color: ARK_TOKENS.ink, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
-            <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>{d.size}</span>
-              <span style={{ width: 2, height: 2, borderRadius: 1, background: ARK_TOKENS.inkSubtle }} />
-              {d.scanning ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: ARK_TOKENS.ai }}>
-                  <span
-                    style={{
-                      width: 10, height: 10,
-                      border: '1.5px solid currentColor', borderRightColor: 'transparent',
-                      borderRadius: '50%',
-                      animation: 'ark-spin 0.8s linear infinite',
-                    }}
-                  />
-                  Scanning…
-                </span>
-              ) : d.scanned ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: ARK_TOKENS.ai }}>
-                  <Ico.sparkle size={9} /> Read by Ark
-                </span>
-              ) : (
-                <span style={{ color: ARK_TOKENS.inkSubtle }}>Not scanned</span>
-              )}
-            </div>
-          </div>
+          <span
+            style={{
+              flex: 1, minWidth: 0,
+              fontSize: 14, color: ARK_TOKENS.ink, fontWeight: 500,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}
+          >
+            {d.name}
+          </span>
+          {d.size && (
+            <span style={{ fontSize: 12, color: ARK_TOKENS.inkSubtle, flexShrink: 0 }}>
+              {d.size}
+            </span>
+          )}
           <button
             onClick={() => onRemove(d.id)}
             style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: ARK_TOKENS.inkSubtle, padding: 4, borderRadius: 3, opacity: 0.6 }}
