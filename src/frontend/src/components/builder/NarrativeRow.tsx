@@ -41,7 +41,7 @@ export function NarrativeRow({ label, value, onChange, placeholder, multiline, l
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          rows={2}
+          rows={1}
           onFocus={() => { setFocus(true); onFocus?.(); }}
           onBlur={() => setFocus(false)}
           style={{ ...inputStyle, resize: 'none' }}
