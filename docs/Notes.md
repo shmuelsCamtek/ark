@@ -11,6 +11,17 @@
   - [ ] confilcs
   - [ ] if it exists, or simillar feature. 
   - [ ] Auther
+- [ ] Hard to notice when the coach is thinking
+- [ ] Theme !? 
+- [ ] Lables for assigned, Author and ... 
+- [ ] consider using larger gearwheel. 
+- [ ] verify auto complete is the same as in Azure
+- [ ] fix: right top button Push to Azure in Edit page, name is wrong.
+- [ ] edit page, make two section ajustable. 
+- [ ] when pulish to azure, should save revision. 
+- [ ] Anotation tool, revert to original. 
+- [ ] fix: anotation text does not work. 
+- [ ] 
 
 ## Plans:
 
@@ -22,12 +33,3 @@
   2. when the user return to edit user story, the old context should be loaded. 
 
 ```
-
-2. Drafts:
-
-```text
-/plan feat: when user story has been saved as draft, it should be persisted:
-1. chat context (the user return to the same conversation).
-2. all user story feilds
-```
-
