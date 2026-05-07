@@ -4,7 +4,8 @@ import { ArkLogo, Btn, Badge, Ico } from '../components/ui';
 import { useNavigate } from '../router';
 import { useApp, createEmptyDraft } from '../context/AppContext';
 import { HttpAzureService } from '../services/http-azure';
-import type { WorkItemInfo, WorkItemAttachment, WorkItemComment } from '../types';
+import { buildContextEntry } from '../lib/contextLog';
+import type { ContextLogEntry, WorkItemInfo, WorkItemAttachment, WorkItemComment } from '../types';
 
 interface ResolvedItem {
   id: number;
@@ -171,6 +172,25 @@ export function OnboardingPage() {
         };
       });
 
+      const contextLog: ContextLogEntry[] = [];
+      if (hasItem) {
+        const now = new Date().toISOString();
+        contextLog.push(buildContextEntry({
+          kind: 'workItem',
+          label: `${resolved.type || 'Work item'} #${resolved.id} — ${resolved.title}`,
+          summary: resolved.description?.replace(/\s+/g, ' ').slice(0, 140),
+          addedAt: now,
+        }));
+        for (const linked of resolved.linkedWorkItems || []) {
+          contextLog.push(buildContextEntry({
+            kind: 'linkedWorkItem',
+            label: `${linked.linkType ?? 'Linked'} · ${linked.type} #${linked.id} — ${linked.title}`,
+            summary: linked.description?.replace(/\s+/g, ' ').slice(0, 140),
+            addedAt: now,
+          }));
+        }
+      }
+
       const draft = createEmptyDraft({
         title: hasItem ? resolved.title : '',
         workItemId: workItemId,
@@ -185,6 +205,7 @@ export function OnboardingPage() {
         epicId: hasItem ? String(resolved.id) : undefined,
         epicName: hasItem ? resolved.title : undefined,
         supportingDocs,
+        contextLog,
       });
       addDraft(draft);
       navigate(`/stories/${draft.id}/edit`);

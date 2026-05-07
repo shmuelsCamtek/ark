@@ -9,8 +9,8 @@ interface UiChangePreviewProps {
   compact?: boolean;
   before?: string;
   after?: string;
-  onSetBefore?: (url: string) => void;
-  onSetAfter?: (url: string) => void;
+  onSetBefore?: (url: string, source?: 'annotate') => void;
+  onSetAfter?: (url: string, source?: 'annotate') => void;
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -195,8 +195,8 @@ export function UiChangePreview({
         <AnnotateModal
           image={annotateSource}
           onSave={(dataUrl) => {
-            if (annotating === 'before') onSetBefore?.(dataUrl);
-            else onSetAfter?.(dataUrl);
+            if (annotating === 'before') onSetBefore?.(dataUrl, 'annotate');
+            else onSetAfter?.(dataUrl, 'annotate');
           }}
           onClose={() => setAnnotating(null)}
         />

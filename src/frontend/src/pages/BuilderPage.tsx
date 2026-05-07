@@ -11,6 +11,7 @@ import { UiChangePreview } from '../components/builder/UiChangePreview';
 import { SuggestChat } from '../components/builder/SuggestChat';
 import { evaluateCompletion } from '../lib/storyCompletion';
 import { scanUploadedDoc, scanAzureAttachment, type ScanResultPayload } from '../services/scan';
+import { appendContextEntry } from '../lib/contextLog';
 import type { SupportingDoc } from '../types';
 
 function docKindToSupportingType(kind: DocItem['kind']): SupportingDoc['type'] {
@@ -217,6 +218,11 @@ function BuilderPageBody() {
       const supportingDocs = idx >= 0 ? existing.map((s, i) => (i === idx ? merged : s)) : [...existing, merged];
       return { supportingDocs };
     });
+    appendContextEntry(updateDraft, id, {
+      kind: 'doc',
+      label: doc.name,
+      summary: payload.summary?.replace(/\s+/g, ' ').slice(0, 140),
+    });
   };
 
   const handleDocScan = async (doc: DocItem, payload?: UploadedDocPayload) => {
@@ -298,6 +304,18 @@ function BuilderPageBody() {
     setNewCriterion('');
   };
 
+  const recordUiImage = (slot: 'before' | 'after', url: string, source?: 'replace' | 'annotate') => {
+    const id = editId || draftId;
+    const had = slot === 'before' ? !!uiBefore : !!uiAfter;
+    if (slot === 'before') setUiBefore(url);
+    else setUiAfter(url);
+    appendContextEntry(updateDraft, id, {
+      kind: slot === 'before' ? 'uiBefore' : 'uiAfter',
+      label: slot === 'before' ? 'Before screenshot' : 'After screenshot',
+      summary: source === 'annotate' ? 'Annotated' : had ? 'Replaced' : undefined,
+    });
+  };
+
   const completionResult = evaluateCompletion({
     title, background, persona,
     narrative: { iWantTo: want, soThat: benefit },
@@ -365,6 +383,7 @@ function BuilderPageBody() {
           onApply={applySuggestion}
           activeField={activeField}
           setActiveField={setActiveField}
+          contextLog={draft?.contextLog ?? []}
           attachmentsReady={attachmentsReady}
           scanningDocNames={scanningDocNames}
           recentlyAddedDocName={recentlyAdded}
@@ -455,8 +474,8 @@ function BuilderPageBody() {
                 }}
                 before={uiBefore}
                 after={uiAfter}
-                onSetBefore={setUiBefore}
-                onSetAfter={setUiAfter}
+                onSetBefore={(url, source) => recordUiImage('before', url, source)}
+                onSetAfter={(url, source) => recordUiImage('after', url, source)}
               />
             </Field>
 

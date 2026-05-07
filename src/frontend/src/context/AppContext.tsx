@@ -55,6 +55,7 @@ function createEmptyDraft(overrides?: Partial<StoryDraft>): StoryDraft {
     acceptanceCriteria: [],
     supportingDocs: [],
     uiChanges: [],
+    contextLog: [],
     createdAt: now,
     updatedAt: now,
     completionPct: 0,

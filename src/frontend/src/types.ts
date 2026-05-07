@@ -28,6 +28,16 @@ export interface UiChange {
   afterUrl?: string;
 }
 
+export type ContextLogKind = 'doc' | 'workItem' | 'linkedWorkItem' | 'uiBefore' | 'uiAfter';
+
+export interface ContextLogEntry {
+  id: string;
+  kind: ContextLogKind;
+  label: string;
+  summary?: string;
+  addedAt: string;
+}
+
 export interface StoryDraft {
   id: string;
   title: string;
@@ -52,6 +62,7 @@ export interface StoryDraft {
   workItemTechnicalDescription?: string;
   workItemDiscussion?: WorkItemComment[];
   linkedWorkItems?: WorkItemInfo[];
+  contextLog?: ContextLogEntry[];
   createdAt: string;
   updatedAt: string;
   completionPct: number;

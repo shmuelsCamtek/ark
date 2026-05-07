@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback, type CSSProperties } from 're
 import { ARK_TOKENS } from '../../tokens';
 import { Ico } from '../ui/icons';
 import { useServices } from '../../context/ServicesContext';
-import type { CoachMessage, SuggestMessage, WorkItemComment, WorkItemInfo } from '../../types';
+import { ContextLogPopover } from './ContextLogPopover';
+import type { CoachMessage, ContextLogEntry, SuggestMessage, WorkItemComment, WorkItemInfo } from '../../types';
 
 interface SuggestChatProps {
   draftId: string;
@@ -41,6 +42,7 @@ interface SuggestChatProps {
   attachmentsReady?: boolean;
   scanningDocNames?: string[];
   recentlyAddedDocName?: string | null;
+  contextLog?: ContextLogEntry[];
 }
 
 const QUICK_CHIPS = [
@@ -182,7 +184,7 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
   return { role: 'ai', text: coach.text };
 }
 
-export function SuggestChat({ draftId, storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null }: SuggestChatProps) {
+export function SuggestChat({ draftId, storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null, contextLog = [] }: SuggestChatProps) {
   const { ai, drafts: draftsApi } = useServices();
   const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
@@ -190,6 +192,7 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set());
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [chatLoaded, setChatLoaded] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
   // First setMessages after a load is just the load itself — skip persisting it back.
   const skipNextPersistRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -515,17 +518,25 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
             {coachStatus}
           </div>
         </div>
-        <button
-          className={coachStatusKind !== 'idle' ? 'ark-icon-pulse' : undefined}
-          style={{
-            border: 'none', background: 'transparent', cursor: 'pointer',
-            color: STATUS_COLOR[coachStatusKind],
-            padding: 4, borderRadius: 3,
-            transition: 'color 0.3s ease',
-          }}
-        >
-          <Ico.gear size={14} />
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setContextOpen((v) => !v)}
+            aria-label="Coach context"
+            className={coachStatusKind !== 'idle' ? 'ark-icon-pulse' : undefined}
+            style={{
+              border: 'none', background: 'transparent', cursor: 'pointer',
+              color: STATUS_COLOR[coachStatusKind],
+              padding: 4, borderRadius: 3,
+              transition: 'color 0.3s ease',
+            }}
+          >
+            <Ico.gear size={14} />
+          </button>
+          {contextOpen && (
+            <ContextLogPopover entries={contextLog} onClose={() => setContextOpen(false)} />
+          )}
+        </div>
       </div>
 
       {/* Messages */}
