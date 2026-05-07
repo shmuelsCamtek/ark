@@ -30,9 +30,11 @@ interface WorkItemPreviewProps {
   workItemAssignedTo?: string;
   workItemType?: string;
   workItemId?: string;
+  uiBeforeUrl?: string;
+  uiAfterUrl?: string;
 }
 
-export function WorkItemPreview({ title, background, persona, want, benefit, criteria, docs, showUiChange, compact, workItemState, workItemAssignedTo, workItemType, workItemId }: WorkItemPreviewProps) {
+export function WorkItemPreview({ title, background, persona, want, benefit, criteria, docs, showUiChange, compact, workItemState, workItemAssignedTo, workItemType, workItemId, uiBeforeUrl, uiAfterUrl }: WorkItemPreviewProps) {
   return (
     <div style={{ fontSize: 16, lineHeight: 1.55 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: 13, color: ARK_TOKENS.inkSubtle, fontWeight: 500, letterSpacing: 0.3 }}>
@@ -99,7 +101,7 @@ export function WorkItemPreview({ title, background, persona, want, benefit, cri
       {showUiChange && (
         <div style={{ marginTop: 22 }}>
           <SectionLabel>UI change · Before → After</SectionLabel>
-          <UiChangePreview enabled compact onToggle={() => {}} />
+          <UiChangePreview enabled compact onToggle={() => {}} before={uiBeforeUrl} after={uiAfterUrl} />
         </div>
       )}
 

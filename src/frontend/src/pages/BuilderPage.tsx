@@ -73,7 +73,11 @@ export function BuilderPage() {
         edgeCases: sd.edgeCases || [],
       }));
   });
-  const [showUiChange, setShowUiChange] = useState(false);
+  const [showUiChange, setShowUiChange] = useState(
+    () => !!(draft?.uiChanges?.[0]?.beforeUrl || draft?.uiChanges?.[0]?.afterUrl),
+  );
+  const [uiBefore, setUiBefore] = useState<string | undefined>(draft?.uiChanges?.[0]?.beforeUrl);
+  const [uiAfter, setUiAfter] = useState<string | undefined>(draft?.uiChanges?.[0]?.afterUrl);
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
   const autoScanFiredRef = useRef(false);
   const pendingScanIdsRef = useRef<Set<string>>(new Set());
@@ -93,9 +97,19 @@ export function BuilderPage() {
       persona,
       narrative: { asA: persona, iWantTo: want, soThat: benefit },
       acceptanceCriteria: criteria.map((c) => ({ id: String(c.id), text: c.text, source: 'manual' as const })),
+      uiChanges: (uiBefore || uiAfter)
+        ? [{
+            id: 'main',
+            description: '',
+            hasBefore: !!uiBefore,
+            hasAfter: !!uiAfter,
+            beforeUrl: uiBefore,
+            afterUrl: uiAfter,
+          }]
+        : [],
       completionPct: Math.round((result.filled / result.total) * 100),
     });
-  }, [title, background, persona, want, benefit, criteria, editId, draftId, updateDraft]);
+  }, [title, background, persona, want, benefit, criteria, uiBefore, uiAfter, editId, draftId, updateDraft]);
 
   const setters: Record<string, (v: string) => void> = { title: setTitle, background: setBackground, persona: setPersona, want: setWant, benefit: setBenefit };
   const applySuggestion = (field: string, value: string) => {
@@ -370,7 +384,21 @@ export function BuilderPage() {
               active={activeField === 'ui'}
               onActivate={() => setActiveField('ui')}
             >
-              <UiChangePreview enabled={showUiChange} onToggle={() => setShowUiChange(!showUiChange)} />
+              <UiChangePreview
+                enabled={showUiChange}
+                onToggle={() => {
+                  const next = !showUiChange;
+                  setShowUiChange(next);
+                  if (!next) {
+                    setUiBefore(undefined);
+                    setUiAfter(undefined);
+                  }
+                }}
+                before={uiBefore}
+                after={uiAfter}
+                onSetBefore={setUiBefore}
+                onSetAfter={setUiAfter}
+              />
             </Field>
 
             <Field

@@ -25,6 +25,7 @@ export function PushPage() {
   }, [stage, draft, completion.complete, id, navigate]);
 
   const storyTitle = draft?.title || 'Untitled story';
+  const uiChange = draft?.uiChanges?.[0];
   const storyData = {
     title: storyTitle,
     background: draft?.background || '',
@@ -33,7 +34,9 @@ export function PushPage() {
     benefit: draft?.narrative.soThat || '',
     criteria: draft?.acceptanceCriteria.map((ac) => ({ id: ac.id, text: ac.text })) || [],
     docs: [],
-    showUiChange: false,
+    showUiChange: !!(uiChange?.beforeUrl || uiChange?.afterUrl),
+    uiBeforeUrl: uiChange?.beforeUrl,
+    uiAfterUrl: uiChange?.afterUrl,
     workItemType: draft?.workItemType,
     workItemId: draft?.workItemId,
     workItemState: draft?.workItemState,
