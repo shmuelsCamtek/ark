@@ -356,7 +356,7 @@ export function BuilderPage() {
                 label="So that"
                 value={benefit}
                 onChange={setBenefit}
-                placeholder="I don\u2019t open a manual ticket for every card decline"
+                placeholder="I don’t open a manual ticket for every card decline"
                 multiline
                 last
                 onFocus={() => setActiveField('benefit')}
