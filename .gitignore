@@ -26,3 +26,6 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Backend draft persistence (file-backed store)
+src/backend/data/

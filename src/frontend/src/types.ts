@@ -57,6 +57,21 @@ export interface StoryDraft {
   completionPct: number;
 }
 
+// Persisted shape of a coach-chat message as rendered in the UI.
+// Mirrored on the backend in draftStore.ts (ChatMessage).
+export interface SuggestMessage {
+  role: 'user' | 'ai';
+  text?: string;
+  kind?: 'suggestions' | 'criteria-bundle' | 'ack' | 'quiz';
+  intro?: string;
+  field?: string;
+  options?: string[];
+  quizQuestion?: string;
+  quizAnswered?: boolean;
+  quizAnswer?: string;
+  bundleResolved?: boolean;
+}
+
 export type CoachMessageType = 'user' | 'ai' | 'suggestion' | 'criteria-bundle' | 'ack' | 'quiz';
 
 export interface CoachMessage {

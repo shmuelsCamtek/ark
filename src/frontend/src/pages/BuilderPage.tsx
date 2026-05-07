@@ -17,7 +17,65 @@ function docKindToSupportingType(kind: DocItem['kind']): SupportingDoc['type'] {
   return kind === 'pdf' ? 'pdf' : kind === 'image' ? 'image' : 'other';
 }
 
+// Wrapper: gate rendering on draft hydration so the body's useState initializers
+// see the loaded draft. For /stories/:id/edit, wait for the initial listDrafts
+// to complete and (if needed) directly fetch the draft. For /stories/new, render
+// immediately — the body creates a fresh draft.
 export function BuilderPage() {
+  const params = useParams();
+  const navigate = useNavigate();
+  const { draftsLoaded, getDraft, loadDraft } = useApp();
+  const editId = params.id;
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (!editId) {
+      setHydrated(true);
+      return;
+    }
+    if (!draftsLoaded) return;
+    if (getDraft(editId)) {
+      setHydrated(true);
+      return;
+    }
+    let cancelled = false;
+    loadDraft(editId).then((d) => {
+      if (cancelled) return;
+      if (!d) {
+        navigate('/stories');
+        return;
+      }
+      setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, draftsLoaded, getDraft, loadDraft, navigate]);
+
+  if (!hydrated) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: ARK_TOKENS.bg,
+          color: ARK_TOKENS.inkSubtle,
+          fontSize: 14,
+        }}
+      >
+        Loading draft…
+      </div>
+    );
+  }
+
+  // Re-mount the body when the route's id changes so its useState initializers re-run.
+  return <BuilderPageBody key={editId || 'new'} />;
+}
+
+function BuilderPageBody() {
   const params = useParams();
   const navigate = useNavigate();
   const { getDraft, updateDraft, addDraft } = useApp();
@@ -276,6 +334,7 @@ export function BuilderPage() {
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         {/* LEFT: AI Coach */}
         <SuggestChat
+          draftId={editId || draftId}
           storyState={{
             title, background, persona, want, benefit, criteria,
             workItemId: draft?.workItemId,

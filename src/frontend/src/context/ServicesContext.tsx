@@ -3,17 +3,23 @@ import { type AiService } from '../services/ai';
 import { type AzureService } from '../services/azure';
 import { HttpAiService } from '../services/http-ai';
 import { HttpAzureService } from '../services/http-azure';
+import { HttpDraftsService } from '../services/http-drafts';
 
 interface Services {
   ai: AiService;
   azure: AzureService;
+  drafts: HttpDraftsService;
 }
 
 const ServicesContext = createContext<Services | null>(null);
 
 export function ServicesProvider({ children }: { children: ReactNode }) {
   const services = useMemo<Services>(
-    () => ({ ai: new HttpAiService(), azure: new HttpAzureService() }),
+    () => ({
+      ai: new HttpAiService(),
+      azure: new HttpAzureService(),
+      drafts: new HttpDraftsService(),
+    }),
     [],
   );
 

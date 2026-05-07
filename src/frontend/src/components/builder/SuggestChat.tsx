@@ -2,22 +2,10 @@ import { useState, useEffect, useRef, useCallback, type CSSProperties } from 're
 import { ARK_TOKENS } from '../../tokens';
 import { Ico } from '../ui/icons';
 import { useServices } from '../../context/ServicesContext';
-import type { CoachMessage, WorkItemComment, WorkItemInfo } from '../../types';
-
-interface SuggestMessage {
-  role: 'user' | 'ai';
-  text?: string;
-  kind?: 'suggestions' | 'criteria-bundle' | 'ack' | 'quiz';
-  intro?: string;
-  field?: string;
-  options?: string[];
-  quizQuestion?: string;
-  quizAnswered?: boolean;
-  quizAnswer?: string;
-  bundleResolved?: boolean;
-}
+import type { CoachMessage, SuggestMessage, WorkItemComment, WorkItemInfo } from '../../types';
 
 interface SuggestChatProps {
+  draftId: string;
   storyState: {
     title: string;
     background: string;
@@ -194,18 +182,58 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
   return { role: 'ai', text: coach.text };
 }
 
-export function SuggestChat({ storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null }: SuggestChatProps) {
-  const { ai } = useServices();
+export function SuggestChat({ draftId, storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null }: SuggestChatProps) {
+  const { ai, drafts: draftsApi } = useServices();
   const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set());
   const [initialLoaded, setInitialLoaded] = useState(false);
+  const [chatLoaded, setChatLoaded] = useState(false);
+  // First setMessages after a load is just the load itself — skip persisting it back.
+  const skipNextPersistRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, typing]);
+
+  // Hydrate chat from backend on mount / draft change.
+  useEffect(() => {
+    let cancelled = false;
+    setChatLoaded(false);
+    skipNextPersistRef.current = true;
+    draftsApi
+      .getChat(draftId)
+      .then((loaded) => {
+        if (cancelled) return;
+        if (loaded.length > 0) {
+          setMessages(loaded);
+          setInitialLoaded(true); // skip welcome bootstrap; we have history
+          setTyping(false);
+        }
+        setChatLoaded(true);
+      })
+      .catch((err) => {
+        console.error('[SuggestChat] getChat failed', err);
+        if (!cancelled) setChatLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [draftId, draftsApi]);
+
+  // Persist chat on every change once we've loaded.
+  useEffect(() => {
+    if (!chatLoaded) return;
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      return;
+    }
+    draftsApi
+      .putChat(draftId, messages)
+      .catch((err) => console.error('[SuggestChat] putChat failed', err));
+  }, [messages, chatLoaded, draftId, draftsApi]);
 
   // Show typing indicator while we wait for mount-time attachments to scan
   useEffect(() => {
@@ -215,6 +243,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
   // Initial contextual suggestions for real mode
   useEffect(() => {
     if (initialLoaded) return;
+    if (!chatLoaded) return;
     if (!attachmentsReady) return;
     let cancelled = false;
     setTyping(true);
@@ -234,7 +263,7 @@ export function SuggestChat({ storyState, onApply, activeField, setActiveField: 
       setInitialLoaded(true);
     });
     return () => { cancelled = true; };
-  }, [attachmentsReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [attachmentsReady, chatLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleApply = (msgIdx: number, optIdx: number, field: string, text: string) => {
     onApply(field, text);
