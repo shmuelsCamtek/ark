@@ -12,8 +12,20 @@ interface TopBarProps {
 }
 
 export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopBarProps) {
-  const { user } = useApp();
+  const { user, setUser, setAuthStatus } = useApp();
   const [userOpen, setUserOpen] = useState(false);
+  const [signOutHover, setSignOutHover] = useState(false);
+
+  async function handleSignOut() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('[auth] logout failed', err);
+    }
+    setUserOpen(false);
+    setUser(null);
+    setAuthStatus('unauthenticated');
+  }
 
   return (
     <div
@@ -41,7 +53,7 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
             className="ark-fadein"
             style={{
               position: 'absolute',
-              top: 'calc(100% + 10px)',
+              top: '100%',
               left: 0,
               minWidth: 240,
               background: ARK_TOKENS.surface,
@@ -50,36 +62,58 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
               boxShadow: ARK_TOKENS.shadow3,
               padding: 12,
               display: 'flex',
-              alignItems: 'center',
-              gap: 12,
+              flexDirection: 'column',
+              gap: 10,
               zIndex: 30,
             }}
           >
-            <Avatar name={user.displayName} size={40} />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div
-                style={{
-                  fontSize: 14, fontWeight: 600, color: ARK_TOKENS.ink,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}
-              >
-                {user.displayName}
-              </div>
-              {user.email && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Avatar name={user.displayName} size={40} />
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <div
-                  title={user.email}
                   style={{
-                    fontSize: 12, color: ARK_TOKENS.inkSubtle, marginTop: 2,
+                    fontSize: 14, fontWeight: 600, color: ARK_TOKENS.ink,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}
                 >
-                  {user.email}
+                  {user.displayName}
                 </div>
-              )}
-              <div style={{ fontSize: 11, color: ARK_TOKENS.success, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 6, height: 6, background: ARK_TOKENS.success, borderRadius: 3 }} />
-                Signed in
+                {user.email && (
+                  <div
+                    title={user.email}
+                    style={{
+                      fontSize: 12, color: ARK_TOKENS.inkSubtle, marginTop: 2,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {user.email}
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: ARK_TOKENS.success, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 6, height: 6, background: ARK_TOKENS.success, borderRadius: 3 }} />
+                  Signed in
+                </div>
               </div>
+            </div>
+            <div style={{ borderTop: `1px solid ${ARK_TOKENS.border}`, paddingTop: 8 }}>
+              <button
+                onClick={handleSignOut}
+                onMouseEnter={() => setSignOutHover(true)}
+                onMouseLeave={() => setSignOutHover(false)}
+                style={{
+                  width: '100%',
+                  background: signOutHover ? ARK_TOKENS.surfaceAlt : 'transparent',
+                  border: 'none',
+                  padding: '6px 8px',
+                  borderRadius: ARK_TOKENS.r,
+                  color: signOutHover ? ARK_TOKENS.ink : ARK_TOKENS.inkMuted,
+                  fontSize: 13,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                }}
+              >
+                Sign out
+              </button>
             </div>
           </div>
         )}

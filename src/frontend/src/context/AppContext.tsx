@@ -24,7 +24,7 @@ interface AppActions {
   deleteDraft: (id: string) => void;
   getDraft: (id: string) => StoryDraft | undefined;
   setAzureConnection: (conn: AzureConnection) => void;
-  setUser: (user: UserProfile) => void;
+  setUser: (user: UserProfile | null) => void;
   setAuthStatus: (status: AuthStatus) => void;
 }
 
