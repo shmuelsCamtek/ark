@@ -22,7 +22,9 @@
       "Bash(git *)",
       "Bash(xargs ls -la)",
       "PowerShell(Get-Content *)",
-      "Bash(xxd)"
+      "Bash(xxd)",
+      "Bash(Get-ChildItem -Path \"C:\\\\temp\\\\Ark\\\\src\\\\frontend\\\\src\" -Recurse -Filter \"*.tsx\" -o Name)",
+      "Bash(Select-Object -First 20)"
     ]
   }
 }
