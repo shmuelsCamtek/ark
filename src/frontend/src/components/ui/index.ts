@@ -8,4 +8,5 @@ export { ArkLogo } from './ArkLogo';
 export { AzureMark } from './AzureMark';
 export { TopBar } from './TopBar';
 export { Modal } from './Modal';
+export { Splitter } from './Splitter';
 export { Ico } from './icons';

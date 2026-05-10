@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { ARK_TOKENS } from '../tokens';
-import { TopBar, Btn, Ico, TextInput, TextArea } from '../components/ui';
+import { TopBar, Btn, Ico, TextInput, TextArea, Splitter } from '../components/ui';
 import { useParams, useNavigate } from '../router';
 import { useApp, createEmptyDraft } from '../context/AppContext';
 import { Field } from '../components/builder/Field';
@@ -17,6 +17,26 @@ import type { SupportingDoc } from '../types';
 
 function docKindToSupportingType(kind: DocItem['kind']): SupportingDoc['type'] {
   return kind === 'pdf' ? 'pdf' : kind === 'image' ? 'image' : 'other';
+}
+
+const COACH_MIN_WIDTH = 280;
+const COACH_MAX_WIDTH = 720;
+const COACH_DEFAULT_WIDTH = 400;
+const COACH_WIDTH_KEY = 'ark.coachWidth';
+
+function clampCoachWidth(w: number): number {
+  if (!Number.isFinite(w)) return COACH_DEFAULT_WIDTH;
+  return Math.min(COACH_MAX_WIDTH, Math.max(COACH_MIN_WIDTH, Math.round(w)));
+}
+
+function readPersistedCoachWidth(): number {
+  try {
+    const raw = window.localStorage.getItem(COACH_WIDTH_KEY);
+    if (!raw) return COACH_DEFAULT_WIDTH;
+    return clampCoachWidth(parseInt(raw, 10));
+  } catch {
+    return COACH_DEFAULT_WIDTH;
+  }
 }
 
 // Wrapper: gate rendering on draft hydration so the body's useState initializers
@@ -141,9 +161,22 @@ function BuilderPageBody() {
   const [uiAfter, setUiAfter] = useState<string | undefined>(draft?.uiChanges?.[0]?.afterUrl);
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
   const [coachCollapsed, setCoachCollapsed] = useState(false);
+  const [coachWidth, setCoachWidth] = useState<number>(() => readPersistedCoachWidth());
   const autoScanFiredRef = useRef(false);
   const pendingScanIdsRef = useRef<Set<string>>(new Set());
   const prevScanCountRef = useRef(0);
+
+  // Persist coach width (debounced) so dragging doesn't spam localStorage.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        window.localStorage.setItem(COACH_WIDTH_KEY, String(coachWidth));
+      } catch {
+        // ignore quota / private-mode failures
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [coachWidth]);
 
   // Sync back to draft on changes
   useEffect(() => {
@@ -517,13 +550,16 @@ function BuilderPageBody() {
           </div>
         </div>
 
-        {/* RIGHT: AI Coach (collapsible) */}
+        {/* RIGHT: AI Coach (collapsible, resizable) */}
         {coachCollapsed ? (
           <CoachCollapsedStrip onExpand={() => setCoachCollapsed(false)} />
         ) : (
-          <SuggestChat
-            draftId={editId || draftId}
-            storyState={{
+          <>
+            <Splitter onDrag={(dx) => setCoachWidth((w) => clampCoachWidth(w - dx))} />
+            <SuggestChat
+              width={coachWidth}
+              draftId={editId || draftId}
+              storyState={{
               title, background, persona, want, benefit, criteria,
               workItemId: draft?.workItemId,
               workItemType: draft?.workItemType,
@@ -558,6 +594,7 @@ function BuilderPageBody() {
             scanningDocNames={scanningDocNames}
             recentlyAddedDocName={recentlyAdded}
           />
+          </>
         )}
 
       </div>

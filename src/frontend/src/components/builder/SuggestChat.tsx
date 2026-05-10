@@ -43,6 +43,7 @@ interface SuggestChatProps {
   scanningDocNames?: string[];
   recentlyAddedDocName?: string | null;
   contextLog?: ContextLogEntry[];
+  width?: number;
 }
 
 const QUICK_CHIPS = [
@@ -184,7 +185,7 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
   return { role: 'ai', text: coach.text };
 }
 
-export function SuggestChat({ draftId, storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null, contextLog = [] }: SuggestChatProps) {
+export function SuggestChat({ draftId, storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null, contextLog = [], width }: SuggestChatProps) {
   const { ai, drafts: draftsApi } = useServices();
   const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
@@ -494,8 +495,8 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     <div
       className={typing ? 'ark-thinking' : undefined}
       style={{
-        flex: '0 0 400px',
-        width: 400,
+        flex: `0 0 ${width ?? 400}px`,
+        width: width ?? 400,
         borderLeft: `1px solid ${ARK_TOKENS.border}`,
         background: ARK_TOKENS.bg,
         display: 'flex',
