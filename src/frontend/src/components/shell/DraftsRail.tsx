@@ -1,0 +1,154 @@
+import { useMemo, useState } from 'react';
+import { ARK_TOKENS } from '../../tokens';
+import { Btn, Ico } from '../ui';
+import { useApp } from '../../context/AppContext';
+import { useNavigate, useParams } from '../../router';
+import { DraftRailItem } from './DraftRailItem';
+
+interface DraftsRailProps {
+  onCreate: () => void;
+}
+
+export function DraftsRail({ onCreate }: DraftsRailProps) {
+  const { drafts } = useApp();
+  const { id: selectedId } = useParams();
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return drafts;
+    return drafts.filter((d) => (d.title || 'Untitled story').toLowerCase().includes(q));
+  }, [drafts, query]);
+
+  return (
+    <div
+      style={{
+        flex: '0 0 300px',
+        width: 300,
+        height: '100%',
+        background: ARK_TOKENS.surface,
+        borderRight: `1px solid ${ARK_TOKENS.border}`,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: `${ARK_TOKENS.space.lg}px ${ARK_TOKENS.space.lg}px ${ARK_TOKENS.space.md}px`,
+          borderBottom: `1px solid ${ARK_TOKENS.border}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: ARK_TOKENS.space.md,
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            fontSize: ARK_TOKENS.type.micro,
+            fontWeight: ARK_TOKENS.weight.semibold,
+            color: ARK_TOKENS.azure,
+            letterSpacing: 0.8,
+          }}
+        >
+          MY STORIES
+        </div>
+        <Btn
+          variant="primary"
+          size="md"
+          icon={<Ico.plus size={14} />}
+          onClick={onCreate}
+          fullWidth
+        >
+          Create new story
+        </Btn>
+
+        {/* Search */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            border: `1px solid ${ARK_TOKENS.border}`,
+            borderRadius: ARK_TOKENS.r,
+            background: ARK_TOKENS.surfaceAlt,
+            height: 30,
+            padding: '0 10px',
+            gap: 6,
+          }}
+        >
+          <span style={{ color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center' }}>
+            <Ico.search size={12} />
+          </span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search drafts"
+            style={{
+              flex: 1,
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              fontSize: ARK_TOKENS.type.label,
+              fontFamily: 'inherit',
+              color: ARK_TOKENS.ink,
+              minWidth: 0,
+            }}
+          />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              aria-label="Clear search"
+              style={{
+                border: 'none',
+                background: 'transparent',
+                color: ARK_TOKENS.inkSubtle,
+                cursor: 'pointer',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <Ico.x size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* List */}
+      <div
+        className="ark-scroll"
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          minHeight: 0,
+        }}
+      >
+        {filtered.length === 0 ? (
+          <div
+            style={{
+              padding: '24px 16px',
+              fontSize: ARK_TOKENS.type.label,
+              color: ARK_TOKENS.inkSubtle,
+              textAlign: 'center',
+            }}
+          >
+            {drafts.length === 0
+              ? 'No drafts yet. Create one to get started.'
+              : 'No drafts match your search.'}
+          </div>
+        ) : (
+          filtered.map((draft) => (
+            <DraftRailItem
+              key={draft.id}
+              draft={draft}
+              selected={draft.id === selectedId}
+              onSelect={() => navigate(`/stories/${draft.id}/edit`)}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
