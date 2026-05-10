@@ -9,7 +9,7 @@ import { NarrativeRow } from '../components/builder/NarrativeRow';
 import { DocsList, type DocItem, type ScanResult, type UploadedDocPayload } from '../components/builder/DocsList';
 import { UiChangePreview } from '../components/builder/UiChangePreview';
 import { SuggestChat } from '../components/builder/SuggestChat';
-import { AppShell, useShell } from '../components/shell/AppShell';
+import { AppShell } from '../components/shell/AppShell';
 import { evaluateCompletion } from '../lib/storyCompletion';
 import { scanUploadedDoc, scanAzureAttachment, type ScanResultPayload } from '../services/scan';
 import { appendContextEntry } from '../lib/contextLog';
@@ -161,7 +161,6 @@ function BuilderPageBody() {
   const [uiAfter, setUiAfter] = useState<string | undefined>(draft?.uiChanges?.[0]?.afterUrl);
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
   const [coachWidth, setCoachWidth] = useState<number>(() => readPersistedCoachWidth());
-  const { railHidden, toggleRail } = useShell();
   const autoScanFiredRef = useRef(false);
   const pendingScanIdsRef = useRef<Set<string>>(new Set());
   const prevScanCountRef = useRef(0);
@@ -369,13 +368,6 @@ function BuilderPageBody() {
         breadcrumbs={['Stories', editId ? 'Edit' : 'New story']}
         rightActions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <Btn
-              icon={<Ico.list size={14} />}
-              onClick={toggleRail}
-              title={railHidden ? 'Show My Stories' : 'Hide My Stories'}
-            >
-              {railHidden ? 'Show My Stories' : 'Hide My Stories'}
-            </Btn>
             <Btn icon={<Ico.x size={12} />} onClick={() => navigate('/')}>
               Close
             </Btn>

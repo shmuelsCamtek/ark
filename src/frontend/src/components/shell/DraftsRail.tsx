@@ -4,6 +4,7 @@ import { Btn, Ico } from '../ui';
 import { useApp } from '../../context/AppContext';
 import { useNavigate, useParams } from '../../router';
 import { DraftRailItem } from './DraftRailItem';
+import { useShell } from './AppShell';
 
 interface DraftsRailProps {
   onCreate: () => void;
@@ -13,7 +14,9 @@ export function DraftsRail({ onCreate }: DraftsRailProps) {
   const { drafts } = useApp();
   const { id: selectedId } = useParams();
   const navigate = useNavigate();
+  const { toggleRail } = useShell();
   const [query, setQuery] = useState('');
+  const [hideHover, setHideHover] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -47,13 +50,42 @@ export function DraftsRail({ onCreate }: DraftsRailProps) {
       >
         <div
           style={{
-            fontSize: ARK_TOKENS.type.micro,
-            fontWeight: ARK_TOKENS.weight.semibold,
-            color: ARK_TOKENS.azure,
-            letterSpacing: 0.8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: ARK_TOKENS.space.sm,
           }}
         >
-          MY STORIES
+          <div
+            style={{
+              fontSize: ARK_TOKENS.type.micro,
+              fontWeight: ARK_TOKENS.weight.semibold,
+              color: ARK_TOKENS.azure,
+              letterSpacing: 0.8,
+            }}
+          >
+            MY STORIES
+          </div>
+          <button
+            type="button"
+            onClick={toggleRail}
+            onMouseEnter={() => setHideHover(true)}
+            onMouseLeave={() => setHideHover(false)}
+            title="Hide sidebar"
+            aria-label="Hide sidebar"
+            style={{
+              width: 26, height: 26,
+              border: 'none',
+              background: hideHover ? ARK_TOKENS.surfaceAlt : 'transparent',
+              color: ARK_TOKENS.inkMuted,
+              borderRadius: ARK_TOKENS.r,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s, color 0.12s',
+            }}
+          >
+            <Ico.chevron size={14} dir="left" />
+          </button>
         </div>
         <Btn
           variant="primary"
