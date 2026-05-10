@@ -205,7 +205,7 @@ function ToolBtn({ active, onClick, label }: { active: boolean; onClick: () => v
         background: active ? ARK_TOKENS.azureFaint : ARK_TOKENS.surface,
         color: active ? ARK_TOKENS.azureDark : ARK_TOKENS.ink,
         borderRadius: ARK_TOKENS.r,
-        fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+        fontSize: ARK_TOKENS.type.label, fontWeight: ARK_TOKENS.weight.semibold, cursor: 'pointer', fontFamily: 'inherit',
       }}
     >
       {label}
@@ -246,7 +246,7 @@ function TextPromptOverlay({ prompt, canvasRef, onChange, onCommit, onCancel }: 
         border: `1px solid ${ARK_TOKENS.markerRed}`,
         background: ARK_TOKENS.surface,
         color: ARK_TOKENS.markerRed,
-        borderRadius: 4, fontSize: 16, fontFamily: 'inherit',
+        borderRadius: 4, fontSize: ARK_TOKENS.type.body, fontFamily: 'inherit',
         outline: 'none', minWidth: 100,
       }}
       placeholder="Type and press Enter"

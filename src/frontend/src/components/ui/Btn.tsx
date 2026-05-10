@@ -18,9 +18,9 @@ interface BtnProps {
 }
 
 const sizes: Record<BtnSize, CSSProperties> = {
-  sm: { padding: '5px 14px', fontSize: 14, height: 28 },
-  md: { padding: '7px 18px', fontSize: 16, height: 36 },
-  lg: { padding: '10px 24px', fontSize: 17, height: 40 },
+  sm: { padding: '4px 12px', fontSize: ARK_TOKENS.type.label, height: 26 },
+  md: { padding: '6px 16px', fontSize: ARK_TOKENS.type.body, height: 32 },
+  lg: { padding: '8px 20px', fontSize: ARK_TOKENS.type.h2, height: 36 },
 };
 
 const variants: Record<BtnVariant, CSSProperties> = {

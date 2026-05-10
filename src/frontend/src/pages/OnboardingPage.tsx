@@ -227,12 +227,13 @@ export function OnboardingPage() {
           background: ARK_TOKENS.surface,
           borderRadius: ARK_TOKENS.r3,
           boxShadow: ARK_TOKENS.shadow3,
-          padding: 40,
+          padding: 32,
           position: 'relative',
+          fontSize: ARK_TOKENS.type.body,
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: ARK_TOKENS.space.xl }}>
           <ArkLogo size={28} />
           <div style={{ display: 'flex', gap: 4 }} />
         </div>
@@ -240,27 +241,27 @@ export function OnboardingPage() {
         {/* Connect to Azure DevOps */}
         {(
           <div className="ark-fadein">
-            <h1 style={{ fontSize: 29, fontWeight: 600, margin: '0 0 8px', letterSpacing: -0.4 }}>Pick a work item</h1>
-            <p style={{ fontSize: 17, color: ARK_TOKENS.inkMuted, margin: '0 0 24px' }}>
+            <h1 style={{ fontSize: ARK_TOKENS.type.display, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 6px', letterSpacing: -0.3, lineHeight: ARK_TOKENS.leading.tight }}>Pick a work item</h1>
+            <p style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, margin: `0 0 ${ARK_TOKENS.space.xl}px` }}>
               Search by ID or title.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 24 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: ARK_TOKENS.space.lg, marginBottom: ARK_TOKENS.space.xl }}>
               <div>
-                <label style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, display: 'block' }}>Parent Work Item</label>
+                <label style={{ fontSize: ARK_TOKENS.type.label, fontWeight: ARK_TOKENS.weight.semibold, marginBottom: ARK_TOKENS.space.xs, display: 'block' }}>Parent Work Item</label>
                 <div style={{ position: 'relative' }}>
                   <div
                     style={{
                       display: 'flex', alignItems: 'center',
                       border: `1px solid ${resolved && !resolved.notFound ? ARK_TOKENS.success : ARK_TOKENS.borderStrong}`,
                       borderRadius: ARK_TOKENS.r,
-                      background: ARK_TOKENS.surface, height: 36, overflow: 'hidden',
+                      background: ARK_TOKENS.surface, height: 32, overflow: 'hidden',
                     }}
                   >
                     <div
                       style={{
                         padding: '0 10px', color: ARK_TOKENS.inkSubtle, height: '100%',
-                        display: 'flex', alignItems: 'center', fontSize: 17,
+                        display: 'flex', alignItems: 'center', fontSize: ARK_TOKENS.type.body,
                         borderRight: `1px solid ${ARK_TOKENS.border}`, background: ARK_TOKENS.surfaceAlt,
                       }}
                     >
@@ -297,7 +298,8 @@ export function OnboardingPage() {
                       style={{
                         flex: 1, border: 'none', height: '100%', padding: '0 12px',
                         background: 'transparent', outline: 'none',
-                        fontFamily: ARK_TOKENS.mono, fontWeight: 600,
+                        fontFamily: ARK_TOKENS.mono, fontWeight: ARK_TOKENS.weight.semibold,
+                        fontSize: ARK_TOKENS.type.body,
                       }}
                     />
                     {searching ? (
@@ -338,16 +340,16 @@ export function OnboardingPage() {
                           }}
                         >
                           <div style={{ width: 10, height: 10, borderRadius: 2, flexShrink: 0, background: workItemColor(item.type) }} />
-                          <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle, fontWeight: 600, flexShrink: 0 }}>
+                          <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.semibold, flexShrink: 0 }}>
                             {item.type} #{item.id}
                           </div>
                           <div style={{
-                            flex: 1, fontSize: 16, fontWeight: 500, minWidth: 0,
+                            flex: 1, fontSize: ARK_TOKENS.type.body, fontWeight: ARK_TOKENS.weight.medium, minWidth: 0,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           }}>
                             {item.title}
                           </div>
-                          <div style={{ fontSize: 12, color: ARK_TOKENS.inkSubtle, flexShrink: 0 }}>
+                          <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, flexShrink: 0 }}>
                             {item.state}
                           </div>
                         </div>
@@ -371,7 +373,7 @@ export function OnboardingPage() {
                     {resolved.notFound ? (
                       <>
                         <span style={{ color: ARK_TOKENS.danger, display: 'flex' }}><Ico.warn size={16} /></span>
-                        <div style={{ fontSize: 14, color: ARK_TOKENS.danger }}>
+                        <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.danger }}>
                           Couldn&apos;t find #{workItemId} in this organization. Check the ID or your permissions.
                         </div>
                       </>
@@ -379,14 +381,14 @@ export function OnboardingPage() {
                       <>
                         <div style={{ width: 14, height: 14, background: resolved.color, borderRadius: 2, flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.5, marginBottom: 2 }}>
+                          <div style={{ fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.5, marginBottom: 2 }}>
                             {resolved.type.toUpperCase()} · #{resolved.id}
                           </div>
-                          <div style={{ fontSize: 16, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: ARK_TOKENS.type.h2, fontWeight: ARK_TOKENS.weight.semibold, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {resolved.title}
                           </div>
                           {resolved.attachments && resolved.attachments.length > 0 && (
-                            <div style={{ fontSize: 12, color: ARK_TOKENS.inkMuted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <div style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkMuted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                               <Ico.file size={10} />
                               {resolved.attachments.length} attachment{resolved.attachments.length === 1 ? '' : 's'} will be imported
                             </div>
@@ -397,7 +399,7 @@ export function OnboardingPage() {
                     )}
                   </div>
                 )}
-                <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Ico.info size={12} /> Your new story will be created as a child of this item.
                 </div>
               </div>
@@ -422,7 +424,7 @@ export function OnboardingPage() {
       <div
         style={{
           position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
-          fontSize: 13, color: ARK_TOKENS.inkSubtle,
+          fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle,
         }}
       >
         Ark · For organization experts who speak business, not backlog

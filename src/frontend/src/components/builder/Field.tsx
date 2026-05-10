@@ -25,7 +25,7 @@ export function Field({ label, hint, filled, active, onActivate, children, last 
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: ARK_TOKENS.ink }}>{label}</h3>
+        <h3 style={{ fontSize: ARK_TOKENS.type.h2, fontWeight: ARK_TOKENS.weight.semibold, margin: 0, color: ARK_TOKENS.ink }}>{label}</h3>
         {filled && (
           <span style={{ color: ARK_TOKENS.success, display: 'flex' }}>
             <Ico.check size={12} />
@@ -33,7 +33,7 @@ export function Field({ label, hint, filled, active, onActivate, children, last 
         )}
       </div>
       {hint && (
-        <div style={{ fontSize: 14, color: ARK_TOKENS.inkMuted, marginBottom: 12, lineHeight: 1.5 }}>{hint}</div>
+        <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted, marginBottom: 12, lineHeight: ARK_TOKENS.leading.normal }}>{hint}</div>
       )}
       {children}
     </div>

@@ -39,7 +39,7 @@ export function PersonaRow({ value, onChange, onFocus }: PersonaRowProps) {
         position: 'relative',
       }}
     >
-      <div style={{ fontSize: 14, color: ARK_TOKENS.inkMuted, fontWeight: 500, paddingTop: 4 }}>As a</div>
+      <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted, fontWeight: ARK_TOKENS.weight.medium, paddingTop: 4 }}>As a</div>
       <div ref={ref} style={{ position: 'relative' }}>
         <div
           style={{
@@ -56,7 +56,7 @@ export function PersonaRow({ value, onChange, onFocus }: PersonaRowProps) {
             placeholder="Type a persona, or pick from suggestions"
             style={{
               flex: 1, border: 'none', background: 'transparent',
-              padding: '4px 0', fontFamily: 'inherit', fontSize: 17, lineHeight: 1.5,
+              padding: '4px 0', fontFamily: 'inherit', fontSize: ARK_TOKENS.type.body, lineHeight: ARK_TOKENS.leading.normal,
               color: ARK_TOKENS.ink, outline: 'none',
             }}
           />
@@ -87,7 +87,7 @@ export function PersonaRow({ value, onChange, onFocus }: PersonaRowProps) {
               padding: 4,
             }}
           >
-            <div style={{ fontSize: 12, fontWeight: 600, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.6, padding: '6px 8px 4px' }}>
+            <div style={{ fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.6, padding: '6px 8px 4px' }}>
               COMMON IN YOUR BACKLOG
             </div>
             {PRESETS.map((p) => (
@@ -99,7 +99,7 @@ export function PersonaRow({ value, onChange, onFocus }: PersonaRowProps) {
                   display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                   padding: '8px 10px', border: 'none',
                   background: value === p ? ARK_TOKENS.azureFaint : 'transparent',
-                  textAlign: 'left', fontFamily: 'inherit', fontSize: 16,
+                  textAlign: 'left', fontFamily: 'inherit', fontSize: ARK_TOKENS.type.body,
                   color: ARK_TOKENS.ink, cursor: 'pointer', borderRadius: 4,
                 }}
                 onMouseEnter={(e) => { if (value !== p) (e.currentTarget as HTMLElement).style.background = ARK_TOKENS.surfaceAlt; }}
@@ -110,7 +110,7 @@ export function PersonaRow({ value, onChange, onFocus }: PersonaRowProps) {
                 {value === p && <Ico.check size={11} />}
               </button>
             ))}
-            <div style={{ borderTop: `1px solid ${ARK_TOKENS.border}`, marginTop: 4, padding: '8px 10px', fontSize: 13, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ borderTop: `1px solid ${ARK_TOKENS.border}`, marginTop: 4, padding: '8px 10px', fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Ico.sparkle size={10} />
               <span>Or just type your own — free text is allowed.</span>
             </div>

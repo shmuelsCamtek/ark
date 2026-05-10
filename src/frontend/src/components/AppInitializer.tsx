@@ -134,7 +134,7 @@ function FullScreenLoading() {
           animation: 'ark-spin 0.8s linear infinite',
         }}
       />
-      <div style={{ fontSize: 15, color: ARK_TOKENS.inkMuted }}>Signing in to Azure DevOps…</div>
+      <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted }}>Signing in to Azure DevOps…</div>
       <style>{`@keyframes ark-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -180,8 +180,8 @@ function FullScreenDeviceCode({ device, onCancel }: { device: DeviceCode; onCanc
         >
           <Ico.user size={20} />
         </div>
-        <div style={{ fontSize: 19, fontWeight: 600, marginBottom: 6 }}>Sign in to continue</div>
-        <div style={{ fontSize: 15, color: ARK_TOKENS.inkMuted, marginBottom: 24, lineHeight: 1.5 }}>
+        <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, marginBottom: 6 }}>Sign in to continue</div>
+        <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, marginBottom: 24, lineHeight: ARK_TOKENS.leading.normal }}>
           Open the link below and enter this one-time code. We&rsquo;ll finish signing you in automatically.
         </div>
 
@@ -198,8 +198,8 @@ function FullScreenDeviceCode({ device, onCancel }: { device: DeviceCode; onCanc
           <span
             style={{
               fontFamily: 'monospace',
-              fontSize: 22,
-              fontWeight: 600,
+              fontSize: 24, // intentionally above the type scale — one-time auth code retyped into a browser
+              fontWeight: ARK_TOKENS.weight.semibold,
               letterSpacing: 2,
               color: ARK_TOKENS.ink,
             }}
@@ -218,7 +218,7 @@ function FullScreenDeviceCode({ device, onCancel }: { device: DeviceCode; onCanc
           style={{
             display: 'inline-block',
             color: ARK_TOKENS.azure,
-            fontSize: 15,
+            fontSize: ARK_TOKENS.type.body,
             textDecoration: 'none',
             marginBottom: 20,
             wordBreak: 'break-all',
@@ -227,7 +227,7 @@ function FullScreenDeviceCode({ device, onCancel }: { device: DeviceCode; onCanc
           {device.verificationUri} ↗
         </a>
 
-        <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle, marginBottom: 8 }}>
+        <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, marginBottom: 8 }}>
           Waiting for you to complete sign-in…
         </div>
 
@@ -235,7 +235,7 @@ function FullScreenDeviceCode({ device, onCancel }: { device: DeviceCode; onCanc
           onClick={onCancel}
           style={{
             background: 'transparent', border: 'none',
-            color: ARK_TOKENS.inkMuted, fontSize: 13,
+            color: ARK_TOKENS.inkMuted, fontSize: ARK_TOKENS.type.label,
             cursor: 'pointer', padding: 4,
           }}
         >
@@ -276,8 +276,8 @@ function FullScreenSignIn({ onRetry, errorMessage }: { onRetry: () => void; erro
         >
           <Ico.user size={20} />
         </div>
-        <div style={{ fontSize: 19, fontWeight: 600, marginBottom: 6 }}>Sign in required</div>
-        <div style={{ fontSize: 15, color: ARK_TOKENS.inkMuted, marginBottom: 20, lineHeight: 1.5 }}>
+        <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, marginBottom: 6 }}>Sign in required</div>
+        <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, marginBottom: 20, lineHeight: ARK_TOKENS.leading.normal }}>
           {errorMessage ?? 'Sign in to Azure DevOps to continue.'}
         </div>
         <Btn variant="primary" size="lg" onClick={onRetry}>

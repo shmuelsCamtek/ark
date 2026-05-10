@@ -64,7 +64,7 @@ export function BuilderPage() {
           justifyContent: 'center',
           background: ARK_TOKENS.bg,
           color: ARK_TOKENS.inkSubtle,
-          fontSize: 14,
+          fontSize: ARK_TOKENS.type.label,
         }}
       >
         Loading draft…
@@ -394,8 +394,8 @@ function BuilderPageBody() {
           <div style={{ padding: '32px 40px 80px' }}>
             {/* Heading */}
             <div style={{ marginBottom: 28 }}>
-              <h1 style={{ fontSize: 29, fontWeight: 600, margin: '0 0 6px', letterSpacing: -0.4 }}>New user story</h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: ARK_TOKENS.inkMuted }}>
+              <h1 style={{ fontSize: ARK_TOKENS.type.display, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 6px', letterSpacing: -0.3, lineHeight: ARK_TOKENS.leading.tight }}>New user story</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted }}>
                 <span>{completion} of {fields.length} sections complete</span>
                 <span style={{ flex: 1, maxWidth: 120, height: 3, background: ARK_TOKENS.border, borderRadius: 2, overflow: 'hidden' }}>
                   <span style={{ display: 'block', height: '100%', width: `${(completion / fields.length) * 100}%`, background: ARK_TOKENS.azure, transition: 'width 0.3s' }} />
@@ -494,10 +494,10 @@ function BuilderPageBody() {
                       display: 'flex', gap: 12, alignItems: 'flex-start',
                       padding: '10px 0',
                       borderBottom: `1px solid ${ARK_TOKENS.border}`,
-                      fontSize: 16, lineHeight: 1.5,
+                      fontSize: ARK_TOKENS.type.body, lineHeight: ARK_TOKENS.leading.normal,
                     }}
                   >
-                    <span style={{ color: ARK_TOKENS.inkSubtle, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontSize: 13, fontWeight: 600, marginTop: 2, width: 24 }}>
+                    <span style={{ color: ARK_TOKENS.inkSubtle, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, marginTop: 2, width: 24 }}>
                       AC{i + 1}
                     </span>
                     <span style={{ flex: 1 }}>{c.text}</span>

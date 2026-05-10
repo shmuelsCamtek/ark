@@ -30,16 +30,17 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
   return (
     <div
       style={{
-        height: 48,
+        height: 44,
         borderBottom: `1px solid ${ARK_TOKENS.border}`,
         background: ARK_TOKENS.surface,
         display: 'flex',
         alignItems: 'center',
-        padding: '0 16px',
-        gap: 16,
+        padding: `0 ${ARK_TOKENS.space.lg}px`,
+        gap: ARK_TOKENS.space.lg,
         flexShrink: 0,
         position: 'relative',
         zIndex: 20,
+        fontSize: ARK_TOKENS.type.body,
       }}
     >
       <div
@@ -60,19 +61,19 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
               border: `1px solid ${ARK_TOKENS.border}`,
               borderRadius: ARK_TOKENS.r2,
               boxShadow: ARK_TOKENS.shadow3,
-              padding: 12,
+              padding: ARK_TOKENS.space.md,
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              gap: ARK_TOKENS.space.sm,
               zIndex: 30,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Avatar name={user.displayName} size={40} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: ARK_TOKENS.space.md }}>
+              <Avatar name={user.displayName} size={36} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div
                   style={{
-                    fontSize: 14, fontWeight: 600, color: ARK_TOKENS.ink,
+                    fontSize: ARK_TOKENS.type.h2, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.ink,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}
                 >
@@ -82,20 +83,20 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
                   <div
                     title={user.email}
                     style={{
-                      fontSize: 12, color: ARK_TOKENS.inkSubtle, marginTop: 2,
+                      fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, marginTop: 2,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}
                   >
                     {user.email}
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: ARK_TOKENS.success, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.success, marginTop: 4, display: 'flex', alignItems: 'center', gap: ARK_TOKENS.space.xs }}>
                   <span style={{ width: 6, height: 6, background: ARK_TOKENS.success, borderRadius: 3 }} />
                   Signed in
                 </div>
               </div>
             </div>
-            <div style={{ borderTop: `1px solid ${ARK_TOKENS.border}`, paddingTop: 8 }}>
+            <div style={{ borderTop: `1px solid ${ARK_TOKENS.border}`, paddingTop: ARK_TOKENS.space.sm }}>
               <button
                 onClick={handleSignOut}
                 onMouseEnter={() => setSignOutHover(true)}
@@ -107,7 +108,7 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
                   padding: '6px 8px',
                   borderRadius: ARK_TOKENS.r,
                   color: signOutHover ? ARK_TOKENS.ink : ARK_TOKENS.inkMuted,
-                  fontSize: 13,
+                  fontSize: ARK_TOKENS.type.body,
                   textAlign: 'left',
                   cursor: 'pointer',
                 }}
@@ -125,8 +126,8 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            marginLeft: 12,
-            fontSize: 16,
+            marginLeft: ARK_TOKENS.space.md,
+            fontSize: ARK_TOKENS.type.body,
             color: ARK_TOKENS.inkMuted,
           }}
         >
@@ -140,7 +141,7 @@ export function TopBar({ breadcrumbs = [], rightActions, onBack: _onBack }: TopB
               <span
                 style={{
                   color: i === breadcrumbs.length - 1 ? ARK_TOKENS.ink : ARK_TOKENS.inkMuted,
-                  fontWeight: i === breadcrumbs.length - 1 ? 600 : 400,
+                  fontWeight: i === breadcrumbs.length - 1 ? ARK_TOKENS.weight.semibold : ARK_TOKENS.weight.regular,
                 }}
               >
                 {b}

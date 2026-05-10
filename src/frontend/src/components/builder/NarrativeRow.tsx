@@ -20,8 +20,8 @@ export function NarrativeRow({ label, value, onChange, placeholder, multiline, l
     background: 'transparent',
     padding: '4px 0',
     fontFamily: 'inherit',
-    fontSize: 17,
-    lineHeight: 1.5,
+    fontSize: ARK_TOKENS.type.body,
+    lineHeight: ARK_TOKENS.leading.normal,
     color: ARK_TOKENS.ink,
     outline: 'none',
     borderBottom: `1px solid ${focus ? ARK_TOKENS.azure : 'transparent'}`,
@@ -35,7 +35,7 @@ export function NarrativeRow({ label, value, onChange, placeholder, multiline, l
         borderBottom: last ? 'none' : `1px solid ${ARK_TOKENS.border}`,
       }}
     >
-      <div style={{ fontSize: 14, color: ARK_TOKENS.inkMuted, fontWeight: 500, paddingTop: 4 }}>{label}</div>
+      <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted, fontWeight: ARK_TOKENS.weight.medium, paddingTop: 4 }}>{label}</div>
       {multiline ? (
         <textarea
           value={value}

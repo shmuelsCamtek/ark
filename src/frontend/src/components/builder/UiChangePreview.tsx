@@ -88,10 +88,10 @@ export function UiChangePreview({
             style={{ marginTop: 2, width: 16, height: 16, accentColor: ARK_TOKENS.azure, cursor: 'pointer', flexShrink: 0 }}
           />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: ARK_TOKENS.ink, marginBottom: 2 }}>
+            <div style={{ fontSize: ARK_TOKENS.type.h2, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.ink, marginBottom: 2 }}>
               This story includes a UI change
             </div>
-            <div style={{ fontSize: 14, color: ARK_TOKENS.inkMuted, lineHeight: 1.5 }}>
+            <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted, lineHeight: ARK_TOKENS.leading.normal }}>
               Tick this if you want to capture a before/after. Tickets without UI work can skip this.
             </div>
           </div>
@@ -105,7 +105,7 @@ export function UiChangePreview({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 16, color: ARK_TOKENS.ink }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.ink }}>
         <input
           type="checkbox"
           checked
@@ -121,7 +121,7 @@ export function UiChangePreview({
             onClick={onToggle}
             style={{
               border: 'none', background: 'transparent', color: ARK_TOKENS.inkSubtle,
-              fontSize: 13, cursor: 'pointer', padding: 4, fontFamily: 'inherit',
+              fontSize: ARK_TOKENS.type.label, cursor: 'pointer', padding: 4, fontFamily: 'inherit',
             }}
           >
             Remove
@@ -137,7 +137,7 @@ export function UiChangePreview({
             background: ARK_TOKENS.azureFaint,
             border: `1px dashed ${ARK_TOKENS.azure}`,
             borderRadius: ARK_TOKENS.r2,
-            fontSize: 14, color: ARK_TOKENS.azureDark,
+            fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.azureDark,
           }}
         >
           <Ico.copy size={12} />
@@ -151,7 +151,7 @@ export function UiChangePreview({
               display: 'inline-flex', alignItems: 'center', gap: 4,
               padding: '3px 8px', border: `1px solid ${ARK_TOKENS.azure}`,
               background: ARK_TOKENS.surface, borderRadius: ARK_TOKENS.r,
-              fontSize: 13, color: ARK_TOKENS.azure, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
+              fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.azure, cursor: 'pointer', fontFamily: 'inherit', fontWeight: ARK_TOKENS.weight.semibold,
             }}
           >
             <Ico.upload size={10} /> Upload
@@ -224,7 +224,7 @@ function ActionBtn({
         display: 'inline-flex', alignItems: 'center', gap: 4,
         padding: '4px 8px', border: `1px solid ${ARK_TOKENS.border}`,
         background: ARK_TOKENS.surface, borderRadius: ARK_TOKENS.r2,
-        fontSize: 13, color: disabled ? ARK_TOKENS.inkSubtle : ARK_TOKENS.inkMuted,
+        fontSize: ARK_TOKENS.type.label, color: disabled ? ARK_TOKENS.inkSubtle : ARK_TOKENS.inkMuted,
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: 'inherit',
         opacity: disabled ? 0.6 : 1,
@@ -282,7 +282,7 @@ function UiThumb({ label, variant, compact, src }: { label: string; variant: 'be
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   padding: '3px 8px',
                   background: ARK_TOKENS.azure, color: '#fff',
-                  borderRadius: 12, fontSize: 11, fontWeight: 600, letterSpacing: 0.3,
+                  borderRadius: 12, fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.3,
                   boxShadow: '0 1px 3px rgba(0,143,190,0.4)',
                 }}
               >
@@ -296,7 +296,7 @@ function UiThumb({ label, variant, compact, src }: { label: string; variant: 'be
                   padding: '3px 8px',
                   background: '#fff', color: ARK_TOKENS.inkMuted,
                   border: `1px solid ${ARK_TOKENS.border}`,
-                  borderRadius: 12, fontSize: 11, fontWeight: 500,
+                  borderRadius: 12, fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.medium,
                 }}
               >
                 Retry manually
@@ -308,7 +308,7 @@ function UiThumb({ label, variant, compact, src }: { label: string; variant: 'be
       <div
         style={{
           padding: '4px 8px',
-          fontSize: 12, fontWeight: 600, letterSpacing: 0.5,
+          fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.5,
           color: isAfter ? ARK_TOKENS.azure : ARK_TOKENS.inkMuted,
           background: isAfter ? ARK_TOKENS.azureFaint : ARK_TOKENS.surfaceAlt,
           borderTop: `1px solid ${ARK_TOKENS.border}`,

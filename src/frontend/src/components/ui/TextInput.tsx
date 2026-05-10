@@ -16,9 +16,9 @@ export function TextInput({ value, onChange, placeholder, style, label, hint, er
   const [focus, setFocus] = useState(false);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: ARK_TOKENS.space.xs }}>
       {label && (
-        <label style={{ fontSize: 14, fontWeight: 600, color: ARK_TOKENS.ink }}>{label}</label>
+        <label style={{ fontSize: ARK_TOKENS.type.label, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.ink }}>{label}</label>
       )}
       <div
         style={{
@@ -28,7 +28,8 @@ export function TextInput({ value, onChange, placeholder, style, label, hint, er
           border: `1px solid ${focus ? ARK_TOKENS.azure : error ? ARK_TOKENS.danger : ARK_TOKENS.borderStrong}`,
           borderRadius: ARK_TOKENS.r,
           padding: '0 8px',
-          height: 32,
+          height: 30,
+          fontSize: ARK_TOKENS.type.body,
           transition: 'border-color 150ms ease-in-out, box-shadow 150ms ease-in-out',
         }}
       >
@@ -41,11 +42,11 @@ export function TextInput({ value, onChange, placeholder, style, label, hint, er
           placeholder={placeholder}
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
-          style={{ flex: 1, border: 'none', background: 'transparent', height: '100%', outline: 'none', ...style }}
+          style={{ flex: 1, border: 'none', background: 'transparent', height: '100%', outline: 'none', fontSize: 'inherit', ...style }}
         />
       </div>
-      {hint && !error && <span style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle }}>{hint}</span>}
-      {error && <span style={{ fontSize: 13, color: ARK_TOKENS.danger }}>{error}</span>}
+      {hint && !error && <span style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle }}>{hint}</span>}
+      {error && <span style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.danger }}>{error}</span>}
     </div>
   );
 }

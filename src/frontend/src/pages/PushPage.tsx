@@ -68,9 +68,9 @@ export function PushPage() {
         <TopBar breadcrumbs={['Stories', 'Push to Azure']} />
         <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto', padding: '32px 48px 80px' }}>
           <div style={{ maxWidth: 900, margin: '0 auto' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 6 }}>STEP 3 OF 3 · FINAL REVIEW</div>
-            <h1 style={{ fontSize: 34, fontWeight: 600, margin: '0 0 8px', letterSpacing: -0.4 }}>Send to Azure DevOps</h1>
-            <p style={{ fontSize: 17, color: ARK_TOKENS.inkMuted, margin: '0 0 28px' }}>
+            <div style={{ fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 6 }}>STEP 3 OF 3 · FINAL REVIEW</div>
+            <h1 style={{ fontSize: ARK_TOKENS.type.display, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 8px', letterSpacing: -0.3, lineHeight: ARK_TOKENS.leading.tight }}>Send to Azure DevOps</h1>
+            <p style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, margin: '0 0 28px' }}>
               Take a final look. You can still edit everything in Azure after push.
             </p>
 
@@ -110,12 +110,12 @@ export function PushPage() {
           <div style={{ width: 56, height: 56, margin: '0 auto 16px', borderRadius: 28, background: ARK_TOKENS.azureFaint, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <AzureMark size={32} />
           </div>
-          <h2 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 600 }}>Sending to Azure DevOps…</h2>
-          <div style={{ fontSize: 16, color: ARK_TOKENS.inkMuted, marginBottom: 20 }}>This usually takes 2-3 seconds.</div>
+          <h2 style={{ margin: '0 0 8px', fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold }}>Sending to Azure DevOps…</h2>
+          <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, marginBottom: 20 }}>This usually takes 2-3 seconds.</div>
           <div style={{ height: 6, background: ARK_TOKENS.border, borderRadius: 3, overflow: 'hidden', marginBottom: 16 }}>
             <div style={{ height: '100%', width: `${progress}%`, background: ARK_TOKENS.azure, transition: 'width 0.4s ease' }} />
           </div>
-          <div style={{ textAlign: 'left', fontSize: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ textAlign: 'left', fontSize: ARK_TOKENS.type.label, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {steps.map((st, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, color: st.done ? ARK_TOKENS.ink : ARK_TOKENS.inkSubtle }}>
                 {st.done ? (
@@ -142,8 +142,8 @@ export function PushPage() {
           <div style={{ width: 72, height: 72, margin: '0 auto 20px', borderRadius: 36, background: ARK_TOKENS.successBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ARK_TOKENS.success }}>
             <Ico.check size={32} />
           </div>
-          <h1 style={{ fontSize: 34, fontWeight: 600, margin: '0 0 8px', letterSpacing: -0.4 }}>Story {newItemId} is in the backlog.</h1>
-          <p style={{ fontSize: 17, color: ARK_TOKENS.inkMuted, margin: 0 }}>
+          <h1 style={{ fontSize: ARK_TOKENS.type.display, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 8px', letterSpacing: -0.3, lineHeight: ARK_TOKENS.leading.tight }}>Story {newItemId} is in the backlog.</h1>
+          <p style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, margin: 0 }}>
             Your dev team will see it in their next backlog refinement.
           </p>
         </div>
@@ -154,8 +154,8 @@ export function PushPage() {
               <AzureMark size={16} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: ARK_TOKENS.inkSubtle, fontWeight: 600, letterSpacing: 0.4 }}>USER STORY · {newItemId}</div>
-              <div style={{ fontSize: 19, fontWeight: 600 }}>{storyTitle}</div>
+              <div style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.5 }}>USER STORY · {newItemId}</div>
+              <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold }}>{storyTitle}</div>
             </div>
             <Btn size="sm" variant="ghost" icon={<Ico.link size={12} />}>Open in Azure</Btn>
           </div>

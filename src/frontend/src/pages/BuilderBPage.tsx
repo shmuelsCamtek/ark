@@ -105,7 +105,7 @@ export function BuilderBPage() {
                     onClick={() => setInput(s)}
                     style={{
                       border: `1px solid ${ARK_TOKENS.border}`, background: ARK_TOKENS.surface,
-                      padding: '5px 12px', borderRadius: 14, fontSize: 14, color: ARK_TOKENS.inkMuted,
+                      padding: '5px 12px', borderRadius: 14, fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted,
                       cursor: 'pointer', fontFamily: 'inherit',
                     }}
                   >
@@ -126,7 +126,7 @@ export function BuilderBPage() {
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
                   placeholder="Reply to the coach, or ask a question…"
                   rows={2}
-                  style={{ flex: 1, border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontFamily: 'inherit', fontSize: 17, lineHeight: 1.5 }}
+                  style={{ flex: 1, border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontFamily: 'inherit', fontSize: ARK_TOKENS.type.body, lineHeight: ARK_TOKENS.leading.normal }}
                 />
                 <Btn variant="primary" icon={<Ico.arrow size={14} />} onClick={send} disabled={!input.trim()}>Send</Btn>
               </div>
@@ -139,8 +139,8 @@ export function BuilderBPage() {
           <div style={{ padding: '16px 20px', borderBottom: `1px solid ${ARK_TOKENS.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
             <AzureMark size={16} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 600 }}>Story being built</div>
-              <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ fontSize: ARK_TOKENS.type.h2, fontWeight: ARK_TOKENS.weight.semibold }}>Story being built</div>
+              <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 6, height: 6, background: ARK_TOKENS.success, borderRadius: 3 }} /> Auto-saving to draft
               </div>
             </div>
@@ -170,7 +170,7 @@ function ChatMsg({ msg }: { msg: ChatMessage }) {
           <Ico.sparkle size={14} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle, fontWeight: 600, marginBottom: 4 }}>ARK COACH</div>
+          <div style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.5, marginBottom: 4 }}>ARK COACH</div>
           {msg.typing ? (
             <div style={{ display: 'flex', gap: 4, padding: '12px 0', alignItems: 'center' }}>
               {[0, 1, 2].map((i) => (
@@ -179,7 +179,7 @@ function ChatMsg({ msg }: { msg: ChatMessage }) {
             </div>
           ) : (
             <div
-              style={{ fontSize: 17, lineHeight: 1.55, color: ARK_TOKENS.ink, whiteSpace: 'pre-wrap' }}
+              style={{ fontSize: ARK_TOKENS.type.body, lineHeight: ARK_TOKENS.leading.normal, color: ARK_TOKENS.ink, whiteSpace: 'pre-wrap' }}
               dangerouslySetInnerHTML={{ __html: renderBold(msg.text || '') }}
             />
           )}
@@ -191,8 +191,8 @@ function ChatMsg({ msg }: { msg: ChatMessage }) {
   return (
     <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', animation: 'ark-fadein 0.3s' }}>
       <div style={{ maxWidth: '85%' }}>
-        <div style={{ fontSize: 13, color: ARK_TOKENS.inkSubtle, fontWeight: 600, marginBottom: 4, textAlign: 'right' }}>YOU</div>
-        <div style={{ background: ARK_TOKENS.azure, color: '#fff', padding: '10px 14px', borderRadius: 12, borderBottomRightRadius: 4, fontSize: 17, lineHeight: 1.5 }}>
+        <div style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.5, marginBottom: 4, textAlign: 'right' }}>YOU</div>
+        <div style={{ background: ARK_TOKENS.azure, color: '#fff', padding: '10px 14px', borderRadius: 12, borderBottomRightRadius: 4, fontSize: ARK_TOKENS.type.body, lineHeight: ARK_TOKENS.leading.normal }}>
           {msg.text}
         </div>
       </div>

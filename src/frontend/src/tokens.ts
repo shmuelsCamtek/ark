@@ -49,6 +49,18 @@ export const ARK_TOKENS = {
 
   font: 'system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   mono: '"SF Mono", "Roboto Mono", Consolas, monospace',
+
+  type: {
+    display: 22,
+    h1: 18,
+    h2: 15,
+    body: 14,
+    label: 13,
+    micro: 12,
+  },
+  weight: { regular: 400, medium: 500, semibold: 600, bold: 700 },
+  leading: { tight: 1.25, normal: 1.45 },
+  space: { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 },
 } as const;
 
 export type ArkTokens = typeof ARK_TOKENS;

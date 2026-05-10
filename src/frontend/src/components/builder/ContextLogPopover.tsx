@@ -90,7 +90,7 @@ export function ContextLogPopover({ entries, onClose }: ContextLogPopoverProps) 
           display: 'flex', alignItems: 'center', gap: 8,
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 600, color: ARK_TOKENS.ink, flex: 1 }}>
+        <span style={{ fontSize: ARK_TOKENS.type.label, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.ink, flex: 1 }}>
           Coach context · {entries.length} item{entries.length === 1 ? '' : 's'}
         </span>
         <button
@@ -108,7 +108,7 @@ export function ContextLogPopover({ entries, onClose }: ContextLogPopoverProps) 
       </div>
       <div className="ark-scroll" style={{ overflowY: 'auto', flex: 1 }}>
         {ordered.length === 0 ? (
-          <div style={{ padding: '16px 12px', fontSize: 13, color: ARK_TOKENS.inkSubtle, lineHeight: 1.5 }}>
+          <div style={{ padding: '16px 12px', fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, lineHeight: ARK_TOKENS.leading.normal }}>
             No items in context yet — link a work item or upload a document to get started.
           </div>
         ) : (
@@ -136,7 +136,7 @@ export function ContextLogPopover({ entries, onClose }: ContextLogPopoverProps) 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
-                    fontSize: 13, fontWeight: 600, color: ARK_TOKENS.ink,
+                    fontSize: ARK_TOKENS.type.label, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.ink,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}
                   title={e.label}
@@ -146,7 +146,7 @@ export function ContextLogPopover({ entries, onClose }: ContextLogPopoverProps) 
                 {e.summary && (
                   <div
                     style={{
-                      fontSize: 12, color: ARK_TOKENS.inkMuted, marginTop: 2,
+                      fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkMuted, marginTop: 2,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}
                     title={e.summary}
@@ -156,7 +156,7 @@ export function ContextLogPopover({ entries, onClose }: ContextLogPopoverProps) 
                 )}
               </div>
               <div
-                style={{ fontSize: 11, color: ARK_TOKENS.inkSubtle, flexShrink: 0, marginTop: 2 }}
+                style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, flexShrink: 0, marginTop: 2 }}
                 title={new Date(e.addedAt).toLocaleString()}
               >
                 {formatRelative(e.addedAt)}

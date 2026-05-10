@@ -170,14 +170,14 @@ export function DocsList({ docs, scanResults, onRemove, onAdd, onScan }: DocsLis
           <span
             style={{
               flex: 1, minWidth: 0,
-              fontSize: 14, color: ARK_TOKENS.ink, fontWeight: 500,
+              fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.ink, fontWeight: ARK_TOKENS.weight.medium,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}
           >
             {d.name}
           </span>
           {d.size && (
-            <span style={{ fontSize: 12, color: ARK_TOKENS.inkSubtle, flexShrink: 0 }}>
+            <span style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, flexShrink: 0 }}>
               {d.size}
             </span>
           )}
@@ -201,7 +201,7 @@ export function DocsList({ docs, scanResults, onRemove, onAdd, onScan }: DocsLis
           border: `1px dashed ${ARK_TOKENS.borderStrong}`,
           background: 'transparent',
           borderRadius: ARK_TOKENS.r2,
-          fontSize: 16, color: ARK_TOKENS.inkMuted, cursor: 'pointer',
+          fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, cursor: 'pointer',
           fontFamily: 'inherit',
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = ARK_TOKENS.azure; (e.currentTarget as HTMLElement).style.color = ARK_TOKENS.azure; }}
@@ -220,7 +220,7 @@ export function DocsList({ docs, scanResults, onRemove, onAdd, onScan }: DocsLis
             background: 'rgba(126, 87, 194, 0.07)',
             border: '1px solid rgba(126, 87, 194, 0.18)',
             borderRadius: ARK_TOKENS.r2,
-            fontSize: 14, lineHeight: 1.5, color: ARK_TOKENS.ink,
+            fontSize: ARK_TOKENS.type.label, lineHeight: ARK_TOKENS.leading.normal, color: ARK_TOKENS.ink,
           }}
         >
           <span style={{ color: ARK_TOKENS.ai, marginTop: 1, flexShrink: 0 }}>
