@@ -3,10 +3,13 @@ import { ARK_TOKENS } from '../../tokens';
 import { usePath } from '../../router';
 import { DraftsRail } from './DraftsRail';
 import { NewStoryModal } from './NewStoryModal';
+import { RailCollapsedStrip } from './RailCollapsedStrip';
 
 interface ShellContextValue {
   openNewStoryModal: () => void;
   closeNewStoryModal: () => void;
+  railHidden: boolean;
+  toggleRail: () => void;
 }
 
 const ShellContext = createContext<ShellContextValue | null>(null);
@@ -17,12 +20,23 @@ export function useShell(): ShellContextValue {
   return ctx;
 }
 
+const RAIL_HIDDEN_KEY = 'ark.railHidden';
+
+function readPersistedRailHidden(): boolean {
+  try {
+    return window.localStorage.getItem(RAIL_HIDDEN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 interface AppShellProps {
   children: ReactNode;
 }
 
 export function AppShell({ children }: AppShellProps) {
   const [newStoryOpen, setNewStoryOpen] = useState(false);
+  const [railHidden, setRailHidden] = useState<boolean>(() => readPersistedRailHidden());
   const path = usePath();
 
   // Auto-open the modal when the URL carries ?new=1 (used by /onboarding redirect).
@@ -39,9 +53,20 @@ export function AppShell({ children }: AppShellProps) {
 
   const openNewStoryModal = useCallback(() => setNewStoryOpen(true), []);
   const closeNewStoryModal = useCallback(() => setNewStoryOpen(false), []);
+  const toggleRail = useCallback(() => {
+    setRailHidden((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(RAIL_HIDDEN_KEY, next ? '1' : '0');
+      } catch {
+        // ignore quota / private-mode failures
+      }
+      return next;
+    });
+  }, []);
 
   return (
-    <ShellContext.Provider value={{ openNewStoryModal, closeNewStoryModal }}>
+    <ShellContext.Provider value={{ openNewStoryModal, closeNewStoryModal, railHidden, toggleRail }}>
       <div
         style={{
           width: '100%',
@@ -52,7 +77,11 @@ export function AppShell({ children }: AppShellProps) {
           minHeight: 0,
         }}
       >
-        <DraftsRail onCreate={openNewStoryModal} />
+        {railHidden ? (
+          <RailCollapsedStrip onExpand={toggleRail} />
+        ) : (
+          <DraftsRail onCreate={openNewStoryModal} />
+        )}
         <div
           style={{
             flex: 1,

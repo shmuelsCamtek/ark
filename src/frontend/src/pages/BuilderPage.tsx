@@ -9,7 +9,7 @@ import { NarrativeRow } from '../components/builder/NarrativeRow';
 import { DocsList, type DocItem, type ScanResult, type UploadedDocPayload } from '../components/builder/DocsList';
 import { UiChangePreview } from '../components/builder/UiChangePreview';
 import { SuggestChat } from '../components/builder/SuggestChat';
-import { AppShell } from '../components/shell/AppShell';
+import { AppShell, useShell } from '../components/shell/AppShell';
 import { evaluateCompletion } from '../lib/storyCompletion';
 import { scanUploadedDoc, scanAzureAttachment, type ScanResultPayload } from '../services/scan';
 import { appendContextEntry } from '../lib/contextLog';
@@ -160,8 +160,8 @@ function BuilderPageBody() {
   const [uiBefore, setUiBefore] = useState<string | undefined>(draft?.uiChanges?.[0]?.beforeUrl);
   const [uiAfter, setUiAfter] = useState<string | undefined>(draft?.uiChanges?.[0]?.afterUrl);
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
-  const [coachCollapsed, setCoachCollapsed] = useState(false);
   const [coachWidth, setCoachWidth] = useState<number>(() => readPersistedCoachWidth());
+  const { railHidden, toggleRail } = useShell();
   const autoScanFiredRef = useRef(false);
   const pendingScanIdsRef = useRef<Set<string>>(new Set());
   const prevScanCountRef = useRef(0);
@@ -370,11 +370,11 @@ function BuilderPageBody() {
         rightActions={
           <div style={{ display: 'flex', gap: 8 }}>
             <Btn
-              icon={<Ico.sparkle size={14} />}
-              onClick={() => setCoachCollapsed((v) => !v)}
-              title={coachCollapsed ? 'Show Ark Coach' : 'Hide Ark Coach'}
+              icon={<Ico.list size={14} />}
+              onClick={toggleRail}
+              title={railHidden ? 'Show My Stories' : 'Hide My Stories'}
             >
-              {coachCollapsed ? 'Show coach' : 'Hide coach'}
+              {railHidden ? 'Show My Stories' : 'Hide My Stories'}
             </Btn>
             <Btn icon={<Ico.x size={12} />} onClick={() => navigate('/')}>
               Close
@@ -550,88 +550,49 @@ function BuilderPageBody() {
           </div>
         </div>
 
-        {/* RIGHT: AI Coach (collapsible, resizable) */}
-        {coachCollapsed ? (
-          <CoachCollapsedStrip onExpand={() => setCoachCollapsed(false)} />
-        ) : (
-          <>
-            <Splitter onDrag={(dx) => setCoachWidth((w) => clampCoachWidth(w - dx))} />
-            <SuggestChat
-              width={coachWidth}
-              draftId={editId || draftId}
-              storyState={{
-              title, background, persona, want, benefit, criteria,
-              workItemId: draft?.workItemId,
-              workItemType: draft?.workItemType,
-              workItemState: draft?.workItemState,
-              workItemAssignedTo: draft?.workItemAssignedTo,
-              workItemDescription: draft?.workItemDescription,
-              workItemReproSteps: draft?.workItemReproSteps,
-              workItemTechnicalDescription: draft?.workItemTechnicalDescription,
-              workItemDiscussion: draft?.workItemDiscussion,
-              linkedWorkItems: draft?.linkedWorkItems,
-              epicName: draft?.epicName,
-              supportingDocs: docs.map(d => {
-                const scan = scanResults.find(s => s.docId === d.id);
-                return {
-                  name: d.name, kind: d.kind, scanned: !!d.scanned,
-                  ...(scan && {
-                    summary: scan.summary,
-                    problemContext: scan.problemContext,
-                    stakeholders: scan.stakeholders,
-                    goals: scan.goals,
-                    acceptanceCriteria: scan.acceptanceCriteria,
-                    edgeCases: scan.edgeCases,
-                  }),
-                };
-              }),
-            }}
-            onApply={applySuggestion}
-            activeField={activeField}
-            setActiveField={setActiveField}
-            contextLog={draft?.contextLog ?? []}
-            attachmentsReady={attachmentsReady}
-            scanningDocNames={scanningDocNames}
-            recentlyAddedDocName={recentlyAdded}
-          />
-          </>
-        )}
+        {/* RIGHT: AI Coach (resizable) */}
+        <Splitter onDrag={(dx) => setCoachWidth((w) => clampCoachWidth(w - dx))} />
+        <SuggestChat
+          width={coachWidth}
+          draftId={editId || draftId}
+          storyState={{
+            title, background, persona, want, benefit, criteria,
+            workItemId: draft?.workItemId,
+            workItemType: draft?.workItemType,
+            workItemState: draft?.workItemState,
+            workItemAssignedTo: draft?.workItemAssignedTo,
+            workItemDescription: draft?.workItemDescription,
+            workItemReproSteps: draft?.workItemReproSteps,
+            workItemTechnicalDescription: draft?.workItemTechnicalDescription,
+            workItemDiscussion: draft?.workItemDiscussion,
+            linkedWorkItems: draft?.linkedWorkItems,
+            epicName: draft?.epicName,
+            supportingDocs: docs.map(d => {
+              const scan = scanResults.find(s => s.docId === d.id);
+              return {
+                name: d.name, kind: d.kind, scanned: !!d.scanned,
+                ...(scan && {
+                  summary: scan.summary,
+                  problemContext: scan.problemContext,
+                  stakeholders: scan.stakeholders,
+                  goals: scan.goals,
+                  acceptanceCriteria: scan.acceptanceCriteria,
+                  edgeCases: scan.edgeCases,
+                }),
+              };
+            }),
+          }}
+          onApply={applySuggestion}
+          activeField={activeField}
+          setActiveField={setActiveField}
+          contextLog={draft?.contextLog ?? []}
+          attachmentsReady={attachmentsReady}
+          scanningDocNames={scanningDocNames}
+          recentlyAddedDocName={recentlyAdded}
+        />
 
       </div>
     </div>
   );
 }
 
-function CoachCollapsedStrip({ onExpand }: { onExpand: () => void }) {
-  return (
-    <div
-      style={{
-        flex: '0 0 44px',
-        width: 44,
-        background: ARK_TOKENS.bg,
-        borderLeft: `1px solid ${ARK_TOKENS.border}`,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        paddingTop: 12,
-      }}
-    >
-      <button
-        type="button"
-        onClick={onExpand}
-        title="Show Ark Coach"
-        aria-label="Show Ark Coach"
-        style={{
-          width: 32, height: 32,
-          border: 'none', background: ARK_TOKENS.azureFaint,
-          color: ARK_TOKENS.azure,
-          borderRadius: ARK_TOKENS.r,
-          cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        <Ico.sparkle size={14} />
-      </button>
-    </div>
-  );
-}
