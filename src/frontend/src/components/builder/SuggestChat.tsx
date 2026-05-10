@@ -494,8 +494,9 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     <div
       className={typing ? 'ark-thinking' : undefined}
       style={{
-        flex: '1 1 0',
-        borderRight: `1px solid ${ARK_TOKENS.border}`,
+        flex: '0 0 400px',
+        width: 400,
+        borderLeft: `1px solid ${ARK_TOKENS.border}`,
         background: ARK_TOKENS.bg,
         display: 'flex',
         flexDirection: 'column',

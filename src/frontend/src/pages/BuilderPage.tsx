@@ -9,6 +9,7 @@ import { NarrativeRow } from '../components/builder/NarrativeRow';
 import { DocsList, type DocItem, type ScanResult, type UploadedDocPayload } from '../components/builder/DocsList';
 import { UiChangePreview } from '../components/builder/UiChangePreview';
 import { SuggestChat } from '../components/builder/SuggestChat';
+import { AppShell } from '../components/shell/AppShell';
 import { evaluateCompletion } from '../lib/storyCompletion';
 import { scanUploadedDoc, scanAzureAttachment, type ScanResultPayload } from '../services/scan';
 import { appendContextEntry } from '../lib/contextLog';
@@ -43,7 +44,7 @@ export function BuilderPage() {
     loadDraft(editId).then((d) => {
       if (cancelled) return;
       if (!d) {
-        navigate('/stories');
+        navigate('/');
         return;
       }
       setHydrated(true);
@@ -53,27 +54,28 @@ export function BuilderPage() {
     };
   }, [editId, draftsLoaded, getDraft, loadDraft, navigate]);
 
-  if (!hydrated) {
-    return (
-      <div
-        style={{
-          width: '100%',
-          height: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: ARK_TOKENS.bg,
-          color: ARK_TOKENS.inkSubtle,
-          fontSize: ARK_TOKENS.type.label,
-        }}
-      >
-        Loading draft…
-      </div>
-    );
-  }
-
-  // Re-mount the body when the route's id changes so its useState initializers re-run.
-  return <BuilderPageBody key={editId || 'new'} />;
+  return (
+    <AppShell>
+      {!hydrated ? (
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: ARK_TOKENS.bg,
+            color: ARK_TOKENS.inkSubtle,
+            fontSize: ARK_TOKENS.type.label,
+          }}
+        >
+          Loading draft…
+        </div>
+      ) : (
+        // Re-mount the body when the route's id changes so its useState initializers re-run.
+        <BuilderPageBody key={editId || 'new'} />
+      )}
+    </AppShell>
+  );
 }
 
 function BuilderPageBody() {
@@ -138,6 +140,7 @@ function BuilderPageBody() {
   const [uiBefore, setUiBefore] = useState<string | undefined>(draft?.uiChanges?.[0]?.beforeUrl);
   const [uiAfter, setUiAfter] = useState<string | undefined>(draft?.uiChanges?.[0]?.afterUrl);
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
+  const [coachCollapsed, setCoachCollapsed] = useState(false);
   const autoScanFiredRef = useRef(false);
   const pendingScanIdsRef = useRef<Set<string>>(new Set());
   const prevScanCountRef = useRef(0);
@@ -328,13 +331,20 @@ function BuilderPageBody() {
   };
 
   return (
-    <div style={{ width: '100%', height: '100vh', background: ARK_TOKENS.bg, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '100%', height: '100%', background: ARK_TOKENS.bg, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <TopBar
         breadcrumbs={['Stories', editId ? 'Edit' : 'New story']}
         rightActions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <Btn icon={<Ico.check size={14} />} onClick={() => navigate('/stories')}>
-              Save as draft
+            <Btn
+              icon={<Ico.sparkle size={14} />}
+              onClick={() => setCoachCollapsed((v) => !v)}
+              title={coachCollapsed ? 'Show Ark Coach' : 'Hide Ark Coach'}
+            >
+              {coachCollapsed ? 'Show coach' : 'Hide coach'}
+            </Btn>
+            <Btn icon={<Ico.x size={12} />} onClick={() => navigate('/')}>
+              Close
             </Btn>
             <Btn
               variant="primary"
@@ -350,46 +360,7 @@ function BuilderPageBody() {
       />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* LEFT: AI Coach */}
-        <SuggestChat
-          draftId={editId || draftId}
-          storyState={{
-            title, background, persona, want, benefit, criteria,
-            workItemId: draft?.workItemId,
-            workItemType: draft?.workItemType,
-            workItemState: draft?.workItemState,
-            workItemAssignedTo: draft?.workItemAssignedTo,
-            workItemDescription: draft?.workItemDescription,
-            workItemReproSteps: draft?.workItemReproSteps,
-            workItemTechnicalDescription: draft?.workItemTechnicalDescription,
-            workItemDiscussion: draft?.workItemDiscussion,
-            linkedWorkItems: draft?.linkedWorkItems,
-            epicName: draft?.epicName,
-            supportingDocs: docs.map(d => {
-              const scan = scanResults.find(s => s.docId === d.id);
-              return {
-                name: d.name, kind: d.kind, scanned: !!d.scanned,
-                ...(scan && {
-                  summary: scan.summary,
-                  problemContext: scan.problemContext,
-                  stakeholders: scan.stakeholders,
-                  goals: scan.goals,
-                  acceptanceCriteria: scan.acceptanceCriteria,
-                  edgeCases: scan.edgeCases,
-                }),
-              };
-            }),
-          }}
-          onApply={applySuggestion}
-          activeField={activeField}
-          setActiveField={setActiveField}
-          contextLog={draft?.contextLog ?? []}
-          attachmentsReady={attachmentsReady}
-          scanningDocNames={scanningDocNames}
-          recentlyAddedDocName={recentlyAdded}
-        />
-
-        {/* RIGHT: Form */}
+        {/* LEFT: Form */}
         <div className="ark-scroll" style={{ flex: '1 1 0', overflowY: 'auto', minWidth: 0 }}>
           <div style={{ padding: '32px 40px 80px' }}>
             {/* Heading */}
@@ -546,7 +517,84 @@ function BuilderPageBody() {
           </div>
         </div>
 
+        {/* RIGHT: AI Coach (collapsible) */}
+        {coachCollapsed ? (
+          <CoachCollapsedStrip onExpand={() => setCoachCollapsed(false)} />
+        ) : (
+          <SuggestChat
+            draftId={editId || draftId}
+            storyState={{
+              title, background, persona, want, benefit, criteria,
+              workItemId: draft?.workItemId,
+              workItemType: draft?.workItemType,
+              workItemState: draft?.workItemState,
+              workItemAssignedTo: draft?.workItemAssignedTo,
+              workItemDescription: draft?.workItemDescription,
+              workItemReproSteps: draft?.workItemReproSteps,
+              workItemTechnicalDescription: draft?.workItemTechnicalDescription,
+              workItemDiscussion: draft?.workItemDiscussion,
+              linkedWorkItems: draft?.linkedWorkItems,
+              epicName: draft?.epicName,
+              supportingDocs: docs.map(d => {
+                const scan = scanResults.find(s => s.docId === d.id);
+                return {
+                  name: d.name, kind: d.kind, scanned: !!d.scanned,
+                  ...(scan && {
+                    summary: scan.summary,
+                    problemContext: scan.problemContext,
+                    stakeholders: scan.stakeholders,
+                    goals: scan.goals,
+                    acceptanceCriteria: scan.acceptanceCriteria,
+                    edgeCases: scan.edgeCases,
+                  }),
+                };
+              }),
+            }}
+            onApply={applySuggestion}
+            activeField={activeField}
+            setActiveField={setActiveField}
+            contextLog={draft?.contextLog ?? []}
+            attachmentsReady={attachmentsReady}
+            scanningDocNames={scanningDocNames}
+            recentlyAddedDocName={recentlyAdded}
+          />
+        )}
+
       </div>
+    </div>
+  );
+}
+
+function CoachCollapsedStrip({ onExpand }: { onExpand: () => void }) {
+  return (
+    <div
+      style={{
+        flex: '0 0 44px',
+        width: 44,
+        background: ARK_TOKENS.bg,
+        borderLeft: `1px solid ${ARK_TOKENS.border}`,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        paddingTop: 12,
+      }}
+    >
+      <button
+        type="button"
+        onClick={onExpand}
+        title="Show Ark Coach"
+        aria-label="Show Ark Coach"
+        style={{
+          width: 32, height: 32,
+          border: 'none', background: ARK_TOKENS.azureFaint,
+          color: ARK_TOKENS.azure,
+          borderRadius: ARK_TOKENS.r,
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <Ico.sparkle size={14} />
+      </button>
     </div>
   );
 }
