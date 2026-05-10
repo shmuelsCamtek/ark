@@ -7,4 +7,5 @@ export { StateDot } from './StateDot';
 export { ArkLogo } from './ArkLogo';
 export { AzureMark } from './AzureMark';
 export { TopBar } from './TopBar';
+export { Modal } from './Modal';
 export { Ico } from './icons';

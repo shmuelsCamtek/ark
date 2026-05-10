@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ARK_TOKENS } from '../../tokens';
-import { Btn, Ico } from '../ui';
+import { Btn, Ico, Modal } from '../ui';
 
 type Tool = 'rect' | 'free' | 'text';
 
@@ -128,69 +128,52 @@ export function AnnotateModal({ image, onSave, onClose }: AnnotateModalProps) {
   const clear = () => setStrokes([]);
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.72)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000, padding: 24,
-      }}
-      onClick={onClose}
-    >
+    <Modal open onClose={onClose} contentStyle={{ padding: 16, gap: 12 }}>
+      {/* Toolbar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <ToolBtn active={tool === 'rect'} onClick={() => setTool('rect')} label="Rectangle" />
+        <ToolBtn active={tool === 'free'} onClick={() => setTool('free')} label="Freehand" />
+        <ToolBtn active={tool === 'text'} onClick={() => setTool('text')} label="Text" />
+        <div style={{ width: 1, height: 20, background: ARK_TOKENS.border, margin: '0 4px' }} />
+        <Btn onClick={undo} disabled={strokes.length === 0}>Undo</Btn>
+        <Btn onClick={clear} disabled={strokes.length === 0}>Clear</Btn>
+        <div style={{ flex: 1 }} />
+        <Btn onClick={onClose}>Cancel</Btn>
+        <Btn variant="primary" icon={<Ico.check size={12} />} onClick={handleSave}>Save</Btn>
+      </div>
+
+      {/* Canvas area */}
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
-          background: ARK_TOKENS.surface, borderRadius: ARK_TOKENS.r3,
-          padding: 16, maxWidth: '95vw', maxHeight: '95vh',
-          display: 'flex', flexDirection: 'column', gap: 12,
-          boxShadow: ARK_TOKENS.shadow3,
+          position: 'relative', overflow: 'auto',
+          border: `1px solid ${ARK_TOKENS.border}`, borderRadius: ARK_TOKENS.r2,
+          background: '#F1F4F9',
+          maxHeight: 'calc(95vh - 110px)',
         }}
       >
-        {/* Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <ToolBtn active={tool === 'rect'} onClick={() => setTool('rect')} label="Rectangle" />
-          <ToolBtn active={tool === 'free'} onClick={() => setTool('free')} label="Freehand" />
-          <ToolBtn active={tool === 'text'} onClick={() => setTool('text')} label="Text" />
-          <div style={{ width: 1, height: 20, background: ARK_TOKENS.border, margin: '0 4px' }} />
-          <Btn onClick={undo} disabled={strokes.length === 0}>Undo</Btn>
-          <Btn onClick={clear} disabled={strokes.length === 0}>Clear</Btn>
-          <div style={{ flex: 1 }} />
-          <Btn onClick={onClose}>Cancel</Btn>
-          <Btn variant="primary" icon={<Ico.check size={12} />} onClick={handleSave}>Save</Btn>
-        </div>
-
-        {/* Canvas area */}
-        <div
+        <canvas
+          ref={canvasRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           style={{
-            position: 'relative', overflow: 'auto',
-            border: `1px solid ${ARK_TOKENS.border}`, borderRadius: ARK_TOKENS.r2,
-            background: '#F1F4F9',
-            maxHeight: 'calc(95vh - 110px)',
+            display: 'block', maxWidth: '100%', height: 'auto',
+            cursor: tool === 'text' ? 'text' : 'crosshair',
+            touchAction: 'none',
           }}
-        >
-          <canvas
-            ref={canvasRef}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            style={{
-              display: 'block', maxWidth: '100%', height: 'auto',
-              cursor: tool === 'text' ? 'text' : 'crosshair',
-              touchAction: 'none',
-            }}
+        />
+        {textPrompt && (
+          <TextPromptOverlay
+            prompt={textPrompt}
+            canvasRef={canvasRef}
+            onChange={(v) => setTextPrompt({ ...textPrompt, value: v })}
+            onCommit={commitText}
+            onCancel={() => setTextPrompt(null)}
           />
-          {textPrompt && (
-            <TextPromptOverlay
-              prompt={textPrompt}
-              canvasRef={canvasRef}
-              onChange={(v) => setTextPrompt({ ...textPrompt, value: v })}
-              onCommit={commitText}
-              onCancel={() => setTextPrompt(null)}
-            />
-          )}
-        </div>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 }
 
