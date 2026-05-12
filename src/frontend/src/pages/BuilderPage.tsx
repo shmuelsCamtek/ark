@@ -21,7 +21,7 @@ function docKindToSupportingType(kind: DocItem['kind']): SupportingDoc['type'] {
 
 const COACH_MIN_WIDTH = 280;
 const COACH_MAX_WIDTH = 720;
-const COACH_DEFAULT_WIDTH = 400;
+const COACH_DEFAULT_WIDTH = COACH_MAX_WIDTH;
 const COACH_WIDTH_KEY = 'ark.coachWidth';
 
 function clampCoachWidth(w: number): number {
