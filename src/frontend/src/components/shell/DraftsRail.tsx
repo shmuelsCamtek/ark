@@ -19,9 +19,13 @@ export function DraftsRail({ onCreate }: DraftsRailProps) {
   const [hideHover, setHideHover] = useState(false);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim().replace(/^#/, '').toLowerCase();
     if (!q) return drafts;
-    return drafts.filter((d) => (d.title || 'Untitled story').toLowerCase().includes(q));
+    return drafts.filter((d) => {
+      const title = (d.title || 'Untitled story').toLowerCase();
+      const wid = d.workItemId?.toLowerCase() ?? '';
+      return title.includes(q) || wid.includes(q);
+    });
   }, [drafts, query]);
 
   return (
@@ -116,7 +120,7 @@ export function DraftsRail({ onCreate }: DraftsRailProps) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search drafts"
+            placeholder="Search drafts or #id"
             style={{
               flex: 1,
               border: 'none',
