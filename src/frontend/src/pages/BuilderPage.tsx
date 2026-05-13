@@ -221,6 +221,16 @@ function BuilderPageBody() {
   }, [title, background, persona, want, benefit, criteria, uiBefore, uiAfter, editId, draftId, updateDraft]);
 
   const setters: Record<string, (v: string) => void> = { title: setTitle, background: setBackground, persona: setPersona, want: setWant, benefit: setBenefit };
+  const fieldToSection: Record<string, string> = {
+    title: 'field-title',
+    background: 'field-background',
+    persona: 'field-persona',
+    want: 'field-persona',
+    benefit: 'field-persona',
+    ui: 'field-ui',
+    criteria: 'field-criteria',
+    docs: 'field-docs',
+  };
   const applySuggestion = (field: string, value: string) => {
     if (field === 'criteria') {
       setCriteria((prev) => [...prev, { id: Date.now(), text: value }]);
@@ -228,6 +238,12 @@ function BuilderPageBody() {
       setters[field](value);
     }
     setActiveField(field);
+    const sectionId = fieldToSection[field];
+    if (sectionId) {
+      requestAnimationFrame(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
   };
 
   const persistScanResult = (
@@ -476,6 +492,7 @@ function BuilderPageBody() {
         <div className="ark-scroll" style={{ flex: '1 1 0', overflowY: 'auto', minWidth: 0 }}>
           <div style={{ padding: '32px 40px 80px' }}>
             <Field
+              id="field-title"
               label="Title"
               hint="A short, active-voice summary of what this story delivers."
               filled={fields[0].filled}
@@ -494,6 +511,7 @@ function BuilderPageBody() {
             </Field>
 
             <Field
+              id="field-background"
               label="Background"
               hint="The context devs need before they read the rest. Why does this story exist? What's happening today?"
               filled={fields[1].filled}
@@ -509,6 +527,7 @@ function BuilderPageBody() {
             </Field>
 
             <Field
+              id="field-persona"
               label="As-a, I-want, So-that"
               hint="Persona, desire, and benefit — what developers use to sanity-check tradeoffs."
               filled={fields[2].filled && fields[3].filled && fields[4].filled}
@@ -536,6 +555,7 @@ function BuilderPageBody() {
             </Field>
 
             <Field
+              id="field-ui"
               label="UI change"
               hint="Optional. Tick this if your story changes the user interface, then paste or upload the current window."
               filled={showUiChange}
@@ -560,6 +580,7 @@ function BuilderPageBody() {
             </Field>
 
             <Field
+              id="field-criteria"
               label="Acceptance criteria"
               hint="Use Given / When / Then. Each criterion should be pass/fail testable."
               filled={fields[5].filled}
@@ -605,6 +626,7 @@ function BuilderPageBody() {
             </Field>
 
             <Field
+              id="field-docs"
               label="Supporting documents"
               hint="Attach specs, screenshots, tickets, or recordings. The coach will read them and propose criteria."
               filled={docs.length > 0}

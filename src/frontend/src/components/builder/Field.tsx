@@ -11,13 +11,16 @@ interface FieldProps {
   children: ReactNode;
   last?: boolean;
   aside?: ReactNode;
+  id?: string;
 }
 
-export function Field({ label, hint, filled, active, onActivate, children, last, aside }: FieldProps) {
+export function Field({ label, hint, filled, active, onActivate, children, last, aside, id }: FieldProps) {
   return (
     <div
+      id={id}
       onClick={onActivate}
       style={{
+        scrollMarginTop: 24,
         paddingLeft: 16,
         marginLeft: -16,
         marginBottom: last ? 0 : 28,
