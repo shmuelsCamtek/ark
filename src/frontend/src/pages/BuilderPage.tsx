@@ -431,7 +431,6 @@ function BuilderPageBody() {
           <div style={{ padding: '32px 40px 80px' }}>
             {/* Heading */}
             <div style={{ marginBottom: 28 }}>
-              <h1 style={{ fontSize: ARK_TOKENS.type.display, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 6px', letterSpacing: -0.3, lineHeight: ARK_TOKENS.leading.tight }}>New user story</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted }}>
                 <span>{completion} of {fields.length} sections complete</span>
                 <span style={{ flex: 1, maxWidth: 120, height: 3, background: ARK_TOKENS.border, borderRadius: 2, overflow: 'hidden' }}>
