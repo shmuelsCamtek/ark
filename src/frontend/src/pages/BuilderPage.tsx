@@ -439,7 +439,7 @@ function BuilderPageBody() {
                 disabled={!completionResult.complete}
                 title={completionResult.complete ? undefined : `Add: ${completionResult.missing.join(', ')}`}
               >
-                Push to Azure
+                Review
               </Btn>
             </div>
           </div>
