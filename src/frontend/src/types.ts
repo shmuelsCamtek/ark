@@ -83,11 +83,9 @@ export interface SuggestMessage {
   bundleResolved?: boolean;
 }
 
-export type CoachMessageType = 'user' | 'ai' | 'suggestion' | 'criteria-bundle' | 'ack' | 'quiz';
-
 export interface CoachMessage {
   id: string;
-  type: CoachMessageType;
+  type: 'user' | 'ai' | 'suggestion' | 'criteria-bundle' | 'ack' | 'quiz';
   text: string;
   field?: string;
   value?: string;
@@ -96,8 +94,6 @@ export interface CoachMessage {
   used?: boolean;
   timestamp: string;
 }
-
-export type PushStage = 'review' | 'pushing' | 'done';
 
 export interface UserProfile {
   id: string;

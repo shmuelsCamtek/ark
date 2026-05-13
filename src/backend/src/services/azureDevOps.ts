@@ -179,11 +179,6 @@ async function fetchComments(id: number, token: string): Promise<WorkItemComment
   }));
 }
 
-export async function getWorkItem(id: string, token: string): Promise<WorkItemResult | null> {
-  const data = await fetchWorkItemRaw(Number(id), token);
-  return data ? parseWorkItem(data) : null;
-}
-
 export async function getWorkItemGraph(
   rootId: string,
   token: string,

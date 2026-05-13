@@ -104,13 +104,9 @@ src/frontend/                          # Vite + React app
 │   │   ├── ui/                        # Shared primitives (Btn, Badge, TextInput, TopBar, icons, etc.)
 │   │   └── builder/                   # Builder sub-components (Field, PersonaRow, SuggestChat, etc.)
 │   └── pages/
-│       ├── StoriesPage.tsx            # /stories — drafts dashboard
-│       ├── OnboardingPage.tsx         # /onboarding — welcome + work item connect
-│       ├── BuilderPage.tsx            # /stories/new, /stories/:id/edit — 3-column builder
-│       ├── PushPage.tsx               # /stories/:id/push — review → pushing → done
-│       ├── BuilderBPage.tsx           # /stories/new/chat — chat-driven builder
-│       ├── BuilderCPage.tsx           # /stories/new/canvas — card canvas builder
-│       └── DevPage.tsx                # /dev — component gallery
+│       ├── ShellHomePage.tsx          # / and /stories — drafts dashboard + shell
+│       ├── BuilderPage.tsx            # /stories/:id/edit — 3-column builder
+│       └── PushPage.tsx               # /stories/:id/push — review → pushing → done
 ```
 
 ```

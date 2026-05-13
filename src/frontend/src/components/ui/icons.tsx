@@ -58,13 +58,6 @@ export const Ico = {
       <path d="M2.5 14c.8-2.5 3-4 5.5-4s4.7 1.5 5.5 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   ),
-  target: ({ size = 14 }: IcoProps) => (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.3" />
-      <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.3" />
-      <circle cx="8" cy="8" r="1" fill="currentColor" />
-    </svg>
-  ),
   heart: ({ size = 14 }: IcoProps) => (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
       <path d="M8 13.5S2 10 2 6a3 3 0 015-2.2A3 3 0 0114 6c0 4-6 7.5-6 7.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
@@ -84,12 +77,6 @@ export const Ico = {
   bolt: ({ size = 14 }: IcoProps) => (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor">
       <path d="M9 1L3 9h4l-1 6 6-8H8l1-6z" />
-    </svg>
-  ),
-  doc: ({ size = 14 }: IcoProps) => (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M3 1h7l3 3v11H3V1z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="M10 1v3h3" stroke="currentColor" strokeWidth="1.3" />
     </svg>
   ),
   arrow: ({ size = 14, dir = 'right' }: DirIcoProps) => {
@@ -115,20 +102,6 @@ export const Ico = {
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
       <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.3" />
       <path d="M8 1v2M8 13v2M15 8h-2M3 8H1M12.5 3.5l-1.4 1.4M4.9 11.1l-1.4 1.4M12.5 12.5l-1.4-1.4M4.9 4.9L3.5 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  ),
-  tree: ({ size = 14 }: IcoProps) => (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <rect x="1.5" y="1.5" width="5" height="4" rx="0.5" stroke="currentColor" strokeWidth="1.3" />
-      <rect x="9.5" y="6.5" width="5" height="4" rx="0.5" stroke="currentColor" strokeWidth="1.3" />
-      <rect x="9.5" y="11.5" width="5" height="3" rx="0.5" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M4 5.5V9a1 1 0 001 1h4.5M4 9v3.5a1 1 0 001 1h4.5" stroke="currentColor" strokeWidth="1.3" />
-    </svg>
-  ),
-  board: ({ size = 14 }: IcoProps) => (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <rect x="1.5" y="2.5" width="13" height="11" rx="1" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M1.5 5.5h13M5.5 5.5v8M10.5 5.5v8" stroke="currentColor" strokeWidth="1.3" />
     </svg>
   ),
   file: ({ size = 14 }: IcoProps) => (

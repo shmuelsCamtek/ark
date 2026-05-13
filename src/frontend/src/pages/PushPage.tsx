@@ -59,7 +59,7 @@ export function PushPage() {
 
   const handleBackToEditor = () => navigate(`/stories/${id}/edit`);
   const handleBackToDashboard = () => navigate('/stories');
-  const handleNewStory = () => navigate('/onboarding');
+  const handleNewStory = () => navigate('/?new=1');
 
   // ── Review stage ──
   if (stage === 'review') {

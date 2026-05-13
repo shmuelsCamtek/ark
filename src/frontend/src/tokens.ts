@@ -31,8 +31,6 @@ export const ARK_TOKENS = {
   warningBg: '#fffbeb',
   danger: '#ef4444',
   dangerBg: '#fef2f2',
-  info: '#1994FF',
-  infoBg: '#dbeafe',
 
   // AI accent
   ai: '#7E57C2',
