@@ -10,9 +10,10 @@ interface FieldProps {
   onActivate: () => void;
   children: ReactNode;
   last?: boolean;
+  aside?: ReactNode;
 }
 
-export function Field({ label, hint, filled, active, onActivate, children, last }: FieldProps) {
+export function Field({ label, hint, filled, active, onActivate, children, last, aside }: FieldProps) {
   return (
     <div
       onClick={onActivate}
@@ -31,6 +32,7 @@ export function Field({ label, hint, filled, active, onActivate, children, last 
             <Ico.check size={12} />
           </span>
         )}
+        {aside && <div style={{ marginLeft: 'auto' }}>{aside}</div>}
       </div>
       {hint && (
         <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted, marginBottom: 12, lineHeight: ARK_TOKENS.leading.normal }}>{hint}</div>

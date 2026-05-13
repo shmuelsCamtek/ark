@@ -429,22 +429,20 @@ function BuilderPageBody() {
         {/* RIGHT: Form */}
         <div className="ark-scroll" style={{ flex: '1 1 0', overflowY: 'auto', minWidth: 0 }}>
           <div style={{ padding: '32px 40px 80px' }}>
-            {/* Heading */}
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted }}>
-                <span>{completion} of {fields.length} sections complete</span>
-                <span style={{ flex: 1, maxWidth: 120, height: 3, background: ARK_TOKENS.border, borderRadius: 2, overflow: 'hidden' }}>
-                  <span style={{ display: 'block', height: '100%', width: `${(completion / fields.length) * 100}%`, background: ARK_TOKENS.azure, transition: 'width 0.3s' }} />
-                </span>
-              </div>
-            </div>
-
             <Field
               label="Title"
               hint="A short, active-voice summary of what this story delivers."
               filled={fields[0].filled}
               active={activeField === 'title'}
               onActivate={() => setActiveField('title')}
+              aside={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted }}>
+                  <span>{completion} of {fields.length} sections complete</span>
+                  <span style={{ width: 120, height: 3, background: ARK_TOKENS.border, borderRadius: 2, overflow: 'hidden' }}>
+                    <span style={{ display: 'block', height: '100%', width: `${(completion / fields.length) * 100}%`, background: ARK_TOKENS.azure, transition: 'width 0.3s' }} />
+                  </span>
+                </div>
+              }
             >
               <TextInput value={title} onChange={setTitle} placeholder="e.g. Auto-retry failed renewals" />
             </Field>
