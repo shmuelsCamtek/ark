@@ -11,7 +11,7 @@
   - [ ] if it exists, or simillar feature. 
   - [ ] Auther
 - [ ] Hard to notice when the coach is thinking
-- [ ] Theme !? 
+- [x] Theme !? 
 - [ ] Lables for assigned, Author and ... 
 - [ ] consider using larger gearwheel. 
 - [ ] verify auto complete is the same as in Azure
