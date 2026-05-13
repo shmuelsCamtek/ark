@@ -64,7 +64,7 @@ export function DraftsRail({ onCreate }: DraftsRailProps) {
             style={{
               fontSize: ARK_TOKENS.type.micro,
               fontWeight: ARK_TOKENS.weight.semibold,
-              color: ARK_TOKENS.azure,
+              color: ARK_TOKENS.azureDark,
               letterSpacing: 0.8,
             }}
           >

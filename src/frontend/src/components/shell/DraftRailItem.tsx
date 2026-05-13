@@ -68,7 +68,7 @@ export function DraftRailItem({ draft, selected, onSelect }: DraftRailItemProps)
         >
           <span
             style={{
-              color: ARK_TOKENS.azure,
+              color: ARK_TOKENS.azureDark,
               fontFamily: ARK_TOKENS.mono,
               fontVariantNumeric: 'tabular-nums',
               flexShrink: 0,
