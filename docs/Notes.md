@@ -21,8 +21,8 @@
 - [ ] when pulish to azure, should save revision. 
 - [ ] Anotation tool, revert to original. 
 - [ ] fix: anotation text does not work. 
-- [ ] TFS should be linkable.
-  - [ ] should be added to the User Story (next to the title)
+- [x] TFS should be linkable.
+  - [x] should be added to the User Story (next to the title)
 - [x] Swap chat and user story
 - [x] change nerative to: "As-a, I-want, So-that"
   - [x] "I want to" => "I want" 
