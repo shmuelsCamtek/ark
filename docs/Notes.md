@@ -24,8 +24,8 @@
 - [ ] TFS should be linkable.
   - [ ] should be added to the User Story (next to the title)
 - [ ] Swap chat and user story
-- [ ] change nerative to: "As-a, I-want, So-that"
-  - [ ] "I want to" => "I want" 
+- [x] change nerative to: "As-a, I-want, So-that"
+  - [x] "I want to" => "I want" 
 - [ ] multi selection selction is not noticable. 
 - [ ] Add new section "The scenario", open text (user input with claude audeting). 
 - [ ] written by should be on the top after the title. preview page 
