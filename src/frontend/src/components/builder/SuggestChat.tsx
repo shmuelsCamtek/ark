@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, type CSSProperties } from 'react';
 import { ARK_TOKENS } from '../../tokens';
 import { Ico } from '../ui/icons';
+import { Badge } from '../ui/Badge';
 import { useServices } from '../../context/ServicesContext';
 import { ContextLogPopover } from './ContextLogPopover';
 import type { CoachMessage, ContextLogEntry, SuggestMessage, WorkItemComment, WorkItemInfo } from '../../types';
@@ -887,18 +888,18 @@ function SuggestMsg({
                   style={{
                     textAlign: 'left',
                     padding: '8px 10px',
-                    border: `1px solid ${ARK_TOKENS.border}`,
-                    background: used ? ARK_TOKENS.surfaceAlt : ARK_TOKENS.surface,
+                    border: `1px solid ${used ? ARK_TOKENS.success : ARK_TOKENS.border}`,
+                    background: used ? ARK_TOKENS.successBg : ARK_TOKENS.surface,
                     borderRadius: ARK_TOKENS.r2,
                     fontSize: ARK_TOKENS.type.body,
                     lineHeight: ARK_TOKENS.leading.normal,
-                    color: used ? ARK_TOKENS.inkMuted : ARK_TOKENS.ink,
+                    color: ARK_TOKENS.ink,
                     cursor: used ? 'default' : 'pointer',
                     fontFamily: 'inherit',
                     display: 'flex',
                     gap: 8,
-                    alignItems: 'flex-start',
-                    transition: 'all 0.12s',
+                    alignItems: 'center',
+                    transition: 'all 0.18s',
                   }}
                   onMouseEnter={(e) => {
                     if (!used) {
@@ -913,10 +914,28 @@ function SuggestMsg({
                     }
                   }}
                 >
-                  <span style={{ color: used ? ARK_TOKENS.inkSubtle : ARK_TOKENS.inkMuted, flexShrink: 0, marginTop: 1 }}>
-                    {used ? <Ico.check size={11} /> : <Ico.plus size={11} />}
-                  </span>
+                  {used ? (
+                    <span
+                      style={{
+                        width: 20, height: 20, borderRadius: 10,
+                        background: ARK_TOKENS.success, color: '#fff',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Ico.check size={12} />
+                    </span>
+                  ) : (
+                    <span style={{ color: ARK_TOKENS.inkMuted, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
+                      <Ico.plus size={11} />
+                    </span>
+                  )}
                   <span style={{ flex: 1 }}>{opt}</span>
+                  {used && (
+                    <Badge tone="success" icon={<Ico.check size={10} />}>
+                      Applied
+                    </Badge>
+                  )}
                 </button>
               );
             })}
