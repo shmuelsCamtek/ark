@@ -34,8 +34,8 @@
 
 ## Sidebar
 - [x] sidebar, ![alt text](image.png)
-- [ ] the left list is too blue (should match the design of the rest)
-- [ ] side bar search by number (add)
+- [x] the left list is too blue (should match the design of the rest)
+- [x] side bar search by number (add)
 
 ## Preview Page
 - [ ] preview page, button on the top. 
