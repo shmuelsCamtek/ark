@@ -94,11 +94,6 @@ h1, h2, h3 {
   letter-spacing: -0.02em;
 }
 
-/* Focus ring — Basewell style: ring-1 ring-neutral-400 offset */
-input:focus-visible, textarea:focus-visible, select:focus-visible {
-  box-shadow: 0 0 0 2px var(--ark-surface), 0 0 0 4px rgba(25,148,255,0.25);
-}
-
 button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--ark-surface), 0 0 0 4px rgba(25,148,255,0.25);
