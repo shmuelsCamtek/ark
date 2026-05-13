@@ -55,6 +55,7 @@ export interface StoryDraft {
   epicName?: string;
   workItemId?: string;
   workItemType?: string;
+  workItemTitle?: string;
   workItemState?: string;
   workItemAssignedTo?: string;
   workItemDescription?: string;

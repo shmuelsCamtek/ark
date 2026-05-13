@@ -27,6 +27,7 @@ export function DraftRailItem({ draft, selected, onSelect }: DraftRailItemProps)
   const completion = evaluateDraft(draft);
   const missingCount = completion.total - completion.filled;
   const title = draft.title?.trim() || 'Untitled story';
+  const workItemTitle = draft.workItemTitle?.trim() || draft.title?.trim();
 
   const background = selected
     ? ARK_TOKENS.azureFaint
@@ -53,7 +54,52 @@ export function DraftRailItem({ draft, selected, onSelect }: DraftRailItemProps)
         marginLeft: -3,
       }}
     >
-      {/* Line 1: title + missing-fields badge */}
+      {/* Line 1 (when source work item present): #id + WI title + missing-fields badge */}
+      {draft.workItemId && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: ARK_TOKENS.type.micro,
+            color: ARK_TOKENS.inkSubtle,
+            minWidth: 0,
+          }}
+        >
+          <span
+            style={{
+              color: ARK_TOKENS.azure,
+              fontFamily: ARK_TOKENS.mono,
+              fontVariantNumeric: 'tabular-nums',
+              flexShrink: 0,
+            }}
+          >
+            #{draft.workItemId}
+          </span>
+          {workItemTitle && (
+            <span
+              title={workItemTitle}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                color: ARK_TOKENS.inkSubtle,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {workItemTitle}
+            </span>
+          )}
+          {missingCount > 0 && (
+            <Badge tone={missingCount >= 4 ? 'warning' : 'default'}>
+              {missingCount} to fill
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {/* Line 2: draft title + (missing-fields badge if no WI row) + time-ago */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
         <div
           title={title}
@@ -70,46 +116,19 @@ export function DraftRailItem({ draft, selected, onSelect }: DraftRailItemProps)
         >
           {title}
         </div>
-        {missingCount > 0 && (
+        {!draft.workItemId && missingCount > 0 && (
           <Badge tone={missingCount >= 4 ? 'warning' : 'default'}>
             {missingCount} to fill
           </Badge>
         )}
-      </div>
-
-      {/* Line 2: parent type + workItemId + last edited */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          fontSize: ARK_TOKENS.type.micro,
-          color: ARK_TOKENS.inkSubtle,
-          minWidth: 0,
-        }}
-      >
-        {draft.workItemType && (
-          <Badge tone="azure">{draft.workItemType}</Badge>
-        )}
-        {draft.workItemId && (
-          <span
-            style={{
-              color: ARK_TOKENS.azure,
-              fontFamily: ARK_TOKENS.mono,
-              fontVariantNumeric: 'tabular-nums',
-              flexShrink: 0,
-            }}
-          >
-            #{draft.workItemId}
-          </span>
-        )}
-        <span style={{ color: ARK_TOKENS.inkSubtle, flexShrink: 0 }}>·</span>
         <span
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: 3,
             flexShrink: 0,
+            fontSize: ARK_TOKENS.type.micro,
+            color: ARK_TOKENS.inkSubtle,
             fontVariantNumeric: 'tabular-nums',
           }}
         >

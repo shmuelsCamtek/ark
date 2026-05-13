@@ -218,6 +218,7 @@ export function NewStoryModal({ open, onClose }: NewStoryModalProps) {
         title: hasItem ? resolved.title : '',
         workItemId: workItemId,
         workItemType: hasItem ? resolved.type : undefined,
+        workItemTitle: hasItem ? resolved.title : undefined,
         workItemState: hasItem ? resolved.state : undefined,
         workItemAssignedTo: hasItem ? resolved.assignedTo : undefined,
         workItemDescription: hasItem ? resolved.description : undefined,
