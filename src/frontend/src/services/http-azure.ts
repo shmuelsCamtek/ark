@@ -1,5 +1,5 @@
 import type { WorkItemInfo } from '../types';
-import type { AzureConfig, AzureService } from './azure';
+import type { AzureConfig, AzureService, WorkItemTitle } from './azure';
 
 let configPromise: Promise<AzureConfig | null> | null = null;
 
@@ -52,5 +52,18 @@ export class HttpAzureService implements AzureService {
         .catch(() => null);
     }
     return configPromise;
+  }
+
+  async getWorkItemTitles(ids: string[]): Promise<WorkItemTitle[]> {
+    const numeric = ids.map((s) => Number(s)).filter((n) => Number.isFinite(n));
+    if (numeric.length === 0) return [];
+    const res = await fetch('/api/azure/workitems/titles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: numeric }),
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as Array<{ id: number; title: string; type: string }>;
+    return data.map((d) => ({ id: String(d.id), title: d.title, type: d.type }));
   }
 }

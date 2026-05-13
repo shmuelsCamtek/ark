@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { StoryDraft, UserProfile } from '../types';
 import { HttpDraftsService } from '../services/http-drafts';
+import { HttpAzureService } from '../services/http-azure';
 
 interface AzureConnection {
   connected: boolean;
@@ -73,10 +74,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
 
   const draftsApi = useMemo(() => new HttpDraftsService(), []);
+  const azureApi = useMemo(() => new HttpAzureService(), []);
   const draftsRef = useRef<StoryDraft[]>([]);
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   // Track which ids the server already knows about so we can pick POST vs PUT.
   const knownOnServerRef = useRef<Set<string>>(new Set());
+  const backfillRanRef = useRef(false);
 
   useEffect(() => {
     draftsRef.current = drafts;
@@ -185,6 +188,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     [draftsApi],
   );
+
+  // One-time backfill: fetch the canonical Azure WI title for drafts created
+  // before the workItemTitle field existed, then persist via updateDraft.
+  useEffect(() => {
+    if (!draftsLoaded || backfillRanRef.current) return;
+    backfillRanRef.current = true;
+
+    const current = draftsRef.current;
+    const missing = current.filter(
+      (d) => d.workItemId && !d.workItemTitle?.trim() && Number.isFinite(Number(d.workItemId)),
+    );
+    if (missing.length === 0) return;
+
+    const ids = [...new Set(missing.map((d) => d.workItemId as string))];
+    azureApi
+      .getWorkItemTitles(ids)
+      .then((results) => {
+        const byId = new Map(results.map((r) => [r.id, r]));
+        for (const draft of draftsRef.current) {
+          if (!draft.workItemId) continue;
+          if (draft.workItemTitle?.trim()) continue;
+          const hit = byId.get(draft.workItemId);
+          if (!hit || !hit.title) continue;
+          updateDraft(draft.id, {
+            workItemTitle: hit.title,
+            workItemType: draft.workItemType || hit.type,
+          });
+        }
+      })
+      .catch((err) => console.error('[AppContext] WI title backfill failed', err));
+  }, [draftsLoaded, azureApi, updateDraft]);
 
   return (
     <AppContext.Provider

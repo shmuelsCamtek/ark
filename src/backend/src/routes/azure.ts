@@ -4,6 +4,7 @@ import {
   createWorkItem,
   searchWorkItems,
   fetchAzureAttachment,
+  fetchWorkItemTitles,
   ORG_URL,
   PROJECT,
 } from '../services/azureDevOps.ts';
@@ -97,5 +98,18 @@ azureRouter.post('/workitems', async (req, res) => {
   } catch (err) {
     console.error('Azure create error:', err);
     res.status(500).json({ error: 'Failed to create work item' });
+  }
+});
+
+// Lightweight batch title lookup for backfill (id/title/type only)
+azureRouter.post('/workitems/titles', async (req, res) => {
+  const raw = Array.isArray(req.body?.ids) ? req.body.ids : [];
+  const ids = raw.map((v: unknown) => Number(v)).filter((n: number) => Number.isFinite(n));
+  try {
+    const titles = await fetchWorkItemTitles(ids, req.azureDevOpsToken!);
+    res.json(titles);
+  } catch (err) {
+    console.error('Azure titles fetch error:', err);
+    res.status(500).json({ error: 'Title lookup failed' });
   }
 });

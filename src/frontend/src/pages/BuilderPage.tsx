@@ -125,7 +125,7 @@ function BuilderPageBody() {
 
   const draft = getDraft(editId || draftId);
   const workItemId = draft?.workItemId;
-  const workItemTitle = draft?.workItemTitle?.trim() || draft?.title?.trim() || '';
+  const workItemTitle = draft?.workItemTitle?.trim() || '';
 
   useEffect(() => {
     let cancelled = false;

@@ -27,7 +27,7 @@ export function DraftRailItem({ draft, selected, onSelect }: DraftRailItemProps)
   const completion = evaluateDraft(draft);
   const missingCount = completion.total - completion.filled;
   const title = draft.title?.trim() || 'Untitled story';
-  const workItemTitle = draft.workItemTitle?.trim() || draft.title?.trim();
+  const workItemTitle = draft.workItemTitle?.trim();
 
   const background = selected
     ? ARK_TOKENS.azureFaint

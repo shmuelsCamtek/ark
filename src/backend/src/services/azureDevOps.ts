@@ -361,3 +361,26 @@ export async function searchWorkItems(query: string, token: string, top = 15): P
     };
   });
 }
+
+export interface WorkItemTitle {
+  id: number;
+  title: string;
+  type: string;
+}
+
+export async function fetchWorkItemTitles(ids: number[], token: string): Promise<WorkItemTitle[]> {
+  if (ids.length === 0) return [];
+  const fields = 'System.Id,System.Title,System.WorkItemType';
+  const url = `${ORG_URL}/${PROJECT}/_apis/wit/workitems?ids=${ids.join(',')}&fields=${fields}&api-version=7.1`;
+  const res = await fetch(url, { headers: authHeaders(token) });
+  if (!res.ok) {
+    await logFetchFailure('fetchWorkItemTitles', url, res);
+    return [];
+  }
+  const data = (await res.json()) as { value?: Array<{ id: number; fields?: Record<string, string> }> };
+  return (data.value || []).map((item) => ({
+    id: item.id,
+    title: (item.fields?.['System.Title'] as string) || '',
+    type: (item.fields?.['System.WorkItemType'] as string) || '',
+  }));
+}
