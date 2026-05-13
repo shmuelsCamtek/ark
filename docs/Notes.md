@@ -36,7 +36,7 @@
 - [ ] written by should be on the top after the title. preview page 
 - [ ] date and time preview page
 - [ ] side bar search by number (add)
-- [ ] sidebar, ![alt text](image.png)
+- [x] sidebar, ![alt text](image.png)
 - [ ] preview page, button on the top. 
 - [ ] fix: darg and drop.
 
