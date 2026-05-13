@@ -1,5 +1,10 @@
 import type { WorkItemInfo } from '../types';
 
+export interface AzureConfig {
+  orgUrl: string;
+  project: string;
+}
+
 export interface AzureService {
   resolveWorkItem(id: string): Promise<WorkItemInfo | null>;
   searchWorkItems(query: string): Promise<WorkItemInfo[]>;
@@ -9,4 +14,5 @@ export interface AzureService {
     type: string;
     acceptanceCriteria: string;
   }): Promise<{ id: string; url: string }>;
+  getConfig(): Promise<AzureConfig | null>;
 }

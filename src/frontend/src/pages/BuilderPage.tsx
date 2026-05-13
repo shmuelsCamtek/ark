@@ -3,6 +3,7 @@ import { ARK_TOKENS } from '../tokens';
 import { TopBar, Btn, Ico, TextInput, TextArea, Splitter } from '../components/ui';
 import { useParams, useNavigate } from '../router';
 import { useApp, createEmptyDraft } from '../context/AppContext';
+import { useServices } from '../context/ServicesContext';
 import { Field } from '../components/builder/Field';
 import { PersonaRow } from '../components/builder/PersonaRow';
 import { NarrativeRow } from '../components/builder/NarrativeRow';
@@ -102,6 +103,8 @@ function BuilderPageBody() {
   const params = useParams();
   const navigate = useNavigate();
   const { getDraft, updateDraft, addDraft } = useApp();
+  const { azure } = useServices();
+  const [workItemUrl, setWorkItemUrl] = useState<string | null>(null);
 
   const editId = params.id;
   const existing = editId ? getDraft(editId) : undefined;
@@ -121,6 +124,18 @@ function BuilderPageBody() {
   }, [editId, draftId, getDraft, addDraft]);
 
   const draft = getDraft(editId || draftId);
+  const workItemId = draft?.workItemId;
+  const workItemTitle = draft?.workItemTitle?.trim() || draft?.title?.trim() || '';
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!workItemId) { setWorkItemUrl(null); return; }
+    azure.getConfig().then((cfg) => {
+      if (cancelled || !cfg) return;
+      setWorkItemUrl(`${cfg.orgUrl}/${cfg.project}/_workitems/edit/${workItemId}`);
+    });
+    return () => { cancelled = true; };
+  }, [azure, workItemId]);
 
   const [title, setTitle] = useState(draft?.title || '');
   const [background, setBackground] = useState(draft?.background || '');
@@ -367,19 +382,50 @@ function BuilderPageBody() {
       <TopBar
         breadcrumbs={['Stories', editId ? 'Edit' : 'New story']}
         rightActions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Btn icon={<Ico.x size={12} />} onClick={() => navigate('/')}>
-              Close
-            </Btn>
-            <Btn
-              variant="primary"
-              icon={<Ico.arrow size={14} />}
-              onClick={handlePush}
-              disabled={!completionResult.complete}
-              title={completionResult.complete ? undefined : `Add: ${completionResult.missing.join(', ')}`}
-            >
-              Push to Azure
-            </Btn>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {workItemId && workItemUrl && (
+              <a
+                href={workItemUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={workItemTitle ? `Open #${workItemId} ${workItemTitle} in Azure DevOps` : `Open #${workItemId} in Azure DevOps`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  maxWidth: 320,
+                  fontSize: ARK_TOKENS.type.label,
+                  color: ARK_TOKENS.azureDark,
+                  textDecoration: 'none',
+                }}
+              >
+                <span style={{ fontFamily: ARK_TOKENS.mono, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                  #{workItemId}
+                </span>
+                {workItemTitle && (
+                  <span style={{ color: ARK_TOKENS.inkMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {workItemTitle}
+                  </span>
+                )}
+                <span style={{ color: ARK_TOKENS.inkSubtle, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
+                  <Ico.link size={12} />
+                </span>
+              </a>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Btn icon={<Ico.x size={12} />} onClick={() => navigate('/')}>
+                Close
+              </Btn>
+              <Btn
+                variant="primary"
+                icon={<Ico.arrow size={14} />}
+                onClick={handlePush}
+                disabled={!completionResult.complete}
+                title={completionResult.complete ? undefined : `Add: ${completionResult.missing.join(', ')}`}
+              >
+                Push to Azure
+              </Btn>
+            </div>
           </div>
         }
       />

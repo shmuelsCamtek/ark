@@ -4,6 +4,8 @@ import {
   createWorkItem,
   searchWorkItems,
   fetchAzureAttachment,
+  ORG_URL,
+  PROJECT,
 } from '../services/azureDevOps.ts';
 import { getAccessToken } from '../services/auth.ts';
 import { scanDocument } from '../services/documentScanner.ts';
@@ -15,6 +17,11 @@ declare module 'express-serve-static-core' {
     azureDevOpsToken?: string;
   }
 }
+
+// Public: org/project pointer so the UI can build links to ADO. No token required.
+azureRouter.get('/config', (_req, res) => {
+  res.json({ orgUrl: ORG_URL, project: PROJECT });
+});
 
 async function withAzureToken(req: Request, res: Response, next: NextFunction) {
   const token = await getAccessToken();

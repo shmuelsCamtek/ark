@@ -1,5 +1,7 @@
 import type { WorkItemInfo } from '../types';
-import type { AzureService } from './azure';
+import type { AzureConfig, AzureService } from './azure';
+
+let configPromise: Promise<AzureConfig | null> | null = null;
 
 function normalizeWorkItem(raw: Record<string, unknown>): WorkItemInfo {
   const linked = Array.isArray(raw.linkedWorkItems)
@@ -41,5 +43,14 @@ export class HttpAzureService implements AzureService {
     if (!res.ok) throw new Error('Failed to create work item');
     const result = await res.json();
     return { id: String(result.id), url: result.url };
+  }
+
+  async getConfig(): Promise<AzureConfig | null> {
+    if (!configPromise) {
+      configPromise = fetch('/api/azure/config')
+        .then((res) => (res.ok ? (res.json() as Promise<AzureConfig>) : null))
+        .catch(() => null);
+    }
+    return configPromise;
   }
 }

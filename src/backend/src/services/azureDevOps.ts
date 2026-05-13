@@ -1,5 +1,5 @@
-const ORG_URL = process.env.AZURE_DEVOPS_ORG || 'https://dev.azure.com/AzCamtek';
-const PROJECT = process.env.AZURE_DEVOPS_PROJECT || 'Falcon';
+export const ORG_URL = process.env.AZURE_DEVOPS_ORG || 'https://dev.azure.com/AzCamtek';
+export const PROJECT = process.env.AZURE_DEVOPS_PROJECT || 'Falcon';
 
 function authHeaders(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}`, Accept: 'application/json' };
