@@ -19,7 +19,7 @@ const SECTION_LABELS = {
   title: 'Title',
   background: 'Background',
   persona: 'Persona',
-  want: 'I want to',
+  want: 'I want',
   benefit: 'So that',
   criteria: 'Acceptance criteria (need 2+)',
 } as const;

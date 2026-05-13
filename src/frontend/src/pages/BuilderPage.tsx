@@ -425,7 +425,7 @@ function BuilderPageBody() {
             </Field>
 
             <Field
-              label="The narrative"
+              label="As-a, I-want, So-that"
               hint="Persona, desire, and benefit — what developers use to sanity-check tradeoffs."
               filled={fields[2].filled && fields[3].filled && fields[4].filled}
               active={['persona', 'want', 'benefit'].includes(activeField)}
@@ -433,7 +433,7 @@ function BuilderPageBody() {
             >
               <PersonaRow value={persona} onChange={setPersona} onFocus={() => setActiveField('persona')} />
               <NarrativeRow
-                label="I want to"
+                label="I want"
                 value={want}
                 onChange={setWant}
                 placeholder="auto-retry failed Pro renewals before escalating"
