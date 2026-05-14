@@ -13,6 +13,7 @@ interface SuggestChatProps {
     title: string;
     background: string;
     scenario: string;
+    flow: string;
     persona: string;
     want: string;
     benefit: string;
@@ -65,6 +66,7 @@ function patchStoryState(
     case 'title': return { ...s, title: value };
     case 'background': return { ...s, background: value };
     case 'scenario': return { ...s, scenario: value };
+    case 'flow': return { ...s, flow: value };
     case 'persona': return { ...s, persona: value };
     case 'want': return { ...s, want: value };
     case 'benefit': return { ...s, benefit: value };
@@ -93,6 +95,7 @@ function buildDraftContext(storyState: SuggestChatProps['storyState'], activeFie
     title: storyState.title,
     background: storyState.background,
     scenario: storyState.scenario,
+    flow: storyState.flow,
     persona: storyState.persona,
     want: storyState.want,
     benefit: storyState.benefit,
@@ -291,8 +294,8 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     const truncated = text.length > 120 ? text.slice(0, 117) + '…' : text;
     const next = nextEmptyField(patched);
     let tail: string;
-    if (field === 'scenario' && !hasMermaidBlock(patched.scenario)) {
-      tail = `Now offer me sequence/flow diagrams for the scenario — a single \`suggestions\` block with field='scenario' containing exactly two options: (1) my prose + a \`\`\`mermaid sequenceDiagram, (2) my prose + a \`\`\`mermaid flowchart or graph. Each option's text is the full replacement value (prose + a blank line + the fenced mermaid block). If a diagram genuinely wouldn't help, say so briefly and move on to Title instead.`;
+    if (field === 'scenario' && !hasMermaidBlock(patched.flow)) {
+      tail = `Now offer me sequence/flow diagrams for The Flow section — a single \`suggestions\` block with field='flow' containing exactly two options: (1) a \`\`\`mermaid sequenceDiagram, (2) a \`\`\`mermaid flowchart or graph. Each option's text is the fenced mermaid block ONLY (no prose). Keep diagrams short (≤ 8 nodes/steps) and faithful to the scenario prose. If a diagram genuinely wouldn't help, say so briefly and move on to Title instead.`;
     } else {
       tail = next
         ? `Now help me with **${next}** — the next empty field. Ask me a clarifying question (quiz) or draft a value.`
@@ -361,8 +364,8 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     const truncated = text.length > 120 ? text.slice(0, 117) + '…' : text;
     const next = nextEmptyField(patched);
     let tail: string;
-    if (field === 'scenario' && !hasMermaidBlock(patched.scenario)) {
-      tail = `Now offer me sequence/flow diagrams for the scenario — a single \`suggestions\` block with field='scenario' containing exactly two options: (1) my prose + a \`\`\`mermaid sequenceDiagram, (2) my prose + a \`\`\`mermaid flowchart or graph. Each option's text is the full replacement value (prose + a blank line + the fenced mermaid block). If a diagram genuinely wouldn't help, say so briefly and move on to Title instead.`;
+    if (field === 'scenario' && !hasMermaidBlock(patched.flow)) {
+      tail = `Now offer me sequence/flow diagrams for The Flow section — a single \`suggestions\` block with field='flow' containing exactly two options: (1) a \`\`\`mermaid sequenceDiagram, (2) a \`\`\`mermaid flowchart or graph. Each option's text is the fenced mermaid block ONLY (no prose). Keep diagrams short (≤ 8 nodes/steps) and faithful to the scenario prose. If a diagram genuinely wouldn't help, say so briefly and move on to Title instead.`;
     } else {
       tail = next
         ? `Now help me with **${next}** — the next empty field. Ask me a clarifying question (quiz) or draft a value.`

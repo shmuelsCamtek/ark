@@ -30,6 +30,7 @@ export function PushPage() {
     title: storyTitle,
     background: draft?.background || '',
     scenario: draft?.scenario || '',
+    flow: draft?.flow || '',
     persona: draft?.persona || '',
     want: draft?.narrative.iWantTo || '',
     benefit: draft?.narrative.soThat || '',

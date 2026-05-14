@@ -9,7 +9,7 @@ import { PersonaRow } from '../components/builder/PersonaRow';
 import { NarrativeRow } from '../components/builder/NarrativeRow';
 import { DocsList, type DocItem, type ScanResult, type UploadedDocPayload } from '../components/builder/DocsList';
 import { UiChangePreview } from '../components/builder/UiChangePreview';
-import { ScenarioPreview } from '../components/builder/ScenarioPreview';
+import { FlowEditor } from '../components/builder/FlowEditor';
 import { SuggestChat } from '../components/builder/SuggestChat';
 import { AppShell } from '../components/shell/AppShell';
 import { evaluateCompletion } from '../lib/storyCompletion';
@@ -142,6 +142,7 @@ function BuilderPageBody() {
   const [title, setTitle] = useState(draft?.title || '');
   const [background, setBackground] = useState(draft?.background || '');
   const [scenario, setScenario] = useState(draft?.scenario || '');
+  const [flow, setFlow] = useState(draft?.flow || '');
   const [persona, setPersona] = useState(draft?.persona || '');
   const [want, setWant] = useState(draft?.narrative.iWantTo || '');
   const [benefit, setBenefit] = useState(draft?.narrative.soThat || '');
@@ -189,6 +190,7 @@ function BuilderPageBody() {
     title: string;
     background: string;
     scenario: string;
+    flow: string;
     persona: string;
     want: string;
     benefit: string;
@@ -220,6 +222,7 @@ function BuilderPageBody() {
       title,
       background,
       scenario,
+      flow,
       persona,
       narrative: { asA: persona, iWantTo: want, soThat: benefit },
       acceptanceCriteria: criteria.map((c) => ({ id: String(c.id), text: c.text, source: 'manual' as const })),
@@ -235,13 +238,14 @@ function BuilderPageBody() {
         : [],
       completionPct: Math.round((result.filled / result.total) * 100),
     });
-  }, [title, background, scenario, persona, want, benefit, criteria, uiBefore, uiAfter, editId, draftId, updateDraft]);
+  }, [title, background, scenario, flow, persona, want, benefit, criteria, uiBefore, uiAfter, editId, draftId, updateDraft]);
 
-  const setters: Record<string, (v: string) => void> = { title: setTitle, background: setBackground, scenario: setScenario, persona: setPersona, want: setWant, benefit: setBenefit };
+  const setters: Record<string, (v: string) => void> = { title: setTitle, background: setBackground, scenario: setScenario, flow: setFlow, persona: setPersona, want: setWant, benefit: setBenefit };
   const fieldToSection: Record<string, string> = {
     title: 'field-title',
     background: 'field-background',
     scenario: 'field-scenario',
+    flow: 'field-flow',
     persona: 'field-persona',
     want: 'field-persona',
     benefit: 'field-persona',
@@ -379,7 +383,7 @@ function BuilderPageBody() {
   useEffect(() => {
     const criteriaKey = JSON.stringify(criteria.map((c) => c.text));
     if (lastSettledFieldsRef.current === null) {
-      lastSettledFieldsRef.current = { title, background, scenario, persona, want, benefit, criteriaKey };
+      lastSettledFieldsRef.current = { title, background, scenario, flow, persona, want, benefit, criteriaKey };
       return;
     }
     if (fieldEditDebounceRef.current !== null) {
@@ -388,11 +392,12 @@ function BuilderPageBody() {
     fieldEditDebounceRef.current = window.setTimeout(() => {
       const prev = lastSettledFieldsRef.current;
       if (!prev) return;
-      const curr = { title, background, scenario, persona, want, benefit, criteriaKey };
+      const curr = { title, background, scenario, flow, persona, want, benefit, criteriaKey };
       const changed: string[] = [];
       if (prev.title !== curr.title) changed.push('title');
       if (prev.background !== curr.background) changed.push('background');
       if (prev.scenario !== curr.scenario) changed.push('scenario');
+      if (prev.flow !== curr.flow) changed.push('flow');
       if (prev.persona !== curr.persona) changed.push('persona');
       if (prev.want !== curr.want) changed.push('want');
       if (prev.benefit !== curr.benefit) changed.push('benefit');
@@ -412,7 +417,7 @@ function BuilderPageBody() {
         fieldEditDebounceRef.current = null;
       }
     };
-  }, [title, background, scenario, persona, want, benefit, criteria, editId, draftId, updateDraft]);
+  }, [title, background, scenario, flow, persona, want, benefit, criteria, editId, draftId, updateDraft]);
 
   // Clear the "Updated X" status flash after 3 seconds, matching the doc-add flash.
   useEffect(() => {
@@ -520,7 +525,7 @@ function BuilderPageBody() {
           width={coachWidth}
           draftId={editId || draftId}
           storyState={{
-            title, background, scenario, persona, want, benefit, criteria,
+            title, background, scenario, flow, persona, want, benefit, criteria,
             workItemId: draft?.workItemId,
             workItemType: draft?.workItemType,
             workItemState: draft?.workItemState,
@@ -598,7 +603,7 @@ function BuilderPageBody() {
             <Field
               id="field-scenario"
               label="The Scenario"
-              hint="Walk through one realistic end-to-end path. Refer to actors generically (&ldquo;the user&rdquo;, &ldquo;the system&rdquo;). You can include a sequence or flow diagram with a ```mermaid block."
+              hint="Walk through one realistic end-to-end path. Refer to actors generically (&ldquo;the user&rdquo;, &ldquo;the system&rdquo;) — names belong in the Persona, not here."
               filled={fields[2].filled}
               active={activeField === 'scenario'}
               onActivate={() => setActiveField('scenario')}
@@ -609,31 +614,17 @@ function BuilderPageBody() {
                 rows={4}
                 placeholder="e.g. The user opens a declined renewal, clicks Retry, and the system attempts the charge in the next available window…"
               />
-              {scenario.trim() && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    border: `1px solid ${ARK_TOKENS.border}`,
-                    borderRadius: ARK_TOKENS.r2,
-                    padding: 16,
-                    background: ARK_TOKENS.surfaceAlt,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: ARK_TOKENS.type.micro,
-                      color: ARK_TOKENS.inkSubtle,
-                      fontWeight: ARK_TOKENS.weight.semibold,
-                      letterSpacing: 0.3,
-                      marginBottom: 8,
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Preview
-                  </div>
-                  <ScenarioPreview value={scenario} />
-                </div>
-              )}
+            </Field>
+
+            <Field
+              id="field-flow"
+              label="The Flow"
+              hint="Optional. One or more mermaid diagrams illustrating the scenario (sequenceDiagram, flowchart, …). Click the preview to edit the markdown."
+              filled={!!flow.trim()}
+              active={activeField === 'flow'}
+              onActivate={() => setActiveField('flow')}
+            >
+              <FlowEditor value={flow} onChange={setFlow} onActiveFocus={() => setActiveField('flow')} />
             </Field>
 
             <Field

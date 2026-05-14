@@ -43,6 +43,7 @@ export interface StoryDraft {
   title: string;
   background?: string;
   scenario?: string;
+  flow?: string;
   persona: string;
   narrative: {
     asA: string;

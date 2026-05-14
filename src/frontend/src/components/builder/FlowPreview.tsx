@@ -6,10 +6,10 @@ interface Chunk {
   text: string;
 }
 
-// Split a scenario string into ordered prose / mermaid chunks. A mermaid chunk
-// is the body of a fully-closed ```mermaid ... ``` fence. Unclosed fences fall
-// through as prose so the live preview stays calm while the user is typing.
-function parseScenarioChunks(input: string): Chunk[] {
+// Split a string into ordered prose / mermaid chunks. A mermaid chunk is the
+// body of a fully-closed ```mermaid ... ``` fence. Unclosed fences fall through
+// as prose so the live preview stays calm while the user is typing.
+function parseFlowChunks(input: string): Chunk[] {
   const chunks: Chunk[] = [];
   // Opening fence: line starts with ```mermaid (case-insensitive), trailing
   // whitespace OK, must be followed by a newline.
@@ -128,8 +128,8 @@ function MermaidBlock({ code }: { code: string }) {
   );
 }
 
-export function ScenarioPreview({ value }: { value: string }) {
-  const chunks = useMemo(() => parseScenarioChunks(value || ''), [value]);
+export function FlowPreview({ value }: { value: string }) {
+  const chunks = useMemo(() => parseFlowChunks(value || ''), [value]);
   if (chunks.length === 0) return null;
   return (
     <div>

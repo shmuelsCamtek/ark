@@ -3,7 +3,7 @@ import { ARK_TOKENS } from '../../tokens';
 import { Avatar } from '../ui/Avatar';
 import { Ico } from '../ui/icons';
 import { UiChangePreview } from './UiChangePreview';
-import { ScenarioPreview } from './ScenarioPreview';
+import { FlowPreview } from './FlowPreview';
 
 interface Criterion {
   id: string | number;
@@ -21,6 +21,7 @@ interface WorkItemPreviewProps {
   title: string;
   background: string;
   scenario?: string;
+  flow?: string;
   persona: string;
   want: string;
   benefit: string;
@@ -36,7 +37,7 @@ interface WorkItemPreviewProps {
   uiAfterUrl?: string;
 }
 
-export function WorkItemPreview({ title, background, scenario, persona, want, benefit, criteria, docs, showUiChange, compact, workItemState, workItemAssignedTo, workItemType, workItemId, uiBeforeUrl, uiAfterUrl }: WorkItemPreviewProps) {
+export function WorkItemPreview({ title, background, scenario, flow, persona, want, benefit, criteria, docs, showUiChange, compact, workItemState, workItemAssignedTo, workItemType, workItemId, uiBeforeUrl, uiAfterUrl }: WorkItemPreviewProps) {
   return (
     <div style={{ fontSize: ARK_TOKENS.type.body, lineHeight: ARK_TOKENS.leading.normal }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.medium, letterSpacing: 0.3 }}>
@@ -69,7 +70,14 @@ export function WorkItemPreview({ title, background, scenario, persona, want, be
       {scenario?.trim() && (
         <div style={{ marginBottom: 20 }}>
           <SectionLabel>Scenario</SectionLabel>
-          <ScenarioPreview value={scenario} />
+          <p style={{ margin: 0, fontSize: ARK_TOKENS.type.body, lineHeight: 1.6, color: ARK_TOKENS.ink, whiteSpace: 'pre-wrap' }}>{scenario}</p>
+        </div>
+      )}
+
+      {flow?.trim() && (
+        <div style={{ marginBottom: 20 }}>
+          <SectionLabel>Flow</SectionLabel>
+          <FlowPreview value={flow} />
         </div>
       )}
 
