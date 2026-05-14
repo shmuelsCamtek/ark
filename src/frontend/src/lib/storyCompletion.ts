@@ -3,6 +3,7 @@ import type { StoryDraft } from '../types';
 export interface CompletionInput {
   title?: string;
   background?: string;
+  scenario?: string;
   persona?: string;
   narrative?: { iWantTo?: string; soThat?: string };
   acceptanceCriteria?: { id: string | number; text: string }[];
@@ -18,6 +19,7 @@ export interface CompletionResult {
 const SECTION_LABELS = {
   title: 'Title',
   background: 'Background',
+  scenario: 'The Scenario',
   persona: 'Persona',
   want: 'I want',
   benefit: 'So that',
@@ -28,6 +30,7 @@ export function evaluateCompletion(input: CompletionInput): CompletionResult {
   const checks: Array<[keyof typeof SECTION_LABELS, boolean]> = [
     ['title', !!input.title?.trim()],
     ['background', !!input.background?.trim()],
+    ['scenario', !!input.scenario?.trim()],
     ['persona', !!input.persona?.trim()],
     ['want', !!input.narrative?.iWantTo?.trim()],
     ['benefit', !!input.narrative?.soThat?.trim()],
@@ -46,10 +49,11 @@ export function evaluateCompletion(input: CompletionInput): CompletionResult {
 }
 
 export function evaluateDraft(draft: StoryDraft | undefined): CompletionResult {
-  if (!draft) return { complete: false, filled: 0, total: 6, missing: Object.values(SECTION_LABELS) };
+  if (!draft) return { complete: false, filled: 0, total: 7, missing: Object.values(SECTION_LABELS) };
   return evaluateCompletion({
     title: draft.title,
     background: draft.background,
+    scenario: draft.scenario,
     persona: draft.persona,
     narrative: { iWantTo: draft.narrative.iWantTo, soThat: draft.narrative.soThat },
     acceptanceCriteria: draft.acceptanceCriteria,

@@ -1,6 +1,7 @@
 const FIELD_LABELS: Record<string, string> = {
   title: 'Title',
   background: 'Background',
+  scenario: 'The Scenario',
   persona: 'Persona',
   want: 'Desire',
   benefit: 'Benefit',

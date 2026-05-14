@@ -12,6 +12,7 @@ interface SuggestChatProps {
   storyState: {
     title: string;
     background: string;
+    scenario: string;
     persona: string;
     want: string;
     benefit: string;
@@ -63,6 +64,7 @@ function patchStoryState(
   switch (field) {
     case 'title': return { ...s, title: value };
     case 'background': return { ...s, background: value };
+    case 'scenario': return { ...s, scenario: value };
     case 'persona': return { ...s, persona: value };
     case 'want': return { ...s, want: value };
     case 'benefit': return { ...s, benefit: value };
@@ -75,6 +77,7 @@ function patchStoryState(
 function nextEmptyField(s: SuggestChatProps['storyState']): string | null {
   if (!s.background?.trim()) return 'Background';
   if (!s.persona?.trim() || !s.want?.trim() || !s.benefit?.trim()) return 'Narrative (persona, desire, benefit)';
+  if (!s.scenario?.trim()) return 'The Scenario';
   if (!s.title?.trim()) return 'Title';
   if (s.criteria.length === 0) return 'Acceptance Criteria';
   return null;
@@ -84,6 +87,7 @@ function buildDraftContext(storyState: SuggestChatProps['storyState'], activeFie
   const ctx: Record<string, unknown> = {
     title: storyState.title,
     background: storyState.background,
+    scenario: storyState.scenario,
     persona: storyState.persona,
     want: storyState.want,
     benefit: storyState.benefit,

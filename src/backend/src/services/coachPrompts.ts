@@ -20,6 +20,7 @@ interface ContextWorkItemNode {
 interface DraftContext {
   title?: string;
   background?: string;
+  scenario?: string;
   persona?: string;
   want?: string;
   benefit?: string;
@@ -167,6 +168,7 @@ export function buildCoachSystemPrompt(draftContext: DraftContext): string {
   const fields: { key: keyof DraftContext; label: string }[] = [
     { key: 'title', label: 'Title' },
     { key: 'background', label: 'Background' },
+    { key: 'scenario', label: 'The Scenario' },
     { key: 'persona', label: 'Persona' },
     { key: 'want', label: 'Desire (I want to…)' },
     { key: 'benefit', label: 'Benefit (So that…)' },
@@ -203,13 +205,16 @@ export function buildCoachSystemPrompt(draftContext: DraftContext): string {
 ## What "good" looks like
 - **Title**: Action-oriented, concise (5-10 words), starts with a verb or describes the capability
 - **Background**: 2-3 sentences of business context — why this matters now, what problem exists
+- **The Scenario**: A concrete, realistic end-to-end walkthrough referring to actors generically ("the user", "the system", "the team"). Never invent personal names like "Sarah" — those belong in the Persona, not here.
 - **Persona**: Specific role with enough context to understand their perspective (e.g., "Tier-2 billing support specialist" not just "user")
 - **Desire (I want to…)**: One clear, testable capability — not a solution prescription
 - **Benefit (So that…)**: Measurable business outcome tied to the persona's goals
 - **Acceptance Criteria**: Given/When/Then format, covering happy path + key edge cases, each independently testable
 
 ## How to drive this conversation
-Walk the user through filling the four fields in this order: **Background → Narrative (persona / want / benefit) → Title → Acceptance Criteria**.
+Walk the user through filling the fields in this order: **Background → Narrative (persona / want / benefit) → The Scenario → Title → Acceptance Criteria**.
+
+Note: The Scenario is asked **after** the narrative because writing a concrete walkthrough requires persona, desire, and benefit to be stated first. (In the form itself the Scenario field sits visually under Background, but do not prompt for it until the narrative pass is complete.)
 
 For each field:
 - **If empty**: draft a value from the source work item and its discussion / linked items. If you lack information you need to draft well (for example, the persona for the narrative), ask first with a quiz before drafting.
@@ -268,6 +273,14 @@ Consider: Does it tell an engineer what this story is about at a glance?`,
   background: `Background gives 2-3 sentences of business context: why this matters now, what problem exists, who's affected.
 Consider: Would a new team member understand why this story exists just from the background?`,
 
+  scenario: `The Scenario walks through one concrete, realistic end-to-end path.
+
+**Agnostic voice — strict.** Always refer to the actor as **"The user"** (or "the system", "the team", role-based labels like "the billing rep") — **never invent a personal name** like Sarah, John, Alice, etc. Names belong in personas, not scenarios. The scenario should read like a system trace, not a story.
+
+Bad: "Sarah opens a declined renewal and clicks Retry..." / Good: "The user opens a declined renewal, clicks Retry, and the system attempts the charge in the next available window; if it still fails, the case escalates to the dunning team."
+
+Consider: Could a developer or QA visualise exactly what happens, step by step, from this one scenario — without needing to know who 'Sarah' is?`,
+
   persona: `A good persona is a specific role with enough context to understand their perspective.
 Bad: "user" / Good: "Tier-2 billing support specialist handling escalated payment disputes"
 Consider: The persona drives the narrative — a vague persona leads to vague requirements.`,
@@ -301,6 +314,7 @@ export function buildFieldSuggestionPrompt(
   if (draftContext.want) contextParts.push(`Desire: ${draftContext.want}`);
   if (draftContext.benefit) contextParts.push(`Benefit: ${draftContext.benefit}`);
   if (draftContext.background) contextParts.push(`Background: ${draftContext.background}`);
+  if (draftContext.scenario) contextParts.push(`Scenario: ${draftContext.scenario}`);
   if (draftContext.title) contextParts.push(`Title: ${draftContext.title}`);
   if (draftContext.workItemType && draftContext.workItemId) contextParts.push(`Source: ${draftContext.workItemType} #${draftContext.workItemId}`);
   if (draftContext.workItemDescription) contextParts.push(`Work item description: ${stripHtml(draftContext.workItemDescription)}`);

@@ -140,6 +140,7 @@ function BuilderPageBody() {
 
   const [title, setTitle] = useState(draft?.title || '');
   const [background, setBackground] = useState(draft?.background || '');
+  const [scenario, setScenario] = useState(draft?.scenario || '');
   const [persona, setPersona] = useState(draft?.persona || '');
   const [want, setWant] = useState(draft?.narrative.iWantTo || '');
   const [benefit, setBenefit] = useState(draft?.narrative.soThat || '');
@@ -186,6 +187,7 @@ function BuilderPageBody() {
   const lastSettledFieldsRef = useRef<{
     title: string;
     background: string;
+    scenario: string;
     persona: string;
     want: string;
     benefit: string;
@@ -209,13 +211,14 @@ function BuilderPageBody() {
   useEffect(() => {
     const id = editId || draftId;
     const result = evaluateCompletion({
-      title, background, persona,
+      title, background, scenario, persona,
       narrative: { iWantTo: want, soThat: benefit },
       acceptanceCriteria: criteria,
     });
     updateDraft(id, {
       title,
       background,
+      scenario,
       persona,
       narrative: { asA: persona, iWantTo: want, soThat: benefit },
       acceptanceCriteria: criteria.map((c) => ({ id: String(c.id), text: c.text, source: 'manual' as const })),
@@ -231,12 +234,13 @@ function BuilderPageBody() {
         : [],
       completionPct: Math.round((result.filled / result.total) * 100),
     });
-  }, [title, background, persona, want, benefit, criteria, uiBefore, uiAfter, editId, draftId, updateDraft]);
+  }, [title, background, scenario, persona, want, benefit, criteria, uiBefore, uiAfter, editId, draftId, updateDraft]);
 
-  const setters: Record<string, (v: string) => void> = { title: setTitle, background: setBackground, persona: setPersona, want: setWant, benefit: setBenefit };
+  const setters: Record<string, (v: string) => void> = { title: setTitle, background: setBackground, scenario: setScenario, persona: setPersona, want: setWant, benefit: setBenefit };
   const fieldToSection: Record<string, string> = {
     title: 'field-title',
     background: 'field-background',
+    scenario: 'field-scenario',
     persona: 'field-persona',
     want: 'field-persona',
     benefit: 'field-persona',
@@ -374,7 +378,7 @@ function BuilderPageBody() {
   useEffect(() => {
     const criteriaKey = JSON.stringify(criteria.map((c) => c.text));
     if (lastSettledFieldsRef.current === null) {
-      lastSettledFieldsRef.current = { title, background, persona, want, benefit, criteriaKey };
+      lastSettledFieldsRef.current = { title, background, scenario, persona, want, benefit, criteriaKey };
       return;
     }
     if (fieldEditDebounceRef.current !== null) {
@@ -383,10 +387,11 @@ function BuilderPageBody() {
     fieldEditDebounceRef.current = window.setTimeout(() => {
       const prev = lastSettledFieldsRef.current;
       if (!prev) return;
-      const curr = { title, background, persona, want, benefit, criteriaKey };
+      const curr = { title, background, scenario, persona, want, benefit, criteriaKey };
       const changed: string[] = [];
       if (prev.title !== curr.title) changed.push('title');
       if (prev.background !== curr.background) changed.push('background');
+      if (prev.scenario !== curr.scenario) changed.push('scenario');
       if (prev.persona !== curr.persona) changed.push('persona');
       if (prev.want !== curr.want) changed.push('want');
       if (prev.benefit !== curr.benefit) changed.push('benefit');
@@ -406,7 +411,7 @@ function BuilderPageBody() {
         fieldEditDebounceRef.current = null;
       }
     };
-  }, [title, background, persona, want, benefit, criteria, editId, draftId, updateDraft]);
+  }, [title, background, scenario, persona, want, benefit, criteria, editId, draftId, updateDraft]);
 
   // Clear the "Updated X" status flash after 3 seconds, matching the doc-add flash.
   useEffect(() => {
@@ -418,6 +423,7 @@ function BuilderPageBody() {
   const fields = [
     { id: 'title', label: 'Title', filled: !!title },
     { id: 'background', label: 'Background', filled: !!background },
+    { id: 'scenario', label: 'The Scenario', filled: !!scenario },
     { id: 'persona', label: 'Persona', filled: !!persona },
     { id: 'want', label: 'Desire', filled: !!want },
     { id: 'benefit', label: 'Benefit', filled: !!benefit },
@@ -444,7 +450,7 @@ function BuilderPageBody() {
   };
 
   const completionResult = evaluateCompletion({
-    title, background, persona,
+    title, background, scenario, persona,
     narrative: { iWantTo: want, soThat: benefit },
     acceptanceCriteria: criteria,
   });
@@ -513,7 +519,7 @@ function BuilderPageBody() {
           width={coachWidth}
           draftId={editId || draftId}
           storyState={{
-            title, background, persona, want, benefit, criteria,
+            title, background, scenario, persona, want, benefit, criteria,
             workItemId: draft?.workItemId,
             workItemType: draft?.workItemType,
             workItemState: draft?.workItemState,
@@ -589,10 +595,26 @@ function BuilderPageBody() {
             </Field>
 
             <Field
+              id="field-scenario"
+              label="The Scenario"
+              hint="Walk through one realistic end-to-end path. Refer to actors generically (&ldquo;the user&rdquo;, &ldquo;the system&rdquo;) — names belong in the Persona, not here."
+              filled={fields[2].filled}
+              active={activeField === 'scenario'}
+              onActivate={() => setActiveField('scenario')}
+            >
+              <TextArea
+                value={scenario}
+                onChange={setScenario}
+                rows={4}
+                placeholder="e.g. The user opens a declined renewal, clicks Retry, and the system attempts the charge in the next available window…"
+              />
+            </Field>
+
+            <Field
               id="field-persona"
               label="As-a, I-want, So-that"
               hint="Persona, desire, and benefit — what developers use to sanity-check tradeoffs."
-              filled={fields[2].filled && fields[3].filled && fields[4].filled}
+              filled={fields[3].filled && fields[4].filled && fields[5].filled}
               active={['persona', 'want', 'benefit'].includes(activeField)}
               onActivate={() => setActiveField('persona')}
             >
@@ -645,7 +667,7 @@ function BuilderPageBody() {
               id="field-criteria"
               label="Acceptance criteria"
               hint="Use Given / When / Then. Each criterion should be pass/fail testable."
-              filled={fields[5].filled}
+              filled={fields[6].filled}
               active={activeField === 'criteria'}
               onActivate={() => setActiveField('criteria')}
             >
