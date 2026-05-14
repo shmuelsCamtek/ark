@@ -74,6 +74,11 @@ function patchStoryState(
   }
 }
 
+function hasMermaidBlock(s: string | undefined): boolean {
+  if (!s) return false;
+  return /(?:^|\n)```mermaid[ \t]*\r?\n[\s\S]*?\n```[ \t]*(?:\r?\n|$)/i.test(s);
+}
+
 function nextEmptyField(s: SuggestChatProps['storyState']): string | null {
   if (!s.background?.trim()) return 'Background';
   if (!s.persona?.trim() || !s.want?.trim() || !s.benefit?.trim()) return 'Narrative (persona, desire, benefit)';
@@ -285,9 +290,14 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     const patched = patchStoryState(storyState, field, text);
     const truncated = text.length > 120 ? text.slice(0, 117) + '…' : text;
     const next = nextEmptyField(patched);
-    const tail = next
-      ? `Now help me with **${next}** — the next empty field. Ask me a clarifying question (quiz) or draft a value.`
-      : `All four fields are filled now. Ask me via quiz whether I want to refine any of them or add more acceptance criteria.`;
+    let tail: string;
+    if (field === 'scenario' && !hasMermaidBlock(patched.scenario)) {
+      tail = `Now offer me sequence/flow diagrams for the scenario — a single \`suggestions\` block with field='scenario' containing exactly two options: (1) my prose + a \`\`\`mermaid sequenceDiagram, (2) my prose + a \`\`\`mermaid flowchart or graph. Each option's text is the full replacement value (prose + a blank line + the fenced mermaid block). If a diagram genuinely wouldn't help, say so briefly and move on to Title instead.`;
+    } else {
+      tail = next
+        ? `Now help me with **${next}** — the next empty field. Ask me a clarifying question (quiz) or draft a value.`
+        : `All four fields are filled now. Ask me via quiz whether I want to refine any of them or add more acceptance criteria.`;
+    }
     const signal: CoachMessage = {
       id: `apply-${Date.now()}`,
       type: 'user',
@@ -350,9 +360,14 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     const patched = patchStoryState(storyState, field, text);
     const truncated = text.length > 120 ? text.slice(0, 117) + '…' : text;
     const next = nextEmptyField(patched);
-    const tail = next
-      ? `Now help me with **${next}** — the next empty field. Ask me a clarifying question (quiz) or draft a value.`
-      : `All four fields are filled now. Ask me via quiz whether I want to refine any of them or add more acceptance criteria.`;
+    let tail: string;
+    if (field === 'scenario' && !hasMermaidBlock(patched.scenario)) {
+      tail = `Now offer me sequence/flow diagrams for the scenario — a single \`suggestions\` block with field='scenario' containing exactly two options: (1) my prose + a \`\`\`mermaid sequenceDiagram, (2) my prose + a \`\`\`mermaid flowchart or graph. Each option's text is the full replacement value (prose + a blank line + the fenced mermaid block). If a diagram genuinely wouldn't help, say so briefly and move on to Title instead.`;
+    } else {
+      tail = next
+        ? `Now help me with **${next}** — the next empty field. Ask me a clarifying question (quiz) or draft a value.`
+        : `All four fields are filled now. Ask me via quiz whether I want to refine any of them or add more acceptance criteria.`;
+    }
     const signal: CoachMessage = {
       id: `apply-custom-${Date.now()}`,
       type: 'user',
