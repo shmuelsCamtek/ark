@@ -9,6 +9,7 @@ import { PersonaRow } from '../components/builder/PersonaRow';
 import { NarrativeRow } from '../components/builder/NarrativeRow';
 import { DocsList, type DocItem, type ScanResult, type UploadedDocPayload } from '../components/builder/DocsList';
 import { UiChangePreview } from '../components/builder/UiChangePreview';
+import { ScenarioPreview } from '../components/builder/ScenarioPreview';
 import { SuggestChat } from '../components/builder/SuggestChat';
 import { AppShell } from '../components/shell/AppShell';
 import { evaluateCompletion } from '../lib/storyCompletion';
@@ -597,7 +598,7 @@ function BuilderPageBody() {
             <Field
               id="field-scenario"
               label="The Scenario"
-              hint="Walk through one realistic end-to-end path. Refer to actors generically (&ldquo;the user&rdquo;, &ldquo;the system&rdquo;) — names belong in the Persona, not here."
+              hint="Walk through one realistic end-to-end path. Refer to actors generically (&ldquo;the user&rdquo;, &ldquo;the system&rdquo;). You can include a sequence or flow diagram with a ```mermaid block."
               filled={fields[2].filled}
               active={activeField === 'scenario'}
               onActivate={() => setActiveField('scenario')}
@@ -608,6 +609,31 @@ function BuilderPageBody() {
                 rows={4}
                 placeholder="e.g. The user opens a declined renewal, clicks Retry, and the system attempts the charge in the next available window…"
               />
+              {scenario.trim() && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    border: `1px solid ${ARK_TOKENS.border}`,
+                    borderRadius: ARK_TOKENS.r2,
+                    padding: 16,
+                    background: ARK_TOKENS.surfaceAlt,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: ARK_TOKENS.type.micro,
+                      color: ARK_TOKENS.inkSubtle,
+                      fontWeight: ARK_TOKENS.weight.semibold,
+                      letterSpacing: 0.3,
+                      marginBottom: 8,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Preview
+                  </div>
+                  <ScenarioPreview value={scenario} />
+                </div>
+              )}
             </Field>
 
             <Field

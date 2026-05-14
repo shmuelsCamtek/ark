@@ -29,6 +29,7 @@ export function PushPage() {
   const storyData = {
     title: storyTitle,
     background: draft?.background || '',
+    scenario: draft?.scenario || '',
     persona: draft?.persona || '',
     want: draft?.narrative.iWantTo || '',
     benefit: draft?.narrative.soThat || '',
