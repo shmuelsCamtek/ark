@@ -1,3 +1,4 @@
+- [ ] fix: if user story updated, chat context should be updated.
 - [ ] **[[High]]** onwer must apporve under "Approve by: "
     - [ ] Must for complition.
 - [ ] options to add notes
@@ -16,7 +17,7 @@
 - [ ] consider using larger gearwheel.
 - [ ] verify auto complete is the same as in Azure
   - [ ] filter all not "Clarity Feature"
-- [ ] fix: right top button Push to Azure in Edit page, name is wrong.
+- [x] fix: right top button Push to Azure in Edit page, name is wrong.
 - [x] edit page, make two section ajustable.
 - [x] when pulish to azure, should save revision.
 - [ ] Anotation tool, revert to original.
@@ -26,10 +27,12 @@
 - [x] Swap chat and user story
 - [x] change nerative to: "As-a, I-want, So-that"
   - [x] "I want to" => "I want"
-- [ ] multi selection selction is not noticable.
+- [x] multi selection selction is not noticable.
 - [ ] Add new section "The scenario", open text (user input with claude audeting).
 - [ ] date and time preview page
 - [ ] fix: darg and drop.
+- [ ] fix: when resuming to workitem:
+  - [ ]  the selected items in chect are not selected (applied).
 
 ## Sidebar
 - [x] sidebar, ![alt text](image.png)
