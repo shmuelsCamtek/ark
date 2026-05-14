@@ -1,4 +1,4 @@
-- [ ] fix: if user story updated, chat context should be updated.
+- [x] fix: if user story updated, chat context should be updated.
 - [ ] **[[High]]** onwer must apporve under "Approve by: "
     - [ ] Must for complition.
 - [ ] options to add notes
@@ -48,6 +48,10 @@
 
 
 ## Plans:
+
+```
+/plan the scenario should support mermaid charts ?  
+```
 
 1. Coach context:
 
