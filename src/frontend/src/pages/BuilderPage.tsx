@@ -13,7 +13,8 @@ import { SuggestChat } from '../components/builder/SuggestChat';
 import { AppShell } from '../components/shell/AppShell';
 import { evaluateCompletion } from '../lib/storyCompletion';
 import { scanUploadedDoc, scanAzureAttachment, type ScanResultPayload } from '../services/scan';
-import { appendContextEntry } from '../lib/contextLog';
+import { appendContextEntry, appendOrReplaceFieldEditEntry } from '../lib/contextLog';
+import { fieldLabel } from '../lib/fieldLabels';
 import type { SupportingDoc } from '../types';
 
 function docKindToSupportingType(kind: DocItem['kind']): SupportingDoc['type'] {
@@ -175,10 +176,22 @@ function BuilderPageBody() {
   const [uiBefore, setUiBefore] = useState<string | undefined>(draft?.uiChanges?.[0]?.beforeUrl);
   const [uiAfter, setUiAfter] = useState<string | undefined>(draft?.uiChanges?.[0]?.afterUrl);
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
+  const [recentFieldEdit, setRecentFieldEdit] = useState<string | null>(null);
   const [coachWidth, setCoachWidth] = useState<number>(() => readPersistedCoachWidth());
   const autoScanFiredRef = useRef(false);
   const pendingScanIdsRef = useRef<Set<string>>(new Set());
   const prevScanCountRef = useRef(0);
+  // Snapshot of field values as of the last fired field-edit detection. The
+  // initial run only seeds this ref; it does not log anything.
+  const lastSettledFieldsRef = useRef<{
+    title: string;
+    background: string;
+    persona: string;
+    want: string;
+    benefit: string;
+    criteriaKey: string;
+  } | null>(null);
+  const fieldEditDebounceRef = useRef<number | null>(null);
 
   // Persist coach width (debounced) so dragging doesn't spam localStorage.
   useEffect(() => {
@@ -354,6 +367,54 @@ function BuilderPageBody() {
     }
   }, [scanResults]);
 
+  // Debounced field-edit detector. After ~600 ms of no further changes, diff
+  // current values against the last settled snapshot, log one entry per
+  // changed field, and flash the coach status with the most-recently-edited
+  // field label. First run seeds the snapshot and does nothing else.
+  useEffect(() => {
+    const criteriaKey = JSON.stringify(criteria.map((c) => c.text));
+    if (lastSettledFieldsRef.current === null) {
+      lastSettledFieldsRef.current = { title, background, persona, want, benefit, criteriaKey };
+      return;
+    }
+    if (fieldEditDebounceRef.current !== null) {
+      window.clearTimeout(fieldEditDebounceRef.current);
+    }
+    fieldEditDebounceRef.current = window.setTimeout(() => {
+      const prev = lastSettledFieldsRef.current;
+      if (!prev) return;
+      const curr = { title, background, persona, want, benefit, criteriaKey };
+      const changed: string[] = [];
+      if (prev.title !== curr.title) changed.push('title');
+      if (prev.background !== curr.background) changed.push('background');
+      if (prev.persona !== curr.persona) changed.push('persona');
+      if (prev.want !== curr.want) changed.push('want');
+      if (prev.benefit !== curr.benefit) changed.push('benefit');
+      if (prev.criteriaKey !== curr.criteriaKey) changed.push('criteria');
+      lastSettledFieldsRef.current = curr;
+      if (changed.length === 0) return;
+      const id = editId || draftId;
+      for (const f of changed) {
+        appendOrReplaceFieldEditEntry(updateDraft, id, f, `Updated ${fieldLabel(f)}`);
+      }
+      const last = changed[changed.length - 1];
+      setRecentFieldEdit(fieldLabel(last));
+    }, 600);
+    return () => {
+      if (fieldEditDebounceRef.current !== null) {
+        window.clearTimeout(fieldEditDebounceRef.current);
+        fieldEditDebounceRef.current = null;
+      }
+    };
+  }, [title, background, persona, want, benefit, criteria, editId, draftId, updateDraft]);
+
+  // Clear the "Updated X" status flash after 3 seconds, matching the doc-add flash.
+  useEffect(() => {
+    if (!recentFieldEdit) return;
+    const t = setTimeout(() => setRecentFieldEdit(null), 3000);
+    return () => clearTimeout(t);
+  }, [recentFieldEdit]);
+
   const fields = [
     { id: 'title', label: 'Title', filled: !!title },
     { id: 'background', label: 'Background', filled: !!background },
@@ -485,6 +546,7 @@ function BuilderPageBody() {
           attachmentsReady={attachmentsReady}
           scanningDocNames={scanningDocNames}
           recentlyAddedDocName={recentlyAdded}
+          recentFieldEditLabel={recentFieldEdit}
         />
         <Splitter onDrag={(dx) => setCoachWidth((w) => clampCoachWidth(w + dx))} />
 

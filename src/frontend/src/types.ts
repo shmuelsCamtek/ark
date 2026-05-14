@@ -28,7 +28,7 @@ export interface UiChange {
   afterUrl?: string;
 }
 
-export type ContextLogKind = 'doc' | 'workItem' | 'linkedWorkItem' | 'uiBefore' | 'uiAfter';
+export type ContextLogKind = 'doc' | 'workItem' | 'linkedWorkItem' | 'uiBefore' | 'uiAfter' | 'fieldEdit';
 
 export interface ContextLogEntry {
   id: string;

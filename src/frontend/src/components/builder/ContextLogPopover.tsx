@@ -14,11 +14,13 @@ const KIND_LABEL: Record<ContextLogKind, string> = {
   linkedWorkItem: 'Linked work item',
   uiBefore: 'Before screenshot',
   uiAfter: 'After screenshot',
+  fieldEdit: 'Field edit',
 };
 
 function KindIcon({ kind }: { kind: ContextLogKind }) {
   if (kind === 'doc') return <Ico.file size={12} />;
   if (kind === 'workItem' || kind === 'linkedWorkItem') return <Ico.link size={12} />;
+  if (kind === 'fieldEdit') return <Ico.edit size={12} />;
   return <Ico.image size={12} />;
 }
 
@@ -29,6 +31,7 @@ function kindColor(kind: ContextLogKind): string {
     case 'linkedWorkItem': return ARK_TOKENS.azureDark;
     case 'uiBefore':
     case 'uiAfter': return ARK_TOKENS.markerRed;
+    case 'fieldEdit': return ARK_TOKENS.success;
   }
 }
 

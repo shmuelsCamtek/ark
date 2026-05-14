@@ -41,3 +41,29 @@ export function buildContextEntry(
     summary: entry.summary,
   };
 }
+
+// One fieldEdit entry per logical field. Subsequent edits to the same field
+// replace the prior entry (deterministic id: `field:<key>`) and bump its
+// `addedAt`, so the popover stays compact rather than accumulating one row per
+// keystroke burst.
+export function appendOrReplaceFieldEditEntry(
+  updateDraft: DraftUpdater,
+  draftId: string,
+  fieldKey: string,
+  label: string,
+  summary?: string,
+): void {
+  const entryId = `field:${fieldKey}`;
+  updateDraft(draftId, (current) => {
+    const log = current.contextLog ?? [];
+    const filtered = log.filter((e) => e.id !== entryId);
+    const next: ContextLogEntry = {
+      id: entryId,
+      kind: 'fieldEdit',
+      label,
+      summary,
+      addedAt: new Date().toISOString(),
+    };
+    return { contextLog: [...filtered, next] };
+  });
+}

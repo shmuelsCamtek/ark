@@ -4,6 +4,7 @@ import { Ico } from '../ui/icons';
 import { Badge } from '../ui/Badge';
 import { useServices } from '../../context/ServicesContext';
 import { ContextLogPopover } from './ContextLogPopover';
+import { fieldLabel } from '../../lib/fieldLabels';
 import type { CoachMessage, ContextLogEntry, SuggestMessage, WorkItemComment, WorkItemInfo } from '../../types';
 
 interface SuggestChatProps {
@@ -43,6 +44,7 @@ interface SuggestChatProps {
   attachmentsReady?: boolean;
   scanningDocNames?: string[];
   recentlyAddedDocName?: string | null;
+  recentFieldEditLabel?: string | null;
   contextLog?: ContextLogEntry[];
   width?: number;
 }
@@ -52,18 +54,6 @@ const QUICK_CHIPS = [
   'Suggest Narrative',
   'Suggest more ACs',
 ];
-
-function fieldLabel(f: string): string {
-  const labels: Record<string, string> = {
-    title: 'Title',
-    background: 'Background',
-    persona: 'Persona',
-    want: 'Desire',
-    benefit: 'Benefit',
-    criteria: 'Acceptance criteria',
-  };
-  return labels[f] || f;
-}
 
 function patchStoryState(
   s: SuggestChatProps['storyState'],
@@ -186,7 +176,7 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
   return { role: 'ai', text: coach.text };
 }
 
-export function SuggestChat({ draftId, storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null, contextLog = [], width }: SuggestChatProps) {
+export function SuggestChat({ draftId, storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null, recentFieldEditLabel = null, contextLog = [], width }: SuggestChatProps) {
   const { ai, drafts: draftsApi } = useServices();
   const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
@@ -470,7 +460,7 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
   }
   const activeQuiz = activeQuizIdx >= 0 ? messages[activeQuizIdx] : null;
 
-  type StatusKind = 'idle' | 'thinking' | 'scanning' | 'added';
+  type StatusKind = 'idle' | 'thinking' | 'scanning' | 'updated' | 'added';
   let coachStatusKind: StatusKind = 'idle';
   let coachStatus = 'Idle';
   if (typing) {
@@ -481,6 +471,9 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     const first = scanningDocNames[0];
     const rest = scanningDocNames.length - 1;
     coachStatus = rest > 0 ? `Scanning ${first} (+${rest})…` : `Scanning ${first}…`;
+  } else if (recentFieldEditLabel) {
+    coachStatusKind = 'updated';
+    coachStatus = `Updated ${recentFieldEditLabel} in context`;
   } else if (recentlyAddedDocName) {
     coachStatusKind = 'added';
     coachStatus = `Added ${recentlyAddedDocName} to context`;
@@ -489,6 +482,7 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     idle: ARK_TOKENS.inkSubtle,
     thinking: ARK_TOKENS.azure,
     scanning: ARK_TOKENS.warning,
+    updated: ARK_TOKENS.success,
     added: ARK_TOKENS.success,
   };
 
