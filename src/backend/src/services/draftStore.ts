@@ -25,6 +25,7 @@ export interface ChatMessage {
   quizAnswered?: boolean;
   quizAnswer?: string;
   bundleResolved?: boolean;
+  appliedOptionIndices?: number[];
 }
 
 function ensureDirs(): void {

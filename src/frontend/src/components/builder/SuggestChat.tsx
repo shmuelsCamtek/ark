@@ -193,7 +193,6 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
   const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
-  const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set());
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [chatLoaded, setChatLoaded] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
@@ -274,16 +273,21 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
 
   const handleApply = (msgIdx: number, optIdx: number, field: string, text: string) => {
     onApply(field, text);
-    const key = `${msgIdx}-${optIdx}`;
-    setUsedSuggestions((prev) => new Set(prev).add(key));
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: 'ai',
-        kind: 'ack',
-        text: field === 'criteria' ? 'Added.' : `Applied to ${fieldLabel(field)}.`,
-      },
-    ]);
+    setMessages((prev) => {
+      const next = prev.map((m, i) => {
+        if (i !== msgIdx) return m;
+        const cur = m.appliedOptionIndices ?? [];
+        return cur.includes(optIdx) ? m : { ...m, appliedOptionIndices: [...cur, optIdx] };
+      });
+      return [
+        ...next,
+        {
+          role: 'ai',
+          kind: 'ack',
+          text: field === 'criteria' ? 'Added.' : `Applied to ${fieldLabel(field)}.`,
+        },
+      ];
+    });
 
     // Skip the follow-up call if one is already in flight (e.g. user rapid-clicks
     // multiple criteria chips). The coach will pick up state when the pending call
@@ -570,7 +574,6 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
             msg={m}
             msgIdx={i}
             onApply={handleApply}
-            usedSuggestions={usedSuggestions}
             onIgnore={handleIgnoreSuggestion}
             onApplyCustom={handleApplyCustom}
           />
@@ -835,14 +838,12 @@ function SuggestMsg({
   msg,
   msgIdx,
   onApply,
-  usedSuggestions,
   onIgnore,
   onApplyCustom,
 }: {
   msg: SuggestMessage;
   msgIdx: number;
   onApply: (msgIdx: number, optIdx: number, field: string, text: string) => void;
-  usedSuggestions: Set<string>;
   onIgnore: (msgIdx: number, field: string) => void;
   onApplyCustom: (msgIdx: number, field: string, text: string) => void;
 }) {
@@ -894,7 +895,7 @@ function SuggestMsg({
         {(msg.kind === 'suggestions' || msg.kind === 'criteria-bundle') && msg.options && !(msg.kind === 'suggestions' && msg.bundleResolved) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {msg.options.map((opt, i) => {
-              const used = usedSuggestions.has(`${msgIdx}-${i}`);
+              const used = (msg.appliedOptionIndices ?? []).includes(i);
               const targetField = msg.kind === 'criteria-bundle' ? 'criteria' : msg.field!;
               return (
                 <button

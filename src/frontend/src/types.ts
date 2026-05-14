@@ -84,6 +84,7 @@ export interface SuggestMessage {
   quizAnswered?: boolean;
   quizAnswer?: string;
   bundleResolved?: boolean;
+  appliedOptionIndices?: number[];
 }
 
 export interface CoachMessage {
