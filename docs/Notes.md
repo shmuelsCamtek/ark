@@ -1,3 +1,5 @@
+## TODOs
+
 - [x] fix: if user story updated, chat context should be updated.
 - [ ] **[[High]]** onwer must apporve under "Approve by: "
     - [ ] Must for complition.
@@ -28,11 +30,11 @@
 - [x] change nerative to: "As-a, I-want, So-that"
   - [x] "I want to" => "I want"
 - [x] multi selection selction is not noticable.
-- [ ] Add new section "The scenario", open text (user input with claude audeting).
+- [x] Add new section "The scenario", open text (user input with claude audeting).
 - [ ] date and time preview page
 - [ ] fix: darg and drop.
-- [ ] fix: when resuming to workitem:
-  - [ ]  the selected items in chect are not selected (applied).
+- [x] fix: when resuming to workitem:
+  - [x]  the selected items in chect are not selected (applied).
 
 ## Sidebar
 - [x] sidebar, ![alt text](image.png)
@@ -49,14 +51,10 @@
 
 ## Plans:
 
-```
-/plan the scenario should support mermaid charts ?  
-```
-
 1. Coach context:
 
 ```text
 /plan I want to create log of Items added to context:
   1. the log should be shown if the user click on the gearwheel on coach title.
-  2. when the user return to edit user story, the old context should be loaded. 
+  2. when the user return to edit user story, the old context should be loaded.
 ```
