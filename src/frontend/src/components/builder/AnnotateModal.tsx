@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ARK_TOKENS } from '../../tokens';
 import { Btn, Ico, Modal } from '../ui';
 
@@ -6,8 +7,10 @@ type Tool = 'rect' | 'free' | 'text';
 
 interface RectStroke { tool: 'rect'; x: number; y: number; w: number; h: number }
 interface FreeStroke { tool: 'free'; points: { x: number; y: number }[] }
-interface TextStroke { tool: 'text'; x: number; y: number; text: string }
+interface TextStroke { tool: 'text'; x: number; y: number; size: number; text: string }
 type Stroke = RectStroke | FreeStroke | TextStroke;
+
+type TextPrompt = { x: number; y: number; width: number; height: number; value: string };
 
 interface AnnotateModalProps {
   image: string;
@@ -17,7 +20,43 @@ interface AnnotateModalProps {
 
 const STROKE_COLOR = ARK_TOKENS.markerRed;
 const STROKE_WIDTH = 3;
-const TEXT_FONT = '20px system-ui, sans-serif';
+const MIN_BOX_WIDTH = 80;
+const MIN_BOX_HEIGHT = 30;
+
+function drawAll(canvas: HTMLCanvasElement, img: HTMLImageElement, strokes: Stroke[]) {
+  canvas.width = img.naturalWidth || 800;
+  canvas.height = img.naturalHeight || 600;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.drawImage(img, 0, 0);
+  ctx.strokeStyle = STROKE_COLOR;
+  ctx.fillStyle = STROKE_COLOR;
+  ctx.lineWidth = STROKE_WIDTH;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const s of strokes) {
+    if (s.tool === 'rect') {
+      ctx.strokeRect(s.x, s.y, s.w, s.h);
+    } else if (s.tool === 'free') {
+      if (s.points.length < 2) continue;
+      ctx.beginPath();
+      ctx.moveTo(s.points[0].x, s.points[0].y);
+      for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+      ctx.stroke();
+    } else if (s.tool === 'text') {
+      ctx.font = `700 ${s.size}px system-ui, sans-serif`;
+      ctx.textBaseline = 'top';
+      ctx.lineWidth = Math.max(3, Math.round(s.size * 0.18));
+      ctx.strokeStyle = '#fff';
+      ctx.strokeText(s.text, s.x, s.y);
+      ctx.fillStyle = STROKE_COLOR;
+      ctx.fillText(s.text, s.x, s.y);
+      // Restore stroke style for any subsequent rect/free strokes
+      ctx.strokeStyle = STROKE_COLOR;
+      ctx.lineWidth = STROKE_WIDTH;
+    }
+  }
+}
 
 export function AnnotateModal({ image, onSave, onClose }: AnnotateModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -25,7 +64,7 @@ export function AnnotateModal({ image, onSave, onClose }: AnnotateModalProps) {
   const [tool, setTool] = useState<Tool>('rect');
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [drafting, setDrafting] = useState<Stroke | null>(null);
-  const [textPrompt, setTextPrompt] = useState<{ x: number; y: number; value: string } | null>(null);
+  const [textPrompt, setTextPrompt] = useState<TextPrompt | null>(null);
   const [imgReady, setImgReady] = useState(false);
 
   // Load image
@@ -42,31 +81,7 @@ export function AnnotateModal({ image, onSave, onClose }: AnnotateModalProps) {
     const canvas = canvasRef.current;
     const img = imgRef.current;
     if (!canvas || !img || !imgReady) return;
-    canvas.width = img.naturalWidth || 800;
-    canvas.height = img.naturalHeight || 600;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(img, 0, 0);
-    ctx.strokeStyle = STROKE_COLOR;
-    ctx.fillStyle = STROKE_COLOR;
-    ctx.lineWidth = STROKE_WIDTH;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    const all = drafting ? [...strokes, drafting] : strokes;
-    for (const s of all) {
-      if (s.tool === 'rect') {
-        ctx.strokeRect(s.x, s.y, s.w, s.h);
-      } else if (s.tool === 'free') {
-        if (s.points.length < 2) continue;
-        ctx.beginPath();
-        ctx.moveTo(s.points[0].x, s.points[0].y);
-        for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
-        ctx.stroke();
-      } else if (s.tool === 'text') {
-        ctx.font = TEXT_FONT;
-        ctx.fillText(s.text, s.x, s.y);
-      }
-    }
+    drawAll(canvas, img, drafting ? [...strokes, drafting] : strokes);
   }, [strokes, drafting, imgReady]);
 
   // Map a pointer event to image-space coordinates
@@ -82,7 +97,12 @@ export function AnnotateModal({ image, onSave, onClose }: AnnotateModalProps) {
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const { x, y } = eventToCanvas(e);
     if (tool === 'text') {
-      setTextPrompt({ x, y, value: '' });
+      if (textPrompt) return; // an existing prompt is already open; require OK/Cancel first
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const defaultWidth = Math.max(160, canvas.width * 0.18);
+      const defaultHeight = Math.max(MIN_BOX_HEIGHT, canvas.height * 0.07);
+      setTextPrompt({ x, y, width: defaultWidth, height: defaultHeight, value: '' });
       return;
     }
     (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
@@ -112,14 +132,32 @@ export function AnnotateModal({ image, onSave, onClose }: AnnotateModalProps) {
   const commitText = () => {
     if (!textPrompt) return;
     if (textPrompt.value.trim()) {
-      setStrokes((prev) => [...prev, { tool: 'text', x: textPrompt.x, y: textPrompt.y, text: textPrompt.value }]);
+      setStrokes((prev) => [...prev, {
+        tool: 'text',
+        x: textPrompt.x,
+        y: textPrompt.y,
+        size: textPrompt.height,
+        text: textPrompt.value,
+      }]);
     }
     setTextPrompt(null);
   };
 
   const handleSave = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const img = imgRef.current;
+    if (!canvas || !img) return;
+    const pendingText: Stroke[] =
+      textPrompt && textPrompt.value.trim()
+        ? [{
+            tool: 'text',
+            x: textPrompt.x,
+            y: textPrompt.y,
+            size: textPrompt.height,
+            text: textPrompt.value,
+          }]
+        : [];
+    drawAll(canvas, img, [...strokes, ...pendingText]);
     onSave(canvas.toDataURL('image/png'));
     onClose();
   };
@@ -168,6 +206,8 @@ export function AnnotateModal({ image, onSave, onClose }: AnnotateModalProps) {
             prompt={textPrompt}
             canvasRef={canvasRef}
             onChange={(v) => setTextPrompt({ ...textPrompt, value: v })}
+            onMove={(x, y) => setTextPrompt({ ...textPrompt, x, y })}
+            onResize={(width, height) => setTextPrompt({ ...textPrompt, width, height })}
             onCommit={commitText}
             onCancel={() => setTextPrompt(null)}
           />
@@ -197,42 +237,172 @@ function ToolBtn({ active, onClick, label }: { active: boolean; onClick: () => v
 }
 
 interface TextPromptOverlayProps {
-  prompt: { x: number; y: number; value: string };
+  prompt: TextPrompt;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   onChange: (v: string) => void;
+  onMove: (x: number, y: number) => void;
+  onResize: (width: number, height: number) => void;
   onCommit: () => void;
   onCancel: () => void;
 }
 
-function TextPromptOverlay({ prompt, canvasRef, onChange, onCommit, onCancel }: TextPromptOverlayProps) {
+function TextPromptOverlay({
+  prompt, canvasRef, onChange, onMove, onResize, onCommit, onCancel,
+}: TextPromptOverlayProps) {
   const canvas = canvasRef.current;
   if (!canvas) return null;
   const rect = canvas.getBoundingClientRect();
-  const parentRect = (canvas.parentElement as HTMLElement).getBoundingClientRect();
   const scale = rect.width / canvas.width;
-  const left = (prompt.x * scale) + (rect.left - parentRect.left);
-  const top = (prompt.y * scale) + (rect.top - parentRect.top) - 22;
 
-  return (
-    <input
-      autoFocus
-      value={prompt.value}
-      onChange={(e) => onChange(e.target.value)}
-      onBlur={onCommit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') { e.preventDefault(); onCommit(); }
-        if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
-      }}
+  const boxLeft = rect.left + prompt.x * scale;
+  const boxTop = rect.top + prompt.y * scale;
+  const boxWidth = prompt.width * scale;
+  const boxHeight = prompt.height * scale;
+  // Match what the canvas will render after commit.
+  const fontSize = boxHeight;
+
+  const startDrag = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startCX = e.clientX;
+    const startCY = e.clientY;
+    const startX = prompt.x;
+    const startY = prompt.y;
+    const onMoveEv = (ev: PointerEvent) => {
+      const dx = (ev.clientX - startCX) / scale;
+      const dy = (ev.clientY - startCY) / scale;
+      onMove(startX + dx, startY + dy);
+    };
+    const onUpEv = () => {
+      window.removeEventListener('pointermove', onMoveEv);
+      window.removeEventListener('pointerup', onUpEv);
+    };
+    window.addEventListener('pointermove', onMoveEv);
+    window.addEventListener('pointerup', onUpEv);
+  };
+
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startCX = e.clientX;
+    const startCY = e.clientY;
+    const startW = prompt.width;
+    const startH = prompt.height;
+    const onMoveEv = (ev: PointerEvent) => {
+      const dw = (ev.clientX - startCX) / scale;
+      const dh = (ev.clientY - startCY) / scale;
+      onResize(
+        Math.max(MIN_BOX_WIDTH, startW + dw),
+        Math.max(MIN_BOX_HEIGHT, startH + dh),
+      );
+    };
+    const onUpEv = () => {
+      window.removeEventListener('pointermove', onMoveEv);
+      window.removeEventListener('pointerup', onUpEv);
+    };
+    window.addEventListener('pointermove', onMoveEv);
+    window.addEventListener('pointerup', onUpEv);
+  };
+
+  return createPortal(
+    <div
       style={{
-        position: 'absolute', left, top,
-        padding: '2px 6px',
-        border: `1px solid ${ARK_TOKENS.markerRed}`,
-        background: ARK_TOKENS.surface,
-        color: ARK_TOKENS.markerRed,
-        borderRadius: 4, fontSize: ARK_TOKENS.type.body, fontFamily: 'inherit',
-        outline: 'none', minWidth: 100,
+        position: 'fixed',
+        left: boxLeft,
+        top: boxTop,
+        width: boxWidth,
+        height: boxHeight,
+        zIndex: 2147483647,
       }}
-      placeholder="Type and press Enter"
-    />
+    >
+      {/* Translucent box with dashed border (visual only) */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(255,255,255,0.08)',
+          border: `2px dashed ${ARK_TOKENS.markerRed}`,
+          boxSizing: 'border-box',
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Text input fills the box */}
+      <input
+        autoFocus
+        value={prompt.value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); onCommit(); }
+          if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+        }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          padding: '0 6px',
+          border: 'none',
+          background: 'transparent',
+          color: ARK_TOKENS.markerRed,
+          fontSize,
+          fontWeight: 700,
+          fontFamily: 'system-ui, sans-serif',
+          lineHeight: 1,
+          outline: 'none',
+          boxSizing: 'border-box',
+        }}
+        placeholder="Type..."
+      />
+
+      {/* Drag handle (top-left, sticks out) */}
+      <div
+        title="Drag to move"
+        onPointerDown={startDrag}
+        style={{
+          position: 'absolute',
+          left: -10,
+          top: -10,
+          width: 18,
+          height: 18,
+          background: ARK_TOKENS.markerRed,
+          border: '2px solid #fff',
+          borderRadius: 3,
+          cursor: 'move',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        }}
+      />
+
+      {/* Resize handle (bottom-right, sticks out) */}
+      <div
+        title="Drag to resize"
+        onPointerDown={startResize}
+        style={{
+          position: 'absolute',
+          right: -10,
+          bottom: -10,
+          width: 18,
+          height: 18,
+          background: ARK_TOKENS.markerRed,
+          border: '2px solid #fff',
+          borderRadius: 3,
+          cursor: 'nwse-resize',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        }}
+      />
+
+      {/* OK / Cancel toolbar below the box */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 'calc(100% + 12px)',
+          right: 0,
+          display: 'flex',
+          gap: 6,
+        }}
+      >
+        <Btn size="sm" onClick={onCancel}>Cancel</Btn>
+        <Btn size="sm" variant="primary" onClick={onCommit}>OK</Btn>
+      </div>
+    </div>,
+    document.body,
   );
 }
