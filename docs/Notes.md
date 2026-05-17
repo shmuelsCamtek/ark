@@ -22,8 +22,8 @@
 - [x] fix: right top button Push to Azure in Edit page, name is wrong.
 - [x] edit page, make two section ajustable.
 - [x] when pulish to azure, should save revision.
-- [ ] Anotation tool, revert to original.
-- [ ] fix: anotation text does not work.
+- [x] Anotation tool, revert to original.
+- [x] fix: anotation text does not work.
 - [x] TFS should be linkable.
   - [x] should be added to the User Story (next to the title)
 - [x] Swap chat and user story
@@ -35,6 +35,7 @@
 - [ ] fix: darg and drop.
 - [x] fix: when resuming to workitem:
   - [x]  the selected items in chect are not selected (applied).
+- [ ]  better chat pending.
 
 ## Sidebar
 - [x] sidebar, ![alt text](image.png)
@@ -58,3 +59,8 @@
   1. the log should be shown if the user click on the gearwheel on coach title.
   2. when the user return to edit user story, the old context should be loaded.
 ```
+
+2. hosting
+
+the site can be hosted in github.
+the application should be only client side.
