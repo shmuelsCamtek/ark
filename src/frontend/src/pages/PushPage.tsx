@@ -67,8 +67,20 @@ export function PushPage() {
   if (stage === 'review') {
     return (
       <div style={{ width: '100%', height: '100vh', background: ARK_TOKENS.bg, display: 'flex', flexDirection: 'column' }}>
-        <TopBar breadcrumbs={['Stories', 'Push to Azure']} />
-        <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto', padding: '32px 48px 80px' }}>
+        <TopBar
+          breadcrumbs={['Stories', 'Push to Azure']}
+          rightActions={
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Btn onClick={handleBackToEditor} icon={<Ico.arrow size={12} dir="left" />}>
+                Back
+              </Btn>
+              <Btn variant="primary" onClick={handlePush} icon={<AzureMark size={14} />}>
+                Push
+              </Btn>
+            </div>
+          }
+        />
+        <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto', padding: '32px 48px 48px' }}>
           <div style={{ maxWidth: 900, margin: '0 auto' }}>
             <div style={{ fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 6 }}>STEP 3 OF 3 · FINAL REVIEW</div>
             <h1 style={{ fontSize: ARK_TOKENS.type.display, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 8px', letterSpacing: -0.3, lineHeight: ARK_TOKENS.leading.tight }}>Send to Azure DevOps</h1>
@@ -80,15 +92,6 @@ export function PushPage() {
               <div style={{ background: ARK_TOKENS.surface, borderRadius: ARK_TOKENS.r2, border: `1px solid ${ARK_TOKENS.border}`, padding: 24 }}>
                 <WorkItemPreview {...storyData} compact />
               </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, marginTop: 32, paddingTop: 24, borderTop: `1px solid ${ARK_TOKENS.border}`, maxWidth: 720 }}>
-              <Btn onClick={handleBackToEditor} icon={<Ico.arrow size={14} dir="left" />}>Back to editor</Btn>
-              <div style={{ flex: 1 }} />
-              <Btn variant="ghost">Save as draft</Btn>
-              <Btn variant="primary" size="lg" onClick={handlePush} icon={<AzureMark size={14} />}>
-                Push to Azure DevOps
-              </Btn>
             </div>
           </div>
         </div>
