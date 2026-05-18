@@ -26,7 +26,24 @@
       "Bash(Get-ChildItem -Path \"C:\\\\temp\\\\Ark\\\\src\\\\frontend\\\\src\" -Recurse -Filter \"*.tsx\" -o Name)",
       "Bash(Select-Object -First 20)",
       "Bash(node *)",
-      "Skill(superpowers:brainstorming)"
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:writing-plans)",
+      "Bash(Get-ChildItem -Path \"C:\\\\temp\\\\Ark\" -Recurse -Filter \"vite.config.*\")",
+      "Bash(Select-Object -First 5)",
+      "Bash(Get-ChildItem -Path \"C:\\\\temp\\\\Ark\" -Force)",
+      "Bash(Select-Object Name)",
+      "Skill(commit)",
+      "Bash(gh run *)",
+      "Bash(gh secret *)",
+      "Bash(az account *)",
+      "PowerShell(az account show *)",
+      "PowerShell(winget install *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(& \"C:\\\\Users\\\\shmuels\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" --version 2>&1; Write-Host \"---\"; & \"C:\\\\Users\\\\shmuels\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\Scripts\\\\pip.exe\" --version 2>&1; Write-Host \"---\"; & \"C:\\\\ProgramData\\\\chocolatey\\\\bin\\\\choco.exe\" --version 2>&1)",
+      "PowerShell(& \"C:\\\\Users\\\\shmuels\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\Scripts\\\\pip.exe\" install --user azure-cli 2>&1 | Select-Object -Last 5)",
+      "PowerShell($current = [Environment]::GetEnvironmentVariable\\('Path', 'User'\\); $current)",
+      "PowerShell($env:PATH = \"C:\\\\Users\\\\shmuels\\\\AppData\\\\Roaming\\\\Python\\\\Python313\\\\Scripts;\" + $env:PATH; az --version 2>&1 | Select-Object -First 5)",
+      "PowerShell(az login *)"
     ]
   }
 }
