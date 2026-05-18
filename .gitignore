@@ -29,3 +29,6 @@ npm-debug.log*
 
 # Backend draft persistence (file-backed store)
 src/backend/data/
+
+# Built frontend copied here for single-process serving / deploy
+src/backend/public/
