@@ -1,14 +1,17 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { type AiService } from '../services/ai';
 import { type AzureService } from '../services/azure';
+import { type SharepointService } from '../services/sharepoint';
 import { HttpAiService } from '../services/http-ai';
 import { HttpAzureService } from '../services/http-azure';
 import { HttpDraftsService } from '../services/http-drafts';
+import { HttpSharepointService } from '../services/http-sharepoint';
 
 interface Services {
   ai: AiService;
   azure: AzureService;
   drafts: HttpDraftsService;
+  sharepoint: SharepointService;
 }
 
 const ServicesContext = createContext<Services | null>(null);
@@ -19,6 +22,7 @@ export function ServicesProvider({ children }: { children: ReactNode }) {
       ai: new HttpAiService(),
       azure: new HttpAzureService(),
       drafts: new HttpDraftsService(),
+      sharepoint: new HttpSharepointService(),
     }),
     [],
   );

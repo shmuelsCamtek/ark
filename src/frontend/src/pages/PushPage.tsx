@@ -6,19 +6,38 @@ import { useParams, useNavigate } from '../router';
 import { useApp } from '../context/AppContext';
 import { useServices } from '../context/ServicesContext';
 import { evaluateDraft } from '../lib/storyCompletion';
+import { renderFlow } from '../lib/renderFlowSvg';
+import { storyToHtml } from '../lib/storyToHtml';
+import type { GraphLoginInfo } from '../services/sharepoint';
 
-type Stage = 'review' | 'pushing' | 'done';
+type Stage = 'review' | 'publishing' | 'done' | 'consent' | 'error' | 'graph_login';
+
+function slugify(s: string): string {
+  return (
+    s
+      .normalize('NFKD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^\w\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .toLowerCase()
+      .slice(0, 100) || 'story'
+  );
+}
 
 export function PushPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getDraft } = useApp();
-  const { azure } = useServices();
+  const { getDraft, user } = useApp();
+  const { azure, sharepoint } = useServices();
   const draft = getDraft(id);
 
   const [stage, setStage] = useState<Stage>('review');
-  const [progress, setProgress] = useState(0);
+  const [publishStatus, setPublishStatus] = useState<string>('Preparing…');
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [workItemUrl, setWorkItemUrl] = useState<string | null>(null);
+  const [graphLogin, setGraphLogin] = useState<GraphLoginInfo | null>(null);
 
   const workItemId = draft?.workItemId;
   const workItemTitle = draft?.workItemTitle?.trim() || '';
@@ -59,23 +78,116 @@ export function PushPage() {
     workItemId: draft?.workItemId,
   };
 
-  const newItemId = '#4187';
-
-  const handlePush = () => {
-    setStage('pushing');
-    setProgress(0);
-    const steps = [20, 45, 70, 90, 100];
-    steps.forEach((p, i) => {
-      setTimeout(() => {
-        setProgress(p);
-        if (p === 100) setTimeout(() => setStage('done'), 400);
-      }, (i + 1) * 600);
-    });
+  const handlePush = async () => {
+    if (!draft) return;
+    if (!user?.email) {
+      setErrorMessage('Cannot publish: missing user email.');
+      setStage('error');
+      return;
+    }
+    setStage('publishing');
+    setPublishStatus('Generating HTML…');
+    try {
+      const flowBlocks = await renderFlow(draft.flow || '');
+      const html = storyToHtml({
+        title: draft.title || 'Untitled story',
+        background: draft.background || '',
+        scenario: draft.scenario,
+        flowBlocks,
+        persona: draft.persona || '',
+        want: draft.narrative.iWantTo || '',
+        benefit: draft.narrative.soThat || '',
+        criteria: draft.acceptanceCriteria.map((ac) => ({ id: ac.id, text: ac.text })),
+        uiBeforeUrl: draft.uiChanges?.[0]?.beforeUrl,
+        uiAfterUrl: draft.uiChanges?.[0]?.afterUrl,
+        workItemType: draft.workItemType,
+        workItemId: draft.workItemId,
+        generatedBy: user.email,
+        generatedAt: new Date().toISOString(),
+      });
+      setPublishStatus('Uploading to SharePoint…');
+      const slug = slugify(draft.title || 'untitled');
+      const filename = `${slug}-${draft.id}.html`;
+      const result = await sharepoint.publish({ html, filename, folderName: user.email });
+      if (result.ok) {
+        setPublishedUrl(result.webUrl);
+        setStage('done');
+        return;
+      }
+      if (result.error === 'graph_consent_required') {
+        setErrorMessage(result.message);
+        setStage('consent');
+        return;
+      }
+      if (result.error === 'graph_login_required') {
+        await beginGraphLogin();
+        return;
+      }
+      setErrorMessage(result.message);
+      setStage('error');
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : String(err));
+      setStage('error');
+    }
   };
+
+  const beginGraphLogin = async () => {
+    setStage('graph_login');
+    setErrorMessage('');
+    setGraphLogin(null);
+    try {
+      const info = await sharepoint.loginStart();
+      setGraphLogin(info);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : String(err));
+      setStage('error');
+    }
+  };
+
+  // Poll Graph device flow while on the graph_login stage. On success, retry publish.
+  useEffect(() => {
+    if (stage !== 'graph_login' || !graphLogin) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const r = await sharepoint.loginPoll();
+        if (cancelled) return;
+        if (r.status === 'authenticated') {
+          handlePush();
+          return;
+        }
+        if (r.status === 'expired') {
+          setErrorMessage('Login code expired. Please try again.');
+          setStage('error');
+          return;
+        }
+        if (r.status === 'error') {
+          setErrorMessage(r.error);
+          setStage('error');
+          return;
+        }
+        timer = setTimeout(tick, 5000);
+      } catch (err) {
+        if (cancelled) return;
+        setErrorMessage(err instanceof Error ? err.message : String(err));
+        setStage('error');
+      }
+    };
+    let timer = setTimeout(tick, 5000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, graphLogin]);
 
   const handleBackToEditor = () => navigate(`/stories/${id}/edit`);
   const handleBackToDashboard = () => navigate('/stories');
   const handleNewStory = () => navigate('/?new=1');
+  const handleRetry = () => {
+    setStage('review');
+    setErrorMessage('');
+  };
 
   // ── Review stage ──
   if (stage === 'review') {
@@ -138,40 +250,102 @@ export function PushPage() {
     );
   }
 
-  // ── Pushing stage ──
-  if (stage === 'pushing') {
-    const steps = [
-      { label: 'Validating fields', done: progress >= 20 },
-      { label: 'Creating Work Item', done: progress >= 45 },
-      { label: 'Linking to Epic #3994 · Pro renewals', done: progress >= 70 },
-      { label: 'Adding acceptance criteria', done: progress >= 90 },
-      { label: 'Assigning to Sprint 42', done: progress >= 100 },
-    ];
-
+  // ── Publishing stage ──
+  if (stage === 'publishing') {
     return (
       <div style={{ width: '100%', height: '100vh', background: ARK_TOKENS.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 440, background: '#fff', borderRadius: ARK_TOKENS.r3, padding: 32, boxShadow: ARK_TOKENS.shadow3, textAlign: 'center' }}>
           <div style={{ width: 56, height: 56, margin: '0 auto 16px', borderRadius: 28, background: ARK_TOKENS.azureFaint, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <AzureMark size={32} />
+            <div className="ark-spin" style={{ width: 28, height: 28, borderRadius: 14, border: `3px solid ${ARK_TOKENS.azureLight}`, borderTopColor: ARK_TOKENS.azure }} />
           </div>
-          <h2 style={{ margin: '0 0 8px', fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold }}>Sending to Azure DevOps…</h2>
-          <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, marginBottom: 20 }}>This usually takes 2-3 seconds.</div>
-          <div style={{ height: 6, background: ARK_TOKENS.border, borderRadius: 3, overflow: 'hidden', marginBottom: 16 }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: ARK_TOKENS.azure, transition: 'width 0.4s ease' }} />
-          </div>
-          <div style={{ textAlign: 'left', fontSize: ARK_TOKENS.type.label, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {steps.map((st, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, color: st.done ? ARK_TOKENS.ink : ARK_TOKENS.inkSubtle }}>
-                {st.done ? (
-                  <div style={{ width: 14, height: 14, borderRadius: 7, background: ARK_TOKENS.success, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                    <Ico.check size={9} />
-                  </div>
-                ) : (
-                  <div style={{ width: 14, height: 14, borderRadius: 7, border: `1.5px solid ${ARK_TOKENS.borderStrong}` }} />
-                )}
-                {st.label}
+          <h2 style={{ margin: '0 0 8px', fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold }}>Publishing to SharePoint…</h2>
+          <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted }}>{publishStatus}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Graph login stage (second device-code flow for SharePoint) ──
+  if (stage === 'graph_login') {
+    return (
+      <div style={{ width: '100%', height: '100vh', background: ARK_TOKENS.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <div style={{ maxWidth: 560, width: '100%', background: '#fff', borderRadius: ARK_TOKENS.r3, padding: 32, boxShadow: ARK_TOKENS.shadow3 }}>
+          <h1 style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 8px' }}>Sign in to SharePoint</h1>
+          <p style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, margin: '0 0 24px' }}>
+            One-time sign-in to authorize uploading stories to your SharePoint site. Open the link below and enter the code.
+          </p>
+          {!graphLogin ? (
+            <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted }}>Starting sign-in…</div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4 }}>Code</div>
+                <div style={{ fontFamily: ARK_TOKENS.mono, fontSize: 32, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 4, color: ARK_TOKENS.azureDark }}>
+                  {graphLogin.userCode}
+                </div>
               </div>
-            ))}
+              <div style={{ marginBottom: 20 }}>
+                <a
+                  href={graphLogin.verificationUri}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.azure }}
+                >
+                  {graphLogin.verificationUri}
+                </a>
+              </div>
+              <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="ark-spin" style={{ width: 12, height: 12, borderRadius: 6, border: `2px solid ${ARK_TOKENS.azureLight}`, borderTopColor: ARK_TOKENS.azure }} />
+                Waiting for you to complete sign-in…
+              </div>
+            </>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
+            <Btn onClick={handleRetry} icon={<Ico.arrow size={12} dir="left" />}>Cancel</Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Consent-required stage ──
+  if (stage === 'consent') {
+    return (
+      <div style={{ width: '100%', height: '100vh', background: ARK_TOKENS.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <div style={{ maxWidth: 560, width: '100%', background: '#fff', borderRadius: ARK_TOKENS.r3, padding: 32, boxShadow: ARK_TOKENS.shadow3 }}>
+          <h1 style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 8px' }}>SharePoint access not granted</h1>
+          <p style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, margin: '0 0 16px' }}>
+            Your tenant hasn't approved the <code>Sites.ReadWrite.All</code> permission this app needs to upload to SharePoint. Ask a tenant admin to grant consent, then try again.
+          </p>
+          {errorMessage && (
+            <pre style={{ background: ARK_TOKENS.surfaceAlt, padding: 12, borderRadius: ARK_TOKENS.r, fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkMuted, whiteSpace: 'pre-wrap', margin: '0 0 20px' }}>{errorMessage}</pre>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn onClick={handleRetry} icon={<Ico.arrow size={12} dir="left" />}>Back to preview</Btn>
+            <div style={{ flex: 1 }} />
+            <Btn variant="primary" onClick={handlePush}>Try again</Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error stage ──
+  if (stage === 'error') {
+    return (
+      <div style={{ width: '100%', height: '100vh', background: ARK_TOKENS.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <div style={{ maxWidth: 560, width: '100%', background: '#fff', borderRadius: ARK_TOKENS.r3, padding: 32, boxShadow: ARK_TOKENS.shadow3 }}>
+          <h1 style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 8px' }}>Publish failed</h1>
+          <p style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, margin: '0 0 16px' }}>
+            Something went wrong while uploading the story to SharePoint.
+          </p>
+          {errorMessage && (
+            <pre style={{ background: ARK_TOKENS.surfaceAlt, padding: 12, borderRadius: ARK_TOKENS.r, fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkMuted, whiteSpace: 'pre-wrap', margin: '0 0 20px' }}>{errorMessage}</pre>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn onClick={handleRetry} icon={<Ico.arrow size={12} dir="left" />}>Back to preview</Btn>
+            <div style={{ flex: 1 }} />
+            <Btn variant="primary" onClick={handlePush}>Try again</Btn>
           </div>
         </div>
       </div>
@@ -186,24 +360,28 @@ export function PushPage() {
           <div style={{ width: 72, height: 72, margin: '0 auto 20px', borderRadius: 36, background: ARK_TOKENS.successBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ARK_TOKENS.success }}>
             <Ico.check size={32} />
           </div>
-          <h1 style={{ fontSize: ARK_TOKENS.type.display, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 8px', letterSpacing: -0.3, lineHeight: ARK_TOKENS.leading.tight }}>Story {newItemId} is in the backlog.</h1>
+          <h1 style={{ fontSize: ARK_TOKENS.type.display, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 8px', letterSpacing: -0.3, lineHeight: ARK_TOKENS.leading.tight }}>Saved to SharePoint</h1>
           <p style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, margin: 0 }}>
-            Your dev team will see it in their next backlog refinement.
+            Your story HTML is in your personal folder on SharePoint.
           </p>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: ARK_TOKENS.r2, border: `1px solid ${ARK_TOKENS.border}`, padding: 20, marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 32, height: 32, background: ARK_TOKENS.azureLight, borderRadius: ARK_TOKENS.r2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AzureMark size={16} />
+        {publishedUrl && (
+          <div style={{ background: '#fff', borderRadius: ARK_TOKENS.r2, border: `1px solid ${ARK_TOKENS.border}`, padding: 20, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 32, height: 32, background: ARK_TOKENS.azureLight, borderRadius: ARK_TOKENS.r2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Ico.file size={16} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.5 }}>STORY HTML</div>
+                <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{storyTitle}</div>
+              </div>
+              <a href={publishedUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <Btn size="sm" variant="ghost" icon={<Ico.link size={12} />}>Open in SharePoint</Btn>
+              </a>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.5 }}>USER STORY · {newItemId}</div>
-              <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold }}>{storyTitle}</div>
-            </div>
-            <Btn size="sm" variant="ghost" icon={<Ico.link size={12} />}>Open in Azure</Btn>
           </div>
-        </div>
+        )}
 
         <div style={{ display: 'flex', gap: 8 }}>
           <Btn variant="ghost" onClick={handleBackToDashboard} icon={<Ico.arrow size={12} dir="left" />}>Back to dashboard</Btn>

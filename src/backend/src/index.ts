@@ -8,6 +8,7 @@ import { aiRouter } from './routes/ai.ts';
 import { azureRouter } from './routes/azure.ts';
 import { authRouter } from './routes/auth.ts';
 import { documentsRouter } from './routes/documents.ts';
+import { sharepointRouter } from './routes/sharepoint.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,6 +25,7 @@ app.use('/api/drafts', draftsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/azure', azureRouter);
 app.use('/api/documents', documentsRouter);
+app.use('/api/sharepoint', sharepointRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
