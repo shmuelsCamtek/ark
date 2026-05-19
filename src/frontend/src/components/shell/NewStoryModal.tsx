@@ -411,7 +411,7 @@ export function NewStoryModal({ open, onClose }: NewStoryModalProps) {
         <div style={{ display: 'flex', gap: 8 }}>
           <Btn onClick={onClose} disabled={connecting}>Cancel</Btn>
           <div style={{ flex: 1 }} />
-          <Btn onClick={handleSkip} disabled={connecting}>Skip — start blank</Btn>
+          <Btn variant="ghost" onClick={handleSkip} disabled={connecting}>Skip</Btn>
           <Btn
             variant="primary"
             onClick={handleFinish}
