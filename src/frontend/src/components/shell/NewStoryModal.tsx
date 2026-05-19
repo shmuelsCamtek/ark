@@ -216,7 +216,7 @@ export function NewStoryModal({ open, onClose }: NewStoryModalProps) {
 
       const draft = createEmptyDraft({
         title: hasItem ? resolved.title : '',
-        workItemId: workItemId,
+        workItemId: hasItem ? workItemId : undefined,
         workItemType: hasItem ? resolved.type : undefined,
         workItemTitle: hasItem ? resolved.title : undefined,
         workItemState: hasItem ? resolved.state : undefined,
@@ -235,6 +235,13 @@ export function NewStoryModal({ open, onClose }: NewStoryModalProps) {
       navigate(`/stories/${draft.id}/edit`);
       onClose();
     }, 900);
+  };
+
+  const handleSkip = () => {
+    const draft = createEmptyDraft({ supportingDocs: [], contextLog: [] });
+    addDraft(draft);
+    navigate(`/stories/${draft.id}/edit`);
+    onClose();
   };
 
   return (
@@ -404,6 +411,7 @@ export function NewStoryModal({ open, onClose }: NewStoryModalProps) {
         <div style={{ display: 'flex', gap: 8 }}>
           <Btn onClick={onClose} disabled={connecting}>Cancel</Btn>
           <div style={{ flex: 1 }} />
+          <Btn onClick={handleSkip} disabled={connecting}>Skip — start blank</Btn>
           <Btn
             variant="primary"
             onClick={handleFinish}
