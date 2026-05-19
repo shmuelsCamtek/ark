@@ -80,12 +80,6 @@ export function PushPage() {
         />
         <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto', padding: '32px 48px 48px' }}>
           <div style={{ maxWidth: 900, margin: '0 auto' }}>
-            <div style={{ fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.azure, letterSpacing: 0.8, marginBottom: 6 }}>STEP 3 OF 3 · FINAL REVIEW</div>
-            <h1 style={{ fontSize: ARK_TOKENS.type.display, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 8px', letterSpacing: -0.3, lineHeight: ARK_TOKENS.leading.tight }}>Send to Azure DevOps</h1>
-            <p style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, margin: '0 0 28px' }}>
-              Take a final look. You can still edit everything in Azure after push.
-            </p>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 720 }}>
               <div style={{ background: ARK_TOKENS.surface, borderRadius: ARK_TOKENS.r2, border: `1px solid ${ARK_TOKENS.border}`, padding: 24 }}>
                 <WorkItemPreview {...storyData} compact />
