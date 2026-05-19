@@ -43,9 +43,9 @@
 - [x] side bar search by number (add)
 
 ## Preview Page
-- [ ] preview page, button on the top. 
-- [ ] preview should be in the same order as the edit page. 
-- [ ] no need for assign and state in preview page. 
+- [x] preview page, button on the top.
+- [ ] preview should be in the same order as the edit page.
+- [ ] no need for assign and state in preview page.
 - [ ] clarity feture should be clickable preview page
 - [ ] written by should be on the top after the title. preview page
 
