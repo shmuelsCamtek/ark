@@ -4,6 +4,7 @@ import { TopBar, Btn, Ico, AzureMark } from '../components/ui';
 import { WorkItemPreview } from '../components/builder/WorkItemPreview';
 import { useParams, useNavigate } from '../router';
 import { useApp } from '../context/AppContext';
+import { useServices } from '../context/ServicesContext';
 import { evaluateDraft } from '../lib/storyCompletion';
 
 type Stage = 'review' | 'pushing' | 'done';
@@ -12,10 +13,25 @@ export function PushPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getDraft } = useApp();
+  const { azure } = useServices();
   const draft = getDraft(id);
 
   const [stage, setStage] = useState<Stage>('review');
   const [progress, setProgress] = useState(0);
+  const [workItemUrl, setWorkItemUrl] = useState<string | null>(null);
+
+  const workItemId = draft?.workItemId;
+  const workItemTitle = draft?.workItemTitle?.trim() || '';
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!workItemId) { setWorkItemUrl(null); return; }
+    azure.getConfig().then((cfg) => {
+      if (cancelled || !cfg) return;
+      setWorkItemUrl(`${cfg.orgUrl}/${cfg.project}/_workitems/edit/${workItemId}`);
+    });
+    return () => { cancelled = true; };
+  }, [azure, workItemId]);
 
   const completion = evaluateDraft(draft);
   useEffect(() => {
@@ -68,13 +84,44 @@ export function PushPage() {
         <TopBar
           breadcrumbs={['Stories', 'Push to Azure']}
           rightActions={
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn onClick={handleBackToEditor} icon={<Ico.arrow size={12} dir="left" />}>
-                Back
-              </Btn>
-              <Btn variant="primary" onClick={handlePush} icon={<AzureMark size={14} />}>
-                Push
-              </Btn>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {workItemId && workItemUrl && (
+                <a
+                  href={workItemUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={workItemTitle ? `Open #${workItemId} ${workItemTitle} in Azure DevOps` : `Open #${workItemId} in Azure DevOps`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    maxWidth: 320,
+                    fontSize: ARK_TOKENS.type.label,
+                    color: ARK_TOKENS.azureDark,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <span style={{ fontFamily: ARK_TOKENS.mono, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                    #{workItemId}
+                  </span>
+                  {workItemTitle && (
+                    <span style={{ color: ARK_TOKENS.inkMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {workItemTitle}
+                    </span>
+                  )}
+                  <span style={{ color: ARK_TOKENS.inkSubtle, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
+                    <Ico.link size={12} />
+                  </span>
+                </a>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Btn onClick={handleBackToEditor} icon={<Ico.arrow size={12} dir="left" />}>
+                  Back
+                </Btn>
+                <Btn variant="primary" onClick={handlePush} icon={<AzureMark size={14} />}>
+                  Push
+                </Btn>
+              </div>
             </div>
           }
         />
