@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react';
 import { ARK_TOKENS } from '../../tokens';
-import { Avatar } from '../ui/Avatar';
 import { Ico } from '../ui/icons';
 import { UiChangePreview } from './UiChangePreview';
 import { FlowPreview } from './FlowPreview';
@@ -29,15 +28,13 @@ interface WorkItemPreviewProps {
   docs: DocItem[];
   showUiChange: boolean;
   compact?: boolean;
-  workItemState?: string;
-  workItemAssignedTo?: string;
   workItemType?: string;
   workItemId?: string;
   uiBeforeUrl?: string;
   uiAfterUrl?: string;
 }
 
-export function WorkItemPreview({ title, background, scenario, flow, persona, want, benefit, criteria, docs, showUiChange, compact, workItemState, workItemAssignedTo, workItemType, workItemId, uiBeforeUrl, uiAfterUrl }: WorkItemPreviewProps) {
+export function WorkItemPreview({ title, background, scenario, flow, persona, want, benefit, criteria, docs, showUiChange, compact, workItemType, workItemId, uiBeforeUrl, uiAfterUrl }: WorkItemPreviewProps) {
   return (
     <div style={{ fontSize: ARK_TOKENS.type.body, lineHeight: ARK_TOKENS.leading.normal }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.medium, letterSpacing: 0.3 }}>
@@ -45,18 +42,12 @@ export function WorkItemPreview({ title, background, scenario, flow, persona, wa
         <span>
           {(workItemType || 'User Story').toUpperCase()}
           {workItemId ? ` · #${workItemId}` : ''}
-          {` · ${(workItemState || 'New').toUpperCase()}`}
         </span>
       </div>
 
       <h2 style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, margin: '0 0 12px', letterSpacing: -0.3, lineHeight: ARK_TOKENS.leading.tight }}>
         {title || <span style={{ color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.regular }}>Untitled story</span>}
       </h2>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginBottom: 20, fontSize: ARK_TOKENS.type.label }}>
-        <PreviewMeta label="Assigned" value={<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Avatar name={workItemAssignedTo || 'Unassigned'} size={16} color={workItemAssignedTo ? ARK_TOKENS.azure : '#a19f9d'} /> {workItemAssignedTo || 'Unassigned'}</div>} />
-        <PreviewMeta label="State" value={workItemState || 'New'} />
-      </div>
 
       <div style={{ marginBottom: 20 }}>
         <SectionLabel>Background</SectionLabel>
@@ -151,15 +142,6 @@ function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <div style={{ fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.7, marginBottom: 8, textTransform: 'uppercase' }}>
       {children}
-    </div>
-  );
-}
-
-function PreviewMeta({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div>
-      <div style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.6, marginBottom: 3, textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.ink }}>{value}</div>
     </div>
   );
 }

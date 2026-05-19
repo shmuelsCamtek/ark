@@ -41,8 +41,6 @@ export function PushPage() {
     uiAfterUrl: uiChange?.afterUrl,
     workItemType: draft?.workItemType,
     workItemId: draft?.workItemId,
-    workItemState: draft?.workItemState,
-    workItemAssignedTo: draft?.workItemAssignedTo,
   };
 
   const newItemId = '#4187';
