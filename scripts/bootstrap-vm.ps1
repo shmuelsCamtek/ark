@@ -17,6 +17,12 @@
 #>
 
 $ErrorActionPreference = 'Stop'
+# NSSM's --version writes its banner to stderr and exits non-zero. On
+# PowerShell 7+ that would otherwise abort the script. Native command exit
+# codes shouldn't be treated as terminating errors here.
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
 
 $arkRoot   = 'C:\Ark'
 $appDir    = Join-Path $arkRoot 'app'

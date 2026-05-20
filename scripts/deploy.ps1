@@ -36,8 +36,15 @@ try {
 
   if (-not $SkipBuild) {
     Write-Host "==> Building frontend"
-    npm --prefix src\frontend ci
+    # --include=dev so build tools (vite, @types/react, etc.) install
+    # even when NODE_ENV=production is set globally on this machine.
+    npm --prefix src\frontend ci --include=dev
+    if ($LASTEXITCODE -ne 0) { throw "npm ci (frontend) failed with exit code $LASTEXITCODE" }
     npm --prefix src\frontend run build
+    if ($LASTEXITCODE -ne 0) { throw "npm run build (frontend) failed with exit code $LASTEXITCODE" }
+    if (-not (Test-Path src\frontend\dist\index.html)) {
+      throw "Frontend build did not produce src\frontend\dist\index.html"
+    }
 
     Write-Host "==> Copying dist into backend\public"
     if (Test-Path src\backend\public) {
@@ -61,7 +68,10 @@ try {
 
   Write-Host "==> Installing production deps in staging"
   Push-Location $staging
-  try { npm ci --omit=dev } finally { Pop-Location }
+  try {
+    npm ci --omit=dev
+    if ($LASTEXITCODE -ne 0) { throw "npm ci (backend staging) failed with exit code $LASTEXITCODE" }
+  } finally { Pop-Location }
 
   Write-Host "==> Zipping staging -> $zip"
   Compress-Archive -Path "$staging\*" -DestinationPath $zip -Force
