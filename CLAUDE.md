@@ -68,29 +68,56 @@ No test framework is configured yet.
 ## Deployment
 
 Production runs as a Node 20 process under NSSM on a Camtek-managed internal
-Windows VM. The same process serves `/api/*` and the React SPA on port 3001,
-reachable only on Camtek VPN. See `docs/deployment.md` for the full runbook.
+Windows VM at `62f5fb5e3738` (10.5.0.19). One process serves `/api/*` and the
+React SPA on port 3001, reachable only on Camtek VPN. See
+`docs/deployment.md` for the full runbook.
 
-**Deploys are manual from your laptop** while on VPN:
+### One-time VM bootstrap (already done)
+
+Done by running `scripts\bootstrap-vm.ps1` from an elevated PowerShell on the
+VM. It installs Node 20 LTS + NSSM, creates `C:\Ark\{app,data,logs}`, writes
+`C:\Ark\app\.env` (ACL-restricted to Administrators/SYSTEM), and registers
+the `Ark` Windows Service. If the script halts midway, finish with
+`scripts\bootstrap-vm-finish.ps1` (idempotent rescue that skips already-done
+steps). Also remember to add the inbound firewall rule once:
+`New-NetFirewallRule -DisplayName "Ark TCP 3001" -Direction Inbound -Protocol TCP -LocalPort 3001 -Action Allow -Profile Any`.
+
+### Recurring deploy (from your laptop, on Camtek VPN)
 
 ```powershell
-.\scripts\deploy.ps1 -VmHost <vm-host> -VmUser CAMTEK\<your-user>
+cd C:\temp\Ark
+.\scripts\deploy.ps1 -VmHost 62f5fb5e3738 -VmUser me_admin
 ```
 
-The script builds the frontend, bundles the backend (with production-only
-`node_modules`), SCPs a zip to the VM, and swaps + restarts atomically. The
-previous release sits in `C:\Ark\app-old\` for instant rollback.
+What it does:
+1. Frontend: `npm ci --include=dev` + `vite build` (no `tsc` — see frontend `package.json`).
+2. Backend staging: copies `src/backend/` (minus `node_modules`, `data`, `.env`) to `$env:TEMP\ark-deploy-<stamp>\`, runs `npm ci --omit=dev` there.
+3. Zips the staged folder, SCPs to `C:/Ark/deploy.zip` on the VM (will prompt for SSH password).
+4. SSHes a swap-and-restart on the VM (prompts for password again): expand zip → preserve `.env` → `nssm stop Ark` → swap folders → `nssm start Ark` → health-check.
 
-**Secrets** live in `C:\Ark\app\.env` on the VM (created by
-`scripts\bootstrap-vm.ps1`). To rotate: edit the file and `nssm restart Ark`.
-Never put secrets in the repo. Never put secrets in the frontend bundle.
+`--SkipBuild` re-uses the existing `src/backend/public` if you only need to redeploy backend changes.
 
-**Persistence:** drafts and chats persist to `C:\Ark\data\` (set via NSSM's
-`AppEnvironmentExtra`). `C:\Ark\app-old\` exists between deploys for
-rollback; everything else under `C:\Ark\app\` is replaced on each deploy.
+### Secrets
 
-**Built artifact:** `src/backend/public/` is generated locally during deploy
-by `scripts\deploy.ps1`. It's gitignored — never commit it.
+In `C:\Ark\app\.env` on the VM. Rotate with: SSH to the VM, edit the file, `nssm restart Ark`. Never put secrets in the repo or the frontend bundle.
+
+### Persistence
+
+Drafts and chats persist to `C:\Ark\data\` (`DATA_DIR` set by NSSM's `AppEnvironmentExtra`). `C:\Ark\app-old\` exists transiently between deploys for rollback; everything else under `C:\Ark\app\` is replaced each deploy.
+
+### Logs
+
+NSSM rotates stdout/stderr at 10 MiB. Tail live: SSH to VM and `Get-Content -Wait -Tail 50 C:\Ark\logs\ark-stdout.log` (or `ark-stderr.log`).
+
+### Built artifact
+
+`src/backend/public/` is generated locally during deploy. Gitignored — never commit it.
+
+### Gotchas the deploy scripts already handle
+
+- **NODE_ENV=production** in the calling shell makes `npm ci` skip devDependencies; the script passes `--include=dev` explicitly.
+- **PowerShell 7's `$PSNativeCommandUseErrorActionPreference`** aborts on NSSM's non-zero `--version` exit; the bootstrap disables it.
+- **Native-command exit codes** don't trigger PowerShell's `Stop` preference; the script checks `$LASTEXITCODE` after every `npm` call and throws.
 
 ## Environment Constraints
 
