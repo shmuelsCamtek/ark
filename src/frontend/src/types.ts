@@ -28,6 +28,13 @@ export interface UiChange {
   afterUrl?: string;
 }
 
+export interface DraftMockup {
+  status: 'ok' | 'insufficient';
+  html?: string;
+  insufficientReason?: string;
+  generatedAt: string;
+}
+
 export type ContextLogKind = 'doc' | 'workItem' | 'linkedWorkItem' | 'uiBefore' | 'uiAfter' | 'fieldEdit';
 
 export interface ContextLogEntry {
@@ -66,6 +73,7 @@ export interface StoryDraft {
   workItemDiscussion?: WorkItemComment[];
   linkedWorkItems?: WorkItemInfo[];
   contextLog?: ContextLogEntry[];
+  mockup?: DraftMockup;
   createdAt: string;
   updatedAt: string;
   completionPct: number;

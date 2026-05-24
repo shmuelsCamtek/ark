@@ -105,8 +105,10 @@ function BuilderPageBody() {
   const params = useParams();
   const navigate = useNavigate();
   const { getDraft, updateDraft, addDraft } = useApp();
-  const { azure } = useServices();
+  const { azure, ai } = useServices();
   const [workItemUrl, setWorkItemUrl] = useState<string | null>(null);
+  const [generatingMockup, setGeneratingMockup] = useState(false);
+  const [mockupError, setMockupError] = useState<string | null>(null);
 
   const editId = params.id;
   const existing = editId ? getDraft(editId) : undefined;
@@ -466,6 +468,24 @@ function BuilderPageBody() {
     navigate(`/stories/${editId || draftId}/push`);
   };
 
+  const handleGenerateMockup = async () => {
+    if (generatingMockup) return;
+    setGeneratingMockup(true);
+    setMockupError(null);
+    try {
+      const result = await ai.generateMockup(editId || draftId);
+      updateDraft(editId || draftId, { mockup: result });
+    } catch (err) {
+      setMockupError(err instanceof Error ? err.message : 'Mockup generation failed');
+    } finally {
+      setGeneratingMockup(false);
+    }
+  };
+
+  const mockup = draft?.mockup;
+  const hasOkMockup = mockup?.status === 'ok';
+  const hasInsufficientMockup = mockup?.status === 'insufficient';
+
   return (
     <div style={{ width: '100%', height: '100%', background: ARK_TOKENS.bg, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <TopBar
@@ -502,6 +522,25 @@ function BuilderPageBody() {
               </a>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
+              <Btn
+                onClick={handleGenerateMockup}
+                disabled={generatingMockup}
+                title={
+                  hasOkMockup
+                    ? 'Mockup ready — see it in Review. Click to regenerate.'
+                    : hasInsufficientMockup
+                    ? 'Mockup attempt was insufficient. Click to retry.'
+                    : 'Generate an HTML mockup of this story'
+                }
+              >
+                {generatingMockup
+                  ? 'Generating…'
+                  : hasOkMockup
+                  ? 'Refresh mockup ✓'
+                  : hasInsufficientMockup
+                  ? 'Refresh mockup ⚠'
+                  : '✷ Generate mockup'}
+              </Btn>
               <Btn icon={<Ico.x size={12} />} onClick={() => navigate('/')}>
                 Close
               </Btn>
@@ -518,6 +557,30 @@ function BuilderPageBody() {
           </div>
         }
       />
+
+      {(mockupError || hasInsufficientMockup) && (
+        <div
+          style={{
+            background: ARK_TOKENS.dangerBg,
+            borderBottom: `1px solid ${ARK_TOKENS.danger}`,
+            color: ARK_TOKENS.ink,
+            padding: '10px 20px',
+            fontSize: ARK_TOKENS.type.label,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span style={{ color: ARK_TOKENS.danger, display: 'inline-flex', alignItems: 'center' }}>
+            <Ico.warn size={14} />
+          </span>
+          <span>
+            {mockupError
+              ? `Mockup error: ${mockupError}`
+              : `Mockup needs more story detail: ${mockup?.insufficientReason}`}
+          </span>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         {/* LEFT: AI Coach (resizable) */}

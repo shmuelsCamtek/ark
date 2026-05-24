@@ -1,4 +1,4 @@
-import type { CoachMessage } from '../types';
+import type { CoachMessage, DraftMockup } from '../types';
 import type { AiService } from './ai';
 
 let nextId = 1;
@@ -98,5 +98,18 @@ export class HttpAiService implements AiService {
       text: data.text,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  async generateMockup(draftId: string): Promise<DraftMockup> {
+    const res = await fetch('/api/ai/mockup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ draftId }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Mockup generation failed (${res.status})`);
+    }
+    return (await res.json()) as DraftMockup;
   }
 }
