@@ -245,6 +245,10 @@ function DeviceCodeContent({ device, onCancel }: { device: DeviceCode; onCancel:
           variant="primary"
           size="lg"
           onClick={() => {
+            void navigator.clipboard.writeText(device.userCode).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 4000);
+            });
             const w = 520;
             const h = 720;
             const left = window.screenX + (window.outerWidth - w) / 2;
@@ -258,8 +262,8 @@ function DeviceCodeContent({ device, onCancel }: { device: DeviceCode; onCancel:
         >
           Open Microsoft sign-in
         </Btn>
-        <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, marginTop: 8, wordBreak: 'break-all' }}>
-          {device.verificationUri}
+        <div style={{ fontSize: ARK_TOKENS.type.label, color: copied ? ARK_TOKENS.success : ARK_TOKENS.inkSubtle, marginTop: 8 }}>
+          {copied ? 'Code copied — paste it in the Microsoft popup (Ctrl+V)' : 'Opening will copy the code so you can paste it.'}
         </div>
       </div>
 
