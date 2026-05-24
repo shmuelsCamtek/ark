@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, type AuthStatus } from '../context/AppContext';
 import { ARK_TOKENS } from '../tokens';
-import { Btn, Ico } from './ui';
+import { ArkLogo, Btn, Ico, Modal } from './ui';
 import type { UserProfile } from '../types';
 
 interface DeviceCode {
@@ -110,37 +110,94 @@ export function AppInitializer({ children }: { children: ReactNode }) {
   }
 
   if (authStatus === 'authenticated') return <>{children}</>;
-  if (device) return <FullScreenDeviceCode device={device} onCancel={() => location.reload()} />;
-  if (authStatus === 'loading') return <FullScreenLoading />;
-  return <FullScreenSignIn onRetry={() => void startDeviceFlow()} errorMessage={errorMessage} />;
+  return (
+    <>
+      <BrandSplash />
+      <SignInModal
+        device={device}
+        authStatus={authStatus}
+        errorMessage={errorMessage}
+        onRetry={() => void startDeviceFlow()}
+        onCancel={() => location.reload()}
+      />
+    </>
+  );
 }
 
-function FullScreenLoading() {
+function BrandSplash() {
   return (
     <div
       style={{
-        position: 'fixed', inset: 0,
-        background: ARK_TOKENS.bg,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 16,
+        position: 'fixed',
+        inset: 0,
+        background: `linear-gradient(135deg, ${ARK_TOKENS.azureFaint}, ${ARK_TOKENS.bg})`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 0,
       }}
     >
+      <ArkLogo size={56} />
+    </div>
+  );
+}
+
+interface SignInModalProps {
+  device: DeviceCode | null;
+  authStatus: AuthStatus;
+  errorMessage: string | null;
+  onRetry: () => void;
+  onCancel: () => void;
+}
+
+function SignInModal({ device, authStatus, errorMessage, onRetry, onCancel }: SignInModalProps) {
+  return (
+    <Modal open onClose={() => {}} width={480} closeOnBackdrop={false} closeOnEscape={false}>
+      <div style={{ padding: '40px 32px', textAlign: 'center' }}>
+        <div
+          style={{
+            width: 48, height: 48, margin: '0 auto 16px',
+            borderRadius: 24, background: ARK_TOKENS.azureFaint,
+            color: ARK_TOKENS.azure,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <Ico.user size={20} />
+        </div>
+        {device ? (
+          <DeviceCodeContent device={device} onCancel={onCancel} />
+        ) : authStatus === 'loading' ? (
+          <LoadingContent />
+        ) : (
+          <RetryContent errorMessage={errorMessage} onRetry={onRetry} />
+        )}
+      </div>
+      <style>{`@keyframes ark-spin { to { transform: rotate(360deg); } }`}</style>
+    </Modal>
+  );
+}
+
+function LoadingContent() {
+  return (
+    <>
+      <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, marginBottom: 16 }}>Signing in…</div>
       <div
         style={{
-          width: 36, height: 36,
+          width: 36, height: 36, margin: '0 auto',
           border: `3px solid ${ARK_TOKENS.borderStrong}`,
           borderTopColor: ARK_TOKENS.azure,
           borderRadius: '50%',
           animation: 'ark-spin 0.8s linear infinite',
         }}
       />
-      <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted }}>Signing in to Azure DevOps…</div>
-      <style>{`@keyframes ark-spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+      <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, marginTop: 16 }}>
+        Connecting to Azure DevOps…
+      </div>
+    </>
   );
 }
 
-function FullScreenDeviceCode({ device, onCancel }: { device: DeviceCode; onCancel: () => void }) {
+function DeviceCodeContent({ device, onCancel }: { device: DeviceCode; onCancel: () => void }) {
   const [copied, setCopied] = useState(false);
 
   const copy = () => {
@@ -151,139 +208,89 @@ function FullScreenDeviceCode({ device, onCancel }: { device: DeviceCode; onCanc
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0,
-        background: ARK_TOKENS.bg,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-      }}
-    >
+    <>
+      <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, marginBottom: 6 }}>Sign in to continue</div>
+      <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, marginBottom: 24, lineHeight: ARK_TOKENS.leading.normal }}>
+        Open the link below and enter this one-time code. We&rsquo;ll finish signing you in automatically.
+      </div>
+
       <div
         style={{
-          background: ARK_TOKENS.surface,
-          border: `1px solid ${ARK_TOKENS.border}`,
-          borderRadius: ARK_TOKENS.r2,
-          padding: '40px 32px',
-          maxWidth: 480,
-          width: '100%',
-          boxShadow: ARK_TOKENS.shadow1,
-          textAlign: 'center',
+          background: ARK_TOKENS.surfaceAlt,
+          border: `1px dashed ${ARK_TOKENS.borderStrong}`,
+          borderRadius: ARK_TOKENS.r,
+          padding: '16px 20px',
+          marginBottom: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}
       >
-        <div
+        <span
           style={{
-            width: 48, height: 48, margin: '0 auto 16px',
-            borderRadius: 24, background: ARK_TOKENS.azureFaint,
-            color: ARK_TOKENS.azure,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'monospace',
+            fontSize: 24, // intentionally above the type scale — one-time auth code retyped into a browser
+            fontWeight: ARK_TOKENS.weight.semibold,
+            letterSpacing: 2,
+            color: ARK_TOKENS.ink,
           }}
         >
-          <Ico.user size={20} />
-        </div>
-        <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, marginBottom: 6 }}>Sign in to continue</div>
-        <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, marginBottom: 24, lineHeight: ARK_TOKENS.leading.normal }}>
-          Open the link below and enter this one-time code. We&rsquo;ll finish signing you in automatically.
-        </div>
-
-        <div
-          style={{
-            background: ARK_TOKENS.surfaceAlt,
-            border: `1px dashed ${ARK_TOKENS.borderStrong}`,
-            borderRadius: ARK_TOKENS.r,
-            padding: '16px 20px',
-            marginBottom: 16,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: 'monospace',
-              fontSize: 24, // intentionally above the type scale — one-time auth code retyped into a browser
-              fontWeight: ARK_TOKENS.weight.semibold,
-              letterSpacing: 2,
-              color: ARK_TOKENS.ink,
-            }}
-          >
-            {device.userCode}
-          </span>
-          <Btn size="sm" onClick={copy}>
-            {copied ? 'Copied' : 'Copy'}
-          </Btn>
-        </div>
-
-        <a
-          href={device.verificationUri}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'inline-block',
-            color: ARK_TOKENS.azure,
-            fontSize: ARK_TOKENS.type.body,
-            textDecoration: 'none',
-            marginBottom: 20,
-            wordBreak: 'break-all',
-          }}
-        >
-          {device.verificationUri} ↗
-        </a>
-
-        <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, marginBottom: 8 }}>
-          Waiting for you to complete sign-in…
-        </div>
-
-        <button
-          onClick={onCancel}
-          style={{
-            background: 'transparent', border: 'none',
-            color: ARK_TOKENS.inkMuted, fontSize: ARK_TOKENS.type.label,
-            cursor: 'pointer', padding: 4,
-          }}
-        >
-          Cancel
-        </button>
+          {device.userCode}
+        </span>
+        <Btn size="sm" onClick={copy}>
+          {copied ? 'Copied' : 'Copy'}
+        </Btn>
       </div>
-    </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <Btn
+          variant="primary"
+          size="lg"
+          onClick={() => {
+            const w = 520;
+            const h = 720;
+            const left = window.screenX + (window.outerWidth - w) / 2;
+            const top = window.screenY + (window.outerHeight - h) / 2;
+            window.open(
+              device.verificationUri,
+              'ark-azure-signin',
+              `popup=yes,width=${w},height=${h},left=${left},top=${top}`,
+            );
+          }}
+        >
+          Open Microsoft sign-in
+        </Btn>
+        <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, marginTop: 8, wordBreak: 'break-all' }}>
+          {device.verificationUri}
+        </div>
+      </div>
+
+      <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, marginBottom: 8 }}>
+        Waiting for you to complete sign-in…
+      </div>
+
+      <button
+        onClick={onCancel}
+        style={{
+          background: 'transparent', border: 'none',
+          color: ARK_TOKENS.inkMuted, fontSize: ARK_TOKENS.type.label,
+          cursor: 'pointer', padding: 4,
+        }}
+      >
+        Cancel
+      </button>
+    </>
   );
 }
 
-function FullScreenSignIn({ onRetry, errorMessage }: { onRetry: () => void; errorMessage: string | null }) {
+function RetryContent({ errorMessage, onRetry }: { errorMessage: string | null; onRetry: () => void }) {
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0,
-        background: ARK_TOKENS.bg,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-      }}
-    >
-      <div
-        style={{
-          background: ARK_TOKENS.surface,
-          border: `1px solid ${ARK_TOKENS.border}`,
-          borderRadius: ARK_TOKENS.r2,
-          padding: '40px 32px',
-          textAlign: 'center',
-          maxWidth: 440,
-          boxShadow: ARK_TOKENS.shadow1,
-        }}
-      >
-        <div
-          style={{
-            width: 48, height: 48, margin: '0 auto 16px',
-            borderRadius: 24, background: ARK_TOKENS.azureFaint,
-            color: ARK_TOKENS.azure,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <Ico.user size={20} />
-        </div>
-        <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, marginBottom: 6 }}>Sign in required</div>
-        <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, marginBottom: 20, lineHeight: ARK_TOKENS.leading.normal }}>
-          {errorMessage ?? 'Sign in to Azure DevOps to continue.'}
-        </div>
-        <Btn variant="primary" size="lg" onClick={onRetry}>
-          Sign in to Azure DevOps
-        </Btn>
+    <>
+      <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, marginBottom: 6 }}>Sign in required</div>
+      <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, marginBottom: 20, lineHeight: ARK_TOKENS.leading.normal }}>
+        {errorMessage ?? 'Sign in to Azure DevOps to continue.'}
       </div>
-    </div>
+      <Btn variant="primary" size="lg" onClick={onRetry}>
+        Sign in to Azure DevOps
+      </Btn>
+    </>
   );
 }
