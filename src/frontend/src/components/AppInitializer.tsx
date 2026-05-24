@@ -24,6 +24,7 @@ export function AppInitializer({ children }: { children: ReactNode }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const cancelRef = useRef(false);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const popupRef = useRef<Window | null>(null);
 
   useEffect(() => {
     cancelRef.current = false;
@@ -49,29 +50,69 @@ export function AppInitializer({ children }: { children: ReactNode }) {
       return;
     }
 
-    await startDeviceFlow();
+    setAuthStatus('unauthenticated');
   }
 
-  async function startDeviceFlow() {
+  function handleSignInClick() {
+    const w = 520;
+    const h = 720;
+    const left = window.screenX + (window.outerWidth - w) / 2;
+    const top = window.screenY + (window.outerHeight - h) / 2;
+
+    // Kick off the device flow first so we have a Promise<DeviceCode> to
+    // feed the deferred clipboard write below.
+    const flowPromise = startDeviceFlow();
+
+    // Schedule the clipboard write NOW, while the parent document still has
+    // focus. window.open below will steal focus to the popup, which would
+    // make navigator.clipboard.writeText silently fail. ClipboardItem accepts
+    // a Promise<Blob>, so the actual code value resolves later when
+    // /device/start returns — but the focus check happens here.
+    if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+      const blobPromise: Promise<Blob> = flowPromise.then((code) =>
+        new Blob([code?.userCode ?? ''], { type: 'text/plain' }),
+      );
+      void navigator.clipboard
+        .write([new ClipboardItem({ 'text/plain': blobPromise })])
+        .catch((err) => console.warn('[auth] clipboard write failed', err));
+    }
+
+    popupRef.current = window.open(
+      'about:blank',
+      'ark-azure-signin',
+      `popup=yes,width=${w},height=${h},left=${left},top=${top}`,
+    );
+  }
+
+  async function startDeviceFlow(): Promise<DeviceCode | null> {
     setAuthStatus('loading');
     setErrorMessage(null);
     try {
       const res = await fetch('/api/auth/device/start', { method: 'POST' });
-      if (cancelRef.current) return;
+      if (cancelRef.current) return null;
       if (!res.ok) {
+        popupRef.current?.close();
+        popupRef.current = null;
         setAuthStatus('unauthenticated');
         setErrorMessage('Could not start sign-in. Try again.');
-        return;
+        return null;
       }
       const code = (await res.json()) as DeviceCode;
       setDevice(code);
+      if (popupRef.current && !popupRef.current.closed) {
+        popupRef.current.location.href = code.verificationUri;
+      }
       schedulePoll();
+      return code;
     } catch (err) {
       console.error('[auth] start failed', err);
+      popupRef.current?.close();
+      popupRef.current = null;
       if (!cancelRef.current) {
         setAuthStatus('unauthenticated');
         setErrorMessage('Network error. Try again.');
       }
+      return null;
     }
   }
 
@@ -117,7 +158,7 @@ export function AppInitializer({ children }: { children: ReactNode }) {
         device={device}
         authStatus={authStatus}
         errorMessage={errorMessage}
-        onRetry={() => void startDeviceFlow()}
+        onRetry={handleSignInClick}
         onCancel={() => location.reload()}
       />
     </>
