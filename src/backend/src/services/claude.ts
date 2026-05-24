@@ -1,10 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { buildCoachSystemPrompt, buildFieldSuggestionPrompt } from './coachPrompts.ts';
+import { buildManualContext } from './manualContext.ts';
 
 let _client: Anthropic | null = null;
 function client() {
   if (!_client) _client = new Anthropic();
   return _client;
+}
+
+function withManualContext(systemPrompt: string, manualContext: string): string {
+  return manualContext ? `${manualContext}\n\n---\n\n${systemPrompt}` : systemPrompt;
 }
 
 interface ChatMessage {
@@ -120,16 +125,22 @@ export async function chatWithCoach(
   draftContext: string | DraftContext,
 ): Promise<CoachResponse> {
   const ctx = parseDraftContext(draftContext);
-  const systemPrompt = buildCoachSystemPrompt(ctx);
+  const lastUser = messages.length > 0 ? messages[messages.length - 1]?.content ?? '' : '';
+  const query = [ctx.title, ctx.activeField, ctx.want, lastUser].filter(Boolean).join(' ');
+  const manualContext = buildManualContext(query);
+  const baseSystemPrompt = buildCoachSystemPrompt(ctx, { manualAvailable: manualContext.length > 0 });
+  const systemPrompt = withManualContext(baseSystemPrompt, manualContext);
+
+  const conversation: Anthropic.MessageParam[] = messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
 
   const response = await client().messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 1500,
     system: systemPrompt,
-    messages: messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    })),
+    messages: conversation,
   });
 
   const block = response.content[0];
@@ -143,13 +154,20 @@ export async function suggestForField(
   draftContext: string | DraftContext,
 ): Promise<{ text: string; suggestions?: string[] }> {
   const ctx = parseDraftContext(draftContext);
-  const systemPrompt = buildFieldSuggestionPrompt(field, currentValue, ctx);
+  const query = [field, currentValue, ctx.title, ctx.activeField].filter(Boolean).join(' ');
+  const manualContext = buildManualContext(query);
+  const baseSystemPrompt = buildFieldSuggestionPrompt(field, currentValue, ctx, {
+    manualAvailable: manualContext.length > 0,
+  });
+  const systemPrompt = withManualContext(baseSystemPrompt, manualContext);
 
   const response = await client().messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 512,
     system: systemPrompt,
-    messages: [{ role: 'user', content: `Suggest improvements for the ${field} field.` }],
+    messages: [
+      { role: 'user', content: `Suggest improvements for the ${field} field.` },
+    ],
   });
 
   const block = response.content[0];

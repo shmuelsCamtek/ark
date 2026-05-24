@@ -9,6 +9,7 @@ import { azureRouter } from './routes/azure.ts';
 import { authRouter } from './routes/auth.ts';
 import { documentsRouter } from './routes/documents.ts';
 import { sharepointRouter } from './routes/sharepoint.ts';
+import { isManualLoaded, getManualSize } from './services/manualIndex.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,6 +43,11 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
   res.sendFile(path.join(STATIC_DIR, 'index.html'));
 });
+
+// Warm up the manual index so the first coach call doesn't pay the load cost.
+// The loader logs its own status (loaded / not found / parse error).
+isManualLoaded();
+getManualSize();
 
 app.listen(PORT, () => {
   console.log(`Ark server listening on port ${PORT}`);

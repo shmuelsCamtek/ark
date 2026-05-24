@@ -60,8 +60,22 @@ Required `.env` keys:
 - `ANTHROPIC_API_KEY` — for AI coach (Claude API)
 - `AZURE_DEVOPS_ORG`, `AZURE_DEVOPS_PROJECT` — Azure DevOps target org/project. Auth uses the OAuth2 device-code flow via Microsoft's Azure CLI public client; no PAT or App Registration needed.
 - `AZURE_TENANT_ID` *(optional)* — pin to your tenant GUID; defaults to `organizations` (any work/school account)
+- `USER_MANUAL_PATH` *(optional, indexing-time only)* — absolute path to the Camtek User Manual PDF. Read by `npm run index-manual` to build a small text index; defaults to `src/backend/manual/camtek-user-manual.pdf`. The runtime never reads the PDF itself.
+- `USER_MANUAL_INDEX_PATH` *(optional)* — override the runtime path to the generated `manual-index.json`. Defaults to `src/backend/manual/manual-index.json`.
 
 The frontend Vite dev server proxies `/api` requests to `localhost:3001`.
+
+### Indexing the User Manual (one-time / on update)
+
+The Camtek User Manual is too large (~158 MiB) to inline on every Claude call — Anthropic's per-request body limit (~32 MiB) would reject it with HTTP 413. Instead the backend reads a pre-built searchable text index, and selects the top-4 relevant chunks per call.
+
+```bash
+cd src/backend
+npm run index-manual          # interactive
+npm run index-manual -- --yes # non-interactive
+```
+
+The script walks the PDF page-by-page and writes `src/backend/manual/manual-index.json` (gitignored). Re-run it whenever the source PDF changes; restart the backend to pick up the new index. If the index is missing the coach runs without product context (single warning logged at startup). See `src/backend/manual/README.md` for details.
 
 No test framework is configured yet.
 
@@ -165,19 +179,24 @@ src/frontend/                          # Vite + React app
 
 ```
 src/backend/                           # Express API server
-├── src/
-│   ├── index.ts                       # Express app entry point
-│   ├── routes/
-│   │   ├── auth.ts                    # /api/auth/me, /api/auth/device/start, /api/auth/device/poll
-│   │   ├── drafts.ts                  # GET/POST/PUT/DELETE /api/drafts
-│   │   ├── ai.ts                      # POST /api/ai/chat, /api/ai/suggest
-│   │   ├── azure.ts                   # GET/POST /api/azure/workitems (gated on cached token)
-│   │   └── documents.ts              # POST /api/documents/upload, /:id/scan
-│   └── services/
-│       ├── auth.ts                    # Device flow + in-memory token cache + silent refresh
-│       ├── claude.ts                  # Claude API wrapper
-│       ├── azureDevOps.ts             # Azure DevOps REST client (each call takes a Bearer token)
-│       └── documentScanner.ts         # PDF/image → AI AC extraction
+├── scripts/
+│   └── index-manual.ts                # One-shot: builds manual-index.json from the source PDF
+├── manual/                            # Holds the source PDF (gitignored) + generated index
+└── src/
+    ├── index.ts                       # Express app entry point
+    ├── routes/
+    │   ├── auth.ts                    # /api/auth/me, /api/auth/device/start, /api/auth/device/poll
+    │   ├── drafts.ts                  # GET/POST/PUT/DELETE /api/drafts
+    │   ├── ai.ts                      # POST /api/ai/chat, /api/ai/suggest
+    │   ├── azure.ts                   # GET/POST /api/azure/workitems (gated on cached token)
+    │   └── documents.ts               # POST /api/documents/upload, /:id/scan
+    └── services/
+        ├── auth.ts                    # Device flow + in-memory token cache + silent refresh
+        ├── claude.ts                  # Claude API wrapper (chatWithCoach, suggestForField)
+        ├── azureDevOps.ts             # Azure DevOps REST client (each call takes a Bearer token)
+        ├── documentScanner.ts         # PDF/image → AI AC extraction
+        ├── manualIndex.ts             # Lazy-loaded minisearch index over manual-index.json
+        └── manualContext.ts           # buildManualContext(query) — returns top-K excerpts to prepend to system prompts
 ```
 
 **Key patterns:**

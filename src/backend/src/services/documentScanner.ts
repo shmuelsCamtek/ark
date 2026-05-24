@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
+import { buildManualContext } from './manualContext.ts';
 
 let _client: Anthropic | null = null;
 function client(): Anthropic {
@@ -216,13 +217,19 @@ export async function scanDocument(
 ): Promise<ScanResult> {
   const messages = await buildMessages(content, mimeType, name);
 
+  const query = [name, mimeType, `Camtek product context for ${name}`].filter(Boolean).join(' ');
+  const manualContext = buildManualContext(query);
+  const baseSystem =
+    'You are a document analyzer that prepares context for user-story writing. ' +
+    'Extract business context, stakeholders, goals, and testable acceptance criteria from documents. ' +
+    'When manual excerpts are provided above, use them to interpret product-specific terms. ' +
+    'Always return valid JSON.';
+  const system = manualContext ? `${manualContext}\n\n---\n\n${baseSystem}` : baseSystem;
+
   const response = await client().messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 1024,
-    system:
-      'You are a document analyzer that prepares context for user-story writing. ' +
-      'Extract business context, stakeholders, goals, and testable acceptance criteria from documents. ' +
-      'Always return valid JSON.',
+    system,
     messages,
   });
 

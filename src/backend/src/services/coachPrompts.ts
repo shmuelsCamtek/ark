@@ -162,7 +162,24 @@ function buildWorkItemSection(ctx: DraftContext): string {
   return '\n\n' + lines.join('\n');
 }
 
-export function buildCoachSystemPrompt(draftContext: DraftContext): string {
+interface PromptOptions {
+  manualAvailable?: boolean;
+}
+
+const MANUAL_GROUNDING_SECTION = `
+## Camtek User Manual (reference document)
+The official Camtek User Manual is loaded as a PDF reference in this conversation. Treat it as authoritative product context.
+
+- **Ground drafts in the manual.** When drafting Background, Persona, Desire, Benefit, Title, or Acceptance Criteria, cross-reference the manual for product behavior, terminology, workflows, and roles. Prefer the manual's wording for product names, modes, features, and user roles over invented or generic terms.
+- **Cite briefly when you draw on it.** When a specific fact, term, or workflow in your draft comes from the manual, include a short citation in the conversational \`text\` field (not inside the drafted field's content) — e.g., "per the User Manual §3.2" or "(User Manual: 'Tray Inspection Setup')". Use section numbers or section titles, whichever the manual uses.
+- **Paraphrase, don't quote.** Drafts of Background / Persona / Desire / Benefit / Title should read in the user-story voice, not as manual excerpts. Verbatim quoting is reserved for the citation hint in the \`text\` field, never inside the field options.
+- **Don't force it.** If a turn doesn't touch a manual-covered topic, no citation needed.
+`;
+
+export function buildCoachSystemPrompt(
+  draftContext: DraftContext,
+  options: PromptOptions = {},
+): string {
   const filled: string[] = [];
   const empty: string[] = [];
 
@@ -203,6 +220,7 @@ export function buildCoachSystemPrompt(draftContext: DraftContext): string {
 - User story anatomy: persona → narrative (As a… I want… So that…) → acceptance criteria
 - Azure DevOps work item structure and conventions
 - Domain-specific language and backlog patterns
+${options.manualAvailable ? MANUAL_GROUNDING_SECTION : ''}
 
 ## What "good" looks like
 - **Title**: Action-oriented, concise (5-10 words), starts with a verb or describes the capability
@@ -332,6 +350,7 @@ export function buildFieldSuggestionPrompt(
   field: string,
   currentValue: string,
   draftContext: DraftContext,
+  options: PromptOptions = {},
 ): string {
   const guidance = FIELD_GUIDANCE[field] || `Provide suggestions for the ${field} field.`;
 
@@ -361,7 +380,7 @@ export function buildFieldSuggestionPrompt(
   }
 
   return `You are Ark Coach. The user needs help with the "${field}" field of their user story.
-
+${options.manualAvailable ? '\nThe Camtek User Manual is loaded as a PDF reference in this conversation. Use it as authoritative product context — prefer the manual\'s terminology for product names, modes, features, and user roles. If a suggestion is grounded in the manual, mention the section in the `text` field (e.g., "per the User Manual §3.2") — keep the suggestion options themselves in user-story voice, not as manual excerpts.\n' : ''}
 ## Field guidance
 ${guidance}
 
