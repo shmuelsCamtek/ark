@@ -8,6 +8,7 @@ interface MockupTabsProps {
   storyContent: ReactNode;
   mockup: DraftMockup | undefined;
   showInsufficient: boolean;
+  generating?: boolean;
   onRefresh?: () => void;
   refreshing?: boolean;
 }
@@ -34,12 +35,13 @@ export function MockupTabs({
   storyContent,
   mockup,
   showInsufficient,
+  generating,
   onRefresh,
   refreshing,
 }: MockupTabsProps) {
   const hasOk = mockup?.status === 'ok' && !!mockup.html;
   const hasInsufficient = mockup?.status === 'insufficient' && showInsufficient;
-  const renderTabs = hasOk || hasInsufficient;
+  const renderTabs = hasOk || hasInsufficient || !!generating;
 
   const [active, setActive] = useState<'story' | 'mockup'>('story');
 
@@ -70,21 +72,65 @@ export function MockupTabs({
         <TabButton active={isMockup} onClick={() => setActive('mockup')}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             Mockup
-            <span
-              style={{
-                color: hasInsufficient ? ARK_TOKENS.danger : ARK_TOKENS.ai,
-                fontWeight: ARK_TOKENS.weight.semibold,
-              }}
-            >
-              {hasInsufficient ? '⚠' : '✷'}
-            </span>
+            {generating ? (
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: 12,
+                  height: 12,
+                  border: `2px solid ${ARK_TOKENS.aiLight}`,
+                  borderTopColor: ARK_TOKENS.ai,
+                  borderRadius: '50%',
+                  animation: 'ark-spin 0.8s linear infinite',
+                }}
+              />
+            ) : (
+              <span
+                style={{
+                  color: hasInsufficient ? ARK_TOKENS.danger : ARK_TOKENS.ai,
+                  fontWeight: ARK_TOKENS.weight.semibold,
+                }}
+              >
+                {hasInsufficient ? '⚠' : '✷'}
+              </span>
+            )}
           </span>
         </TabButton>
       </div>
 
       {!isMockup && storyContent}
 
-      {isMockup && hasOk && (
+      {isMockup && generating && (
+        <div
+          style={{
+            border: `1px solid ${ARK_TOKENS.border}`,
+            borderRadius: ARK_TOKENS.r2,
+            background: ARK_TOKENS.surface,
+            padding: 48,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              border: `3px solid ${ARK_TOKENS.aiLight}`,
+              borderTopColor: ARK_TOKENS.ai,
+              borderRadius: '50%',
+              animation: 'ark-spin 0.8s linear infinite',
+            }}
+          />
+          <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted }}>
+            Generating mockup…
+          </div>
+        </div>
+      )}
+
+      {isMockup && !generating && hasOk && (
         <div
           className="ark-mockup-frame"
           style={{
@@ -98,7 +144,7 @@ export function MockupTabs({
         />
       )}
 
-      {isMockup && hasInsufficient && mockup && (
+      {isMockup && !generating && hasInsufficient && mockup && (
         <div
           style={{
             border: `1px solid ${ARK_TOKENS.danger}`,

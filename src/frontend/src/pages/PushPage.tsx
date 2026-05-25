@@ -310,6 +310,7 @@ export function PushPage() {
                   storyContent={<WorkItemPreview {...storyData} compact />}
                   mockup={draft?.mockup}
                   showInsufficient={false}
+                  generating={generatingMockup}
                 />
               </div>
             </div>
