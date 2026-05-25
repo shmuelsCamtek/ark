@@ -29,8 +29,8 @@ function slugify(s: string): string {
 export function PushPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getDraft, user } = useApp();
-  const { azure, sharepoint } = useServices();
+  const { getDraft, updateDraft, user, isMockupGenerating, setMockupGenerating } = useApp();
+  const { azure, sharepoint, ai } = useServices();
   const draft = getDraft(id);
 
   const [stage, setStage] = useState<Stage>('review');
@@ -39,6 +39,9 @@ export function PushPage() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [workItemUrl, setWorkItemUrl] = useState<string | null>(null);
   const [graphLogin, setGraphLogin] = useState<GraphLoginInfo | null>(null);
+  const [mockupError, setMockupError] = useState<string | null>(null);
+
+  const generatingMockup = id ? isMockupGenerating(id) : false;
 
   const workItemId = draft?.workItemId;
   const workItemTitle = draft?.workItemTitle?.trim() || '';
@@ -191,6 +194,24 @@ export function PushPage() {
     setErrorMessage('');
   };
 
+  const handleGenerateMockup = async () => {
+    if (!id || generatingMockup) return;
+    setMockupGenerating(id, true);
+    setMockupError(null);
+    try {
+      const result = await ai.generateMockup(id);
+      updateDraft(id, { mockup: result });
+    } catch (err) {
+      setMockupError(err instanceof Error ? err.message : 'Mockup generation failed');
+    } finally {
+      setMockupGenerating(id, false);
+    }
+  };
+
+  const mockup = draft?.mockup;
+  const hasOkMockup = mockup?.status === 'ok';
+  const hasInsufficientMockup = mockup?.status === 'insufficient';
+
   // ── Review stage ──
   if (stage === 'review') {
     return (
@@ -229,6 +250,25 @@ export function PushPage() {
                 </a>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
+                <Btn
+                  onClick={handleGenerateMockup}
+                  disabled={generatingMockup}
+                  title={
+                    hasOkMockup
+                      ? 'Mockup ready — click to regenerate.'
+                      : hasInsufficientMockup
+                      ? 'Mockup attempt was insufficient. Click to retry.'
+                      : 'Generate an HTML mockup of this story'
+                  }
+                >
+                  {generatingMockup
+                    ? 'Generating…'
+                    : hasOkMockup
+                    ? 'Refresh mockup ✓'
+                    : hasInsufficientMockup
+                    ? 'Refresh mockup ⚠'
+                    : '✷ Generate mockup'}
+                </Btn>
                 <Btn onClick={handleBackToEditor} icon={<Ico.arrow size={12} dir="left" />}>
                   Back
                 </Btn>
@@ -239,6 +279,29 @@ export function PushPage() {
             </div>
           }
         />
+        {(mockupError || hasInsufficientMockup) && (
+          <div
+            style={{
+              background: ARK_TOKENS.dangerBg,
+              borderBottom: `1px solid ${ARK_TOKENS.danger}`,
+              color: ARK_TOKENS.ink,
+              padding: '10px 20px',
+              fontSize: ARK_TOKENS.type.label,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span style={{ color: ARK_TOKENS.danger, display: 'inline-flex', alignItems: 'center' }}>
+              <Ico.warn size={14} />
+            </span>
+            <span>
+              {mockupError
+                ? `Mockup error: ${mockupError}`
+                : `Mockup needs more story detail: ${mockup?.insufficientReason}`}
+            </span>
+          </div>
+        )}
         <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto', padding: '32px 48px 48px' }}>
           <div style={{ maxWidth: 900, margin: '0 auto' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 720 }}>

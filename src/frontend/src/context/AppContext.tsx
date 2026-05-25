@@ -17,6 +17,7 @@ interface AppState {
   azureConnection: AzureConnection;
   user: UserProfile | null;
   authStatus: AuthStatus;
+  mockupGeneratingIds: ReadonlySet<string>;
 }
 
 type DraftUpdater = Partial<StoryDraft> | ((current: StoryDraft) => Partial<StoryDraft>);
@@ -30,6 +31,8 @@ interface AppActions {
   setAzureConnection: (conn: AzureConnection) => void;
   setUser: (user: UserProfile | null) => void;
   setAuthStatus: (status: AuthStatus) => void;
+  setMockupGenerating: (draftId: string, generating: boolean) => void;
+  isMockupGenerating: (draftId: string) => boolean;
 }
 
 type AppContextValue = AppState & AppActions;
@@ -72,6 +75,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [azureConnection, setAzureConnection] = useState<AzureConnection>({ connected: false });
   const [user, setUser] = useState<UserProfile | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
+  const [mockupGeneratingIds, setMockupGeneratingIds] = useState<ReadonlySet<string>>(() => new Set());
+
+  const setMockupGenerating = useCallback((draftId: string, generating: boolean) => {
+    setMockupGeneratingIds((prev) => {
+      if (generating === prev.has(draftId)) return prev;
+      const next = new Set(prev);
+      if (generating) next.add(draftId);
+      else next.delete(draftId);
+      return next;
+    });
+  }, []);
+
+  const isMockupGenerating = useCallback(
+    (draftId: string) => mockupGeneratingIds.has(draftId),
+    [mockupGeneratingIds],
+  );
 
   const draftsApi = useMemo(() => new HttpDraftsService(), []);
   const azureApi = useMemo(() => new HttpAzureService(), []);
@@ -228,6 +247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         azureConnection,
         user,
         authStatus,
+        mockupGeneratingIds,
         addDraft,
         updateDraft,
         deleteDraft,
@@ -236,6 +256,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setAzureConnection,
         setUser,
         setAuthStatus,
+        setMockupGenerating,
+        isMockupGenerating,
       }}
     >
       {children}

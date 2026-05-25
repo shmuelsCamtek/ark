@@ -104,10 +104,9 @@ export function BuilderPage() {
 function BuilderPageBody() {
   const params = useParams();
   const navigate = useNavigate();
-  const { getDraft, updateDraft, addDraft } = useApp();
+  const { getDraft, updateDraft, addDraft, isMockupGenerating, setMockupGenerating } = useApp();
   const { azure, ai } = useServices();
   const [workItemUrl, setWorkItemUrl] = useState<string | null>(null);
-  const [generatingMockup, setGeneratingMockup] = useState(false);
   const [mockupError, setMockupError] = useState<string | null>(null);
 
   const editId = params.id;
@@ -468,17 +467,20 @@ function BuilderPageBody() {
     navigate(`/stories/${editId || draftId}/push`);
   };
 
+  const targetDraftId = editId || draftId;
+  const generatingMockup = isMockupGenerating(targetDraftId);
+
   const handleGenerateMockup = async () => {
     if (generatingMockup) return;
-    setGeneratingMockup(true);
+    setMockupGenerating(targetDraftId, true);
     setMockupError(null);
     try {
-      const result = await ai.generateMockup(editId || draftId);
-      updateDraft(editId || draftId, { mockup: result });
+      const result = await ai.generateMockup(targetDraftId);
+      updateDraft(targetDraftId, { mockup: result });
     } catch (err) {
       setMockupError(err instanceof Error ? err.message : 'Mockup generation failed');
     } finally {
-      setGeneratingMockup(false);
+      setMockupGenerating(targetDraftId, false);
     }
   };
 
