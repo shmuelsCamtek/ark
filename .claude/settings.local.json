@@ -43,7 +43,8 @@
       "PowerShell(& \"C:\\\\Users\\\\shmuels\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\Scripts\\\\pip.exe\" install --user azure-cli 2>&1 | Select-Object -Last 5)",
       "PowerShell($current = [Environment]::GetEnvironmentVariable\\('Path', 'User'\\); $current)",
       "PowerShell($env:PATH = \"C:\\\\Users\\\\shmuels\\\\AppData\\\\Roaming\\\\Python\\\\Python313\\\\Scripts;\" + $env:PATH; az --version 2>&1 | Select-Object -First 5)",
-      "PowerShell(az login *)"
+      "PowerShell(az login *)",
+      "Bash(timeout 8 npx tsx src/index.ts)"
     ]
   }
 }
