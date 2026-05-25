@@ -48,9 +48,9 @@
 - [x] no need for assign and state in preview page.
 - [x] clarity feture should be clickable preview page
 - [ ] written by should be on the top after the title. preview page
-- [ ] titles on the preview should be SemiBold
+- [x] titles on the preview should be SemiBold
 - [ ] orignal TFS on should be linkable on HTML preview output. 
-- [ ] all titles should be shared to tabs.
+- [x] all titles should be shared to tabs.
 - [ ] "Discription" should be aftetr backgound
   - [ ] should be aligned with Edit page. 
   - [ ] Discription should be 'As-a, I-want, So-that"

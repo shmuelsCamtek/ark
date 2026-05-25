@@ -37,7 +37,7 @@ interface WorkItemPreviewProps {
 export function WorkItemPreview({ title, background, scenario, flow, persona, want, benefit, criteria, docs, showUiChange, compact, workItemType, workItemId, uiBeforeUrl, uiAfterUrl }: WorkItemPreviewProps) {
   return (
     <div style={{ fontSize: ARK_TOKENS.type.body, lineHeight: ARK_TOKENS.leading.normal }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.medium, letterSpacing: 0.3 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.3 }}>
         <span style={{ width: 10, height: 10, background: ARK_TOKENS.azure, borderRadius: 1 }} />
         <span>
           {(workItemType || 'User Story').toUpperCase()}
