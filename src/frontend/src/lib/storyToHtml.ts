@@ -1,4 +1,3 @@
-import DOMPurify from 'isomorphic-dompurify';
 import type { FlowBlock } from './renderFlowSvg';
 
 export interface StoryHtmlInput {
@@ -18,24 +17,6 @@ export interface StoryHtmlInput {
   generatedBy: string;
   generatedAt: string;
 }
-
-const MOCKUP_SANITIZE_CONFIG = {
-  ALLOWED_TAGS: [
-    'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4',
-    'ul', 'ol', 'li',
-    'table', 'thead', 'tbody', 'tr', 'td', 'th',
-    'button', 'input', 'label',
-    'hr', 'br', 'strong', 'em', 'code', 'small',
-    'figure', 'figcaption', 'img',
-  ],
-  ALLOWED_ATTR: [
-    'class', 'style', 'type', 'placeholder', 'value', 'checked',
-    'disabled', 'alt', 'src', 'width', 'height', 'for', 'role', 'aria-label',
-  ],
-  ALLOW_DATA_ATTR: false,
-  FORBID_TAGS: ['script', 'style', 'iframe', 'form', 'link', 'meta', 'object', 'embed'],
-  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onsubmit'],
-};
 
 function escapeHtml(s: string): string {
   return s
@@ -91,7 +72,8 @@ const STYLES = `
   #t-story:checked ~ .ark-tabs label[for="t-story"] { color: #1a1a1a; font-weight: 600; border-bottom-color: #008FBE; }
   #t-mockup:checked ~ .ark-panel-story { display: none; }
   #t-mockup:checked ~ .ark-panel-mockup { display: block; }
-  .ark-mockup-frame { border: 1px solid #e0e2e5; border-radius: 8px; background: #fff; padding: 16px; overflow-x: auto; }
+  .ark-mockup-frame { border: 1px solid #e0e2e5; border-radius: 8px; background: #fff; width: 100%; min-height: 480px; display: block; }
+  iframe.ark-mockup-frame { border: 1px solid #e0e2e5; border-radius: 8px; background: #fff; width: 100%; min-height: 480px; display: block; }
   .ark-tab-badge { color: #7E57C2; font-weight: 600; margin-left: 6px; }
 `;
 
@@ -169,7 +151,11 @@ export function storyToHtml(input: StoryHtmlInput): string {
   // no <script> needed, no :target hash side-effects.
   let bodyContent: string;
   if (mockupHtml && mockupHtml.trim()) {
-    const sanitizedMockup = DOMPurify.sanitize(mockupHtml, MOCKUP_SANITIZE_CONFIG);
+    // The mockup is a full HTML document; embed it in a sandboxed iframe so
+    // its <script>/<style>/event handlers run isolated from the host SharePoint
+    // page. (Note: some SharePoint tenants strip iframes — known limitation.)
+    // We escape the document as an attribute value for srcdoc.
+    const escapedMockup = escapeHtml(mockupHtml);
     bodyContent = `
 ${header}
 <input class="ark-tabs-radio" type="radio" name="ark-tabs" id="t-story" checked>
@@ -182,7 +168,7 @@ ${header}
 ${storySectionsHtml}
 </div>
 <div class="ark-panel-mockup">
-<div class="ark-mockup-frame">${sanitizedMockup}</div>
+<iframe class="ark-mockup-frame" sandbox="allow-scripts" title="Interactive GUI mockup" srcdoc="${escapedMockup}"></iframe>
 </div>
 ${footer}`;
   } else {

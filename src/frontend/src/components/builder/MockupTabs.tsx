@@ -1,26 +1,7 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import DOMPurify from 'isomorphic-dompurify';
+import { useState, type ReactNode } from 'react';
 import { ARK_TOKENS } from '../../tokens';
 import { Btn, Ico } from '../ui';
 import type { DraftMockup } from '../../types';
-
-const SANITIZE_CONFIG = {
-  ALLOWED_TAGS: [
-    'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4',
-    'ul', 'ol', 'li',
-    'table', 'thead', 'tbody', 'tr', 'td', 'th',
-    'button', 'input', 'label',
-    'hr', 'br', 'strong', 'em', 'code', 'small',
-    'figure', 'figcaption', 'img',
-  ],
-  ALLOWED_ATTR: [
-    'class', 'style', 'type', 'placeholder', 'value', 'checked',
-    'disabled', 'alt', 'src', 'width', 'height', 'for', 'role', 'aria-label',
-  ],
-  ALLOW_DATA_ATTR: false,
-  FORBID_TAGS: ['script', 'style', 'iframe', 'form', 'link', 'meta', 'object', 'embed'],
-  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onsubmit'],
-};
 
 interface MockupPanelProps {
   mockup: DraftMockup | undefined;
@@ -45,11 +26,6 @@ export function MockupPanel({
 }: MockupPanelProps) {
   const hasOk = mockup?.status === 'ok' && !!mockup.html;
   const hasInsufficient = mockup?.status === 'insufficient' && showInsufficient;
-
-  const sanitizedHtml = useMemo(() => {
-    if (!hasOk || !mockup?.html) return '';
-    return DOMPurify.sanitize(mockup.html, SANITIZE_CONFIG);
-  }, [hasOk, mockup?.html]);
 
   if (generating) {
     return (
@@ -83,18 +59,25 @@ export function MockupPanel({
     );
   }
 
-  if (hasOk) {
+  if (hasOk && mockup?.html) {
+    // Render the full HTML document inside a sandboxed iframe so Claude's
+    // <script>/<style>/event handlers run safely, isolated from the parent app.
+    // sandbox="allow-scripts" (no allow-same-origin, no allow-forms, no allow-popups,
+    // no allow-top-navigation) means the mockup runs in a unique opaque origin —
+    // no access to cookies, localStorage, parent DOM, or top-frame navigation.
     return (
-      <div
-        className="ark-mockup-frame"
+      <iframe
+        title="Interactive GUI mockup"
+        srcDoc={mockup.html}
+        sandbox="allow-scripts"
         style={{
+          width: '100%',
+          minHeight: 480,
           border: `1px solid ${ARK_TOKENS.border}`,
           borderRadius: ARK_TOKENS.r2,
           background: ARK_TOKENS.surface,
-          padding: 16,
-          overflowX: 'auto',
+          display: 'block',
         }}
-        dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
       />
     );
   }
