@@ -136,7 +136,38 @@ export function MockupPanel({
     );
   }
 
-  return null;
+  // Empty state — no mockup attempted yet.
+  return (
+    <div
+      style={{
+        border: `1px dashed ${ARK_TOKENS.borderStrong}`,
+        borderRadius: ARK_TOKENS.r2,
+        background: ARK_TOKENS.surfaceAlt,
+        padding: 48,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ color: ARK_TOKENS.ai, fontSize: 32, lineHeight: 1 }}>✷</div>
+      <div style={{ fontSize: ARK_TOKENS.type.h2, fontWeight: ARK_TOKENS.weight.semibold }}>
+        No Interactive GUI yet
+      </div>
+      <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted, maxWidth: 420 }}>
+        Generate an AI mockup of this story to validate the design before pushing.
+      </div>
+      {onRefresh && (
+        <div style={{ marginTop: 8 }}>
+          <Btn variant="primary" onClick={onRefresh} disabled={refreshing}>
+            {refreshing ? 'Generating…' : '✷ Generate Interactive GUI'}
+          </Btn>
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface MockupTabsProps {
@@ -156,16 +187,9 @@ export function MockupTabs({
   onRefresh,
   refreshing,
 }: MockupTabsProps) {
-  const hasOk = mockup?.status === 'ok' && !!mockup.html;
   const hasInsufficient = mockup?.status === 'insufficient' && showInsufficient;
-  const renderTabs = hasOk || hasInsufficient || !!generating;
 
   const [active, setActive] = useState<'story' | 'mockup'>('story');
-
-  if (!renderTabs) {
-    return <>{storyContent}</>;
-  }
-
   const isMockup = active === 'mockup';
 
   return (

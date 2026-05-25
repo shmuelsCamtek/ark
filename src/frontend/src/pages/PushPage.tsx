@@ -209,7 +209,6 @@ export function PushPage() {
   };
 
   const mockup = draft?.mockup;
-  const hasOkMockup = mockup?.status === 'ok';
   const hasInsufficientMockup = mockup?.status === 'insufficient';
 
   // ── Review stage ──
@@ -250,25 +249,6 @@ export function PushPage() {
                 </a>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <Btn
-                  onClick={handleGenerateMockup}
-                  disabled={generatingMockup}
-                  title={
-                    hasOkMockup
-                      ? 'Interactive GUI ready — click to regenerate.'
-                      : hasInsufficientMockup
-                      ? 'Interactive GUI attempt was insufficient. Click to retry.'
-                      : 'Generate an Interactive GUI for this story'
-                  }
-                >
-                  {generatingMockup
-                    ? 'Generating…'
-                    : hasOkMockup
-                    ? 'Refresh Interactive GUI ✓'
-                    : hasInsufficientMockup
-                    ? 'Refresh Interactive GUI ⚠'
-                    : '✷ Generate Interactive GUI'}
-                </Btn>
                 <Btn onClick={handleBackToEditor} icon={<Ico.arrow size={12} dir="left" />}>
                   Back
                 </Btn>
@@ -311,6 +291,8 @@ export function PushPage() {
                   mockup={draft?.mockup}
                   showInsufficient={false}
                   generating={generatingMockup}
+                  onRefresh={handleGenerateMockup}
+                  refreshing={generatingMockup}
                 />
               </div>
             </div>

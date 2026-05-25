@@ -487,9 +487,7 @@ function BuilderPageBody() {
   };
 
   const mockup = draft?.mockup;
-  const hasOkMockup = mockup?.status === 'ok';
   const hasInsufficientMockup = mockup?.status === 'insufficient';
-  const showMockupTabs = hasOkMockup || hasInsufficientMockup || generatingMockup;
 
   return (
     <div style={{ width: '100%', height: '100%', background: ARK_TOKENS.bg, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -527,25 +525,6 @@ function BuilderPageBody() {
               </a>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <Btn
-                onClick={handleGenerateMockup}
-                disabled={generatingMockup}
-                title={
-                  hasOkMockup
-                    ? 'Interactive GUI ready — see it in Review. Click to regenerate.'
-                    : hasInsufficientMockup
-                    ? 'Interactive GUI attempt was insufficient. Click to retry.'
-                    : 'Generate an Interactive GUI for this story'
-                }
-              >
-                {generatingMockup
-                  ? 'Generating…'
-                  : hasOkMockup
-                  ? 'Refresh Interactive GUI ✓'
-                  : hasInsufficientMockup
-                  ? 'Refresh Interactive GUI ⚠'
-                  : '✷ Generate Interactive GUI'}
-              </Btn>
               <Btn icon={<Ico.x size={12} />} onClick={() => navigate('/')}>
                 Close
               </Btn>
@@ -628,31 +607,29 @@ function BuilderPageBody() {
 
         {/* RIGHT: Form + Mockup tabs */}
         <div style={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          {showMockupTabs && (
-            <div
-              style={{
-                display: 'flex',
-                gap: 4,
-                borderBottom: `1px solid ${ARK_TOKENS.border}`,
-                padding: '8px 40px 0',
-                background: ARK_TOKENS.bg,
-                flexShrink: 0,
-              }}
-            >
-              <MockupTabButton active={activeTab === 'story'} onClick={() => setActiveTab('story')}>
-                User Story
-              </MockupTabButton>
-              <MockupTabButton active={activeTab === 'mockup'} onClick={() => setActiveTab('mockup')}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  Interactive GUI
-                  <MockupTabBadge generating={generatingMockup} hasInsufficient={hasInsufficientMockup} />
-                </span>
-              </MockupTabButton>
-            </div>
-          )}
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              borderBottom: `1px solid ${ARK_TOKENS.border}`,
+              padding: '8px 40px 0',
+              background: ARK_TOKENS.bg,
+              flexShrink: 0,
+            }}
+          >
+            <MockupTabButton active={activeTab === 'story'} onClick={() => setActiveTab('story')}>
+              User Story
+            </MockupTabButton>
+            <MockupTabButton active={activeTab === 'mockup'} onClick={() => setActiveTab('mockup')}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                Interactive GUI
+                <MockupTabBadge generating={generatingMockup} hasInsufficient={hasInsufficientMockup} />
+              </span>
+            </MockupTabButton>
+          </div>
           <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto' }}>
             <div style={{ padding: '32px 40px 80px' }}>
-              {showMockupTabs && activeTab === 'mockup' ? (
+              {activeTab === 'mockup' ? (
                 <MockupPanel
                   mockup={mockup}
                   showInsufficient
