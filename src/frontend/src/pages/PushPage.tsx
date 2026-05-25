@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ARK_TOKENS } from '../tokens';
 import { TopBar, Btn, Ico, AzureMark } from '../components/ui';
-import { WorkItemPreview } from '../components/builder/WorkItemPreview';
+import { WorkItemPreview, WorkItemHeader } from '../components/builder/WorkItemPreview';
 import { MockupTabs } from '../components/builder/MockupTabs';
 import { useParams, useNavigate } from '../router';
 import { useApp } from '../context/AppContext';
@@ -286,8 +286,13 @@ export function PushPage() {
           <div style={{ maxWidth: 900, margin: '0 auto' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 720 }}>
               <div style={{ background: ARK_TOKENS.surface, borderRadius: ARK_TOKENS.r2, border: `1px solid ${ARK_TOKENS.border}`, padding: 24 }}>
+                <WorkItemHeader
+                  title={storyTitle}
+                  workItemType={draft?.workItemType}
+                  workItemId={draft?.workItemId}
+                />
                 <MockupTabs
-                  storyContent={<WorkItemPreview {...storyData} compact />}
+                  storyContent={<WorkItemPreview {...storyData} compact hideHeader />}
                   mockup={draft?.mockup}
                   showInsufficient={false}
                   generating={generatingMockup}
