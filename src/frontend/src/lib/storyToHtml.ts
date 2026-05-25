@@ -176,7 +176,7 @@ ${header}
 <input class="ark-tabs-radio" type="radio" name="ark-tabs" id="t-mockup">
 <nav class="ark-tabs">
   <label for="t-story">User Story</label>
-  <label for="t-mockup">Mockup<span class="ark-tab-badge">✷</span></label>
+  <label for="t-mockup">Interactive GUI<span class="ark-tab-badge">✷</span></label>
 </nav>
 <div class="ark-panel-story">
 ${storySectionsHtml}

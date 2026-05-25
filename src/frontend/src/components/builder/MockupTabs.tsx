@@ -77,7 +77,7 @@ export function MockupPanel({
           }}
         />
         <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted }}>
-          Generating mockup…
+          Generating Interactive GUI…
         </div>
       </div>
     );
@@ -118,7 +118,7 @@ export function MockupPanel({
           </span>
           <div>
             <div style={{ fontWeight: ARK_TOKENS.weight.semibold, marginBottom: 4 }}>
-              Not enough info to mock up yet
+              Not enough info to build the Interactive GUI yet
             </div>
             <div style={{ fontSize: ARK_TOKENS.type.body, color: ARK_TOKENS.inkMuted }}>
               {mockup.insufficientReason || 'Story is too thin — add more detail and try again.'}
@@ -128,7 +128,7 @@ export function MockupPanel({
         {onRefresh && (
           <div>
             <Btn onClick={onRefresh} disabled={refreshing}>
-              {refreshing ? 'Refreshing…' : 'Refresh mockup'}
+              {refreshing ? 'Refreshing…' : 'Refresh Interactive GUI'}
             </Btn>
           </div>
         )}
@@ -183,7 +183,7 @@ export function MockupTabs({
         </TabButton>
         <TabButton active={isMockup} onClick={() => setActive('mockup')}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            Mockup
+            Interactive GUI
             <MockupTabBadge generating={!!generating} hasInsufficient={hasInsufficient} />
           </span>
         </TabButton>

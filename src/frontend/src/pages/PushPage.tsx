@@ -202,7 +202,7 @@ export function PushPage() {
       const result = await ai.generateMockup(id);
       updateDraft(id, { mockup: result });
     } catch (err) {
-      setMockupError(err instanceof Error ? err.message : 'Mockup generation failed');
+      setMockupError(err instanceof Error ? err.message : 'Interactive GUI generation failed');
     } finally {
       setMockupGenerating(id, false);
     }
@@ -255,19 +255,19 @@ export function PushPage() {
                   disabled={generatingMockup}
                   title={
                     hasOkMockup
-                      ? 'Mockup ready — click to regenerate.'
+                      ? 'Interactive GUI ready — click to regenerate.'
                       : hasInsufficientMockup
-                      ? 'Mockup attempt was insufficient. Click to retry.'
-                      : 'Generate an HTML mockup of this story'
+                      ? 'Interactive GUI attempt was insufficient. Click to retry.'
+                      : 'Generate an Interactive GUI for this story'
                   }
                 >
                   {generatingMockup
                     ? 'Generating…'
                     : hasOkMockup
-                    ? 'Refresh mockup ✓'
+                    ? 'Refresh Interactive GUI ✓'
                     : hasInsufficientMockup
-                    ? 'Refresh mockup ⚠'
-                    : '✷ Generate mockup'}
+                    ? 'Refresh Interactive GUI ⚠'
+                    : '✷ Generate Interactive GUI'}
                 </Btn>
                 <Btn onClick={handleBackToEditor} icon={<Ico.arrow size={12} dir="left" />}>
                   Back
@@ -297,8 +297,8 @@ export function PushPage() {
             </span>
             <span>
               {mockupError
-                ? `Mockup error: ${mockupError}`
-                : `Mockup needs more story detail: ${mockup?.insufficientReason}`}
+                ? `Interactive GUI error: ${mockupError}`
+                : `Interactive GUI needs more story detail: ${mockup?.insufficientReason}`}
             </span>
           </div>
         )}

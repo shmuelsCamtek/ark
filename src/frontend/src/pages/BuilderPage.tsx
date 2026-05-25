@@ -480,7 +480,7 @@ function BuilderPageBody() {
       const result = await ai.generateMockup(targetDraftId);
       updateDraft(targetDraftId, { mockup: result });
     } catch (err) {
-      setMockupError(err instanceof Error ? err.message : 'Mockup generation failed');
+      setMockupError(err instanceof Error ? err.message : 'Interactive GUI generation failed');
     } finally {
       setMockupGenerating(targetDraftId, false);
     }
@@ -532,19 +532,19 @@ function BuilderPageBody() {
                 disabled={generatingMockup}
                 title={
                   hasOkMockup
-                    ? 'Mockup ready — see it in Review. Click to regenerate.'
+                    ? 'Interactive GUI ready — see it in Review. Click to regenerate.'
                     : hasInsufficientMockup
-                    ? 'Mockup attempt was insufficient. Click to retry.'
-                    : 'Generate an HTML mockup of this story'
+                    ? 'Interactive GUI attempt was insufficient. Click to retry.'
+                    : 'Generate an Interactive GUI for this story'
                 }
               >
                 {generatingMockup
                   ? 'Generating…'
                   : hasOkMockup
-                  ? 'Refresh mockup ✓'
+                  ? 'Refresh Interactive GUI ✓'
                   : hasInsufficientMockup
-                  ? 'Refresh mockup ⚠'
-                  : '✷ Generate mockup'}
+                  ? 'Refresh Interactive GUI ⚠'
+                  : '✷ Generate Interactive GUI'}
               </Btn>
               <Btn icon={<Ico.x size={12} />} onClick={() => navigate('/')}>
                 Close
@@ -579,7 +579,7 @@ function BuilderPageBody() {
           <span style={{ color: ARK_TOKENS.danger, display: 'inline-flex', alignItems: 'center' }}>
             <Ico.warn size={14} />
           </span>
-          <span>Mockup error: {mockupError}</span>
+          <span>Interactive GUI error: {mockupError}</span>
         </div>
       )}
 
@@ -644,7 +644,7 @@ function BuilderPageBody() {
               </MockupTabButton>
               <MockupTabButton active={activeTab === 'mockup'} onClick={() => setActiveTab('mockup')}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  Mockup
+                  Interactive GUI
                   <MockupTabBadge generating={generatingMockup} hasInsufficient={hasInsufficientMockup} />
                 </span>
               </MockupTabButton>
