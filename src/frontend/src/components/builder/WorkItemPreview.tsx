@@ -157,7 +157,7 @@ export function WorkItemPreview({ title, background, scenario, flow, persona, wa
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <div style={{ fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.inkSubtle, letterSpacing: 0.7, marginBottom: 8, textTransform: 'uppercase' }}>
+    <div style={{ fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.ink, letterSpacing: 0.7, marginBottom: 8, textTransform: 'uppercase' }}>
       {children}
     </div>
   );
