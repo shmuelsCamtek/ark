@@ -175,7 +175,7 @@ ${header}
 <input class="ark-tabs-radio" type="radio" name="ark-tabs" id="t-story" checked>
 <input class="ark-tabs-radio" type="radio" name="ark-tabs" id="t-mockup">
 <nav class="ark-tabs">
-  <label for="t-story">Story</label>
+  <label for="t-story">User Story</label>
   <label for="t-mockup">Mockup<span class="ark-tab-badge">✷</span></label>
 </nav>
 <div class="ark-panel-story">

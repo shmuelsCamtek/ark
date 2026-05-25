@@ -11,6 +11,7 @@ import { DocsList, type DocItem, type ScanResult, type UploadedDocPayload } from
 import { UiChangePreview } from '../components/builder/UiChangePreview';
 import { FlowEditor } from '../components/builder/FlowEditor';
 import { SuggestChat } from '../components/builder/SuggestChat';
+import { MockupPanel, MockupTabBadge, MockupTabButton } from '../components/builder/MockupTabs';
 import { AppShell } from '../components/shell/AppShell';
 import { evaluateCompletion } from '../lib/storyCompletion';
 import { scanUploadedDoc, scanAzureAttachment, type ScanResultPayload } from '../services/scan';
@@ -108,6 +109,7 @@ function BuilderPageBody() {
   const { azure, ai } = useServices();
   const [workItemUrl, setWorkItemUrl] = useState<string | null>(null);
   const [mockupError, setMockupError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'story' | 'mockup'>('story');
 
   const editId = params.id;
   const existing = editId ? getDraft(editId) : undefined;
@@ -487,6 +489,7 @@ function BuilderPageBody() {
   const mockup = draft?.mockup;
   const hasOkMockup = mockup?.status === 'ok';
   const hasInsufficientMockup = mockup?.status === 'insufficient';
+  const showMockupTabs = hasOkMockup || hasInsufficientMockup || generatingMockup;
 
   return (
     <div style={{ width: '100%', height: '100%', background: ARK_TOKENS.bg, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -560,7 +563,7 @@ function BuilderPageBody() {
         }
       />
 
-      {(mockupError || hasInsufficientMockup) && (
+      {mockupError && (
         <div
           style={{
             background: ARK_TOKENS.dangerBg,
@@ -576,11 +579,7 @@ function BuilderPageBody() {
           <span style={{ color: ARK_TOKENS.danger, display: 'inline-flex', alignItems: 'center' }}>
             <Ico.warn size={14} />
           </span>
-          <span>
-            {mockupError
-              ? `Mockup error: ${mockupError}`
-              : `Mockup needs more story detail: ${mockup?.insufficientReason}`}
-          </span>
+          <span>Mockup error: {mockupError}</span>
         </div>
       )}
 
@@ -627,9 +626,42 @@ function BuilderPageBody() {
         />
         <Splitter onDrag={(dx) => setCoachWidth((w) => clampCoachWidth(w + dx))} />
 
-        {/* RIGHT: Form */}
-        <div className="ark-scroll" style={{ flex: '1 1 0', overflowY: 'auto', minWidth: 0 }}>
-          <div style={{ padding: '32px 40px 80px' }}>
+        {/* RIGHT: Form + Mockup tabs */}
+        <div style={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          {showMockupTabs && (
+            <div
+              style={{
+                display: 'flex',
+                gap: 4,
+                borderBottom: `1px solid ${ARK_TOKENS.border}`,
+                padding: '8px 40px 0',
+                background: ARK_TOKENS.bg,
+                flexShrink: 0,
+              }}
+            >
+              <MockupTabButton active={activeTab === 'story'} onClick={() => setActiveTab('story')}>
+                User Story
+              </MockupTabButton>
+              <MockupTabButton active={activeTab === 'mockup'} onClick={() => setActiveTab('mockup')}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  Mockup
+                  <MockupTabBadge generating={generatingMockup} hasInsufficient={hasInsufficientMockup} />
+                </span>
+              </MockupTabButton>
+            </div>
+          )}
+          <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto' }}>
+            <div style={{ padding: '32px 40px 80px' }}>
+              {showMockupTabs && activeTab === 'mockup' ? (
+                <MockupPanel
+                  mockup={mockup}
+                  showInsufficient
+                  generating={generatingMockup}
+                  onRefresh={handleGenerateMockup}
+                  refreshing={generatingMockup}
+                />
+              ) : (
+                <>
             <Field
               id="field-title"
               label="Title"
@@ -811,6 +843,9 @@ function BuilderPageBody() {
                 onScan={handleDocScan}
               />
             </Field>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
