@@ -65,6 +65,10 @@ export function MockupPanel({
     // sandbox="allow-scripts" (no allow-same-origin, no allow-forms, no allow-popups,
     // no allow-top-navigation) means the mockup runs in a unique opaque origin —
     // no access to cookies, localStorage, parent DOM, or top-frame navigation.
+    //
+    // Sized to the viewport so the prototype fills the browser window. The
+    // 120px offset is approximately TopBar (56) + tab strip (40) + a small
+    // breathing margin (24).
     return (
       <iframe
         title="Interactive GUI mockup"
@@ -72,7 +76,8 @@ export function MockupPanel({
         sandbox="allow-scripts"
         style={{
           width: '100%',
-          minHeight: 480,
+          height: 'calc(100vh - 120px)',
+          minHeight: 400,
           border: `1px solid ${ARK_TOKENS.border}`,
           borderRadius: ARK_TOKENS.r2,
           background: ARK_TOKENS.surface,

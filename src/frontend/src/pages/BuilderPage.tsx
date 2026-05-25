@@ -628,7 +628,7 @@ function BuilderPageBody() {
             </MockupTabButton>
           </div>
           <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto' }}>
-            <div style={{ padding: '32px 40px 80px' }}>
+            <div style={{ padding: activeTab === 'mockup' ? 0 : '32px 40px 80px' }}>
               {activeTab === 'mockup' ? (
                 <MockupPanel
                   mockup={mockup}
