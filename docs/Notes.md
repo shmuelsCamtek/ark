@@ -53,8 +53,8 @@
 - [x] all titles should be shared to tabs.
 - [ ] "Discription" should be aftetr backgound
   - [ ] should be aligned with Edit page. 
-  - [ ] Discription should be 'As-a, I-want, So-that"
-  - [ ] Mock should be "Interactive GUI"
+  - [x] Discription should be 'As-a, I-want, So-that"
+  - [x] Mock should be "Interactive GUI"
 
 
 ## Plans:

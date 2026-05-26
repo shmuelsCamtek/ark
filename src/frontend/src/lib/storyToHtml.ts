@@ -120,7 +120,7 @@ export function storyToHtml(input: StoryHtmlInput): string {
     `<b>I want</b> ${escapeHtml(want || '')}`,
     `<b>So that</b> ${escapeHtml(benefit || '')}.`,
   ];
-  sections.push(`<section><h2>Description</h2><p class="desc">${descParts.join('<br>')}</p></section>`);
+  sections.push(`<section><h2>As-a, I-want, So-that</h2><p class="desc">${descParts.join('<br>')}</p></section>`);
 
   if (criteria.length > 0) {
     const items = criteria

@@ -90,7 +90,7 @@ export function WorkItemPreview({ title, background, scenario, flow, persona, wa
       )}
 
       <div style={{ marginBottom: 20 }}>
-        <SectionLabel>Description</SectionLabel>
+        <SectionLabel>As-a, I-want, So-that</SectionLabel>
         <p style={{ margin: 0, fontSize: ARK_TOKENS.type.body, lineHeight: 1.6, color: ARK_TOKENS.ink }}>
           <b>As a</b> {persona || <Placeholder w={80} />}
           <br /><b>I want</b> {want || <Placeholder w={200} />}
