@@ -81,12 +81,21 @@ export function AppInitializer({ children }: { children: ReactNode }) {
     setAuthStatus('unauthenticated');
   }
 
-  function handleSignInClick() {
+  function openSignInPopup(url: string): Window | null {
     const w = 520;
     const h = 720;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
+    const win = window.open(
+      url,
+      'ark-azure-signin',
+      `popup=yes,width=${w},height=${h},left=${left},top=${top}`,
+    );
+    popupRef.current = win;
+    return win;
+  }
 
+  function handleSignInClick() {
     // Best-effort: copy the user_code once it arrives so the user can paste
     // it into the Microsoft popup. Runs after window.open below has stolen
     // focus, so it may not succeed in every browser/context — the modal's
@@ -97,11 +106,7 @@ export function AppInitializer({ children }: { children: ReactNode }) {
       void copyToClipboard(code.userCode);
     });
 
-    popupRef.current = window.open(
-      'about:blank',
-      'ark-azure-signin',
-      `popup=yes,width=${w},height=${h},left=${left},top=${top}`,
-    );
+    openSignInPopup('about:blank');
 
     // The popup may sit on about:blank for several seconds while the backend
     // negotiates with Microsoft (and longer on networks that block one of the
@@ -175,6 +180,8 @@ export function AppInitializer({ children }: { children: ReactNode }) {
         return;
       }
       if (data.status === 'authenticated') {
+        try { popupRef.current?.close(); } catch { /* popup may already be closed */ }
+        popupRef.current = null;
         setUser(data.profile);
         setDevice(null);
         setAuthStatus('authenticated');
@@ -204,6 +211,7 @@ export function AppInitializer({ children }: { children: ReactNode }) {
         errorMessage={errorMessage}
         onRetry={handleSignInClick}
         onCancel={() => location.reload()}
+        onOpenPopup={openSignInPopup}
       />
     </>
   );
@@ -233,9 +241,10 @@ interface SignInModalProps {
   errorMessage: string | null;
   onRetry: () => void;
   onCancel: () => void;
+  onOpenPopup: (url: string) => Window | null;
 }
 
-function SignInModal({ device, authStatus, errorMessage, onRetry, onCancel }: SignInModalProps) {
+function SignInModal({ device, authStatus, errorMessage, onRetry, onCancel, onOpenPopup }: SignInModalProps) {
   return (
     <Modal open onClose={() => {}} width={480} closeOnBackdrop={false} closeOnEscape={false}>
       <div style={{ padding: '40px 32px', textAlign: 'center' }}>
@@ -250,7 +259,7 @@ function SignInModal({ device, authStatus, errorMessage, onRetry, onCancel }: Si
           <Ico.user size={20} />
         </div>
         {device ? (
-          <DeviceCodeContent device={device} onCancel={onCancel} />
+          <DeviceCodeContent device={device} onCancel={onCancel} onOpenPopup={onOpenPopup} />
         ) : authStatus === 'loading' ? (
           <LoadingContent />
         ) : (
@@ -282,7 +291,15 @@ function LoadingContent() {
   );
 }
 
-function DeviceCodeContent({ device, onCancel }: { device: DeviceCode; onCancel: () => void }) {
+function DeviceCodeContent({
+  device,
+  onCancel,
+  onOpenPopup,
+}: {
+  device: DeviceCode;
+  onCancel: () => void;
+  onOpenPopup: (url: string) => Window | null;
+}) {
   const [copied, setCopied] = useState(false);
 
   const copy = () => {
@@ -336,15 +353,7 @@ function DeviceCodeContent({ device, onCancel }: { device: DeviceCode; onCancel:
               setCopied(true);
               setTimeout(() => setCopied(false), 4000);
             });
-            const w = 520;
-            const h = 720;
-            const left = window.screenX + (window.outerWidth - w) / 2;
-            const top = window.screenY + (window.outerHeight - h) / 2;
-            window.open(
-              device.verificationUri,
-              'ark-azure-signin',
-              `popup=yes,width=${w},height=${h},left=${left},top=${top}`,
-            );
+            onOpenPopup(device.verificationUri);
           }}
         >
           Open Microsoft sign-in
