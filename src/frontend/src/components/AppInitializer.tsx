@@ -18,6 +18,34 @@ type PollResult =
 
 const POLL_INTERVAL_MS = 5000;
 
+// navigator.clipboard.writeText only works in secure contexts (HTTPS or
+// localhost). The VM serves over plain HTTP on the Camtek VPN, so on the
+// deployed app it would throw "Cannot read properties of undefined" and the
+// Copy button would silently fail. Fall back to execCommand('copy') via a
+// hidden textarea, which still works in non-secure contexts. Must be called
+// from within a user gesture.
+async function copyToClipboard(text: string): Promise<boolean> {
+  if (window.isSecureContext && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fall through to the legacy path
+    }
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+
 export function AppInitializer({ children }: { children: ReactNode }) {
   const { setUser, setAuthStatus, authStatus } = useApp();
   const [device, setDevice] = useState<DeviceCode | null>(null);
@@ -59,23 +87,15 @@ export function AppInitializer({ children }: { children: ReactNode }) {
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
 
-    // Kick off the device flow first so we have a Promise<DeviceCode> to
-    // feed the deferred clipboard write below.
+    // Best-effort: copy the user_code once it arrives so the user can paste
+    // it into the Microsoft popup. Runs after window.open below has stolen
+    // focus, so it may not succeed in every browser/context — the modal's
+    // Copy button is the always-available fallback.
     const flowPromise = startDeviceFlow();
-
-    // Schedule the clipboard write NOW, while the parent document still has
-    // focus. window.open below will steal focus to the popup, which would
-    // make navigator.clipboard.writeText silently fail. ClipboardItem accepts
-    // a Promise<Blob>, so the actual code value resolves later when
-    // /device/start returns — but the focus check happens here.
-    if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
-      const blobPromise: Promise<Blob> = flowPromise.then((code) =>
-        new Blob([code?.userCode ?? ''], { type: 'text/plain' }),
-      );
-      void navigator.clipboard
-        .write([new ClipboardItem({ 'text/plain': blobPromise })])
-        .catch((err) => console.warn('[auth] clipboard write failed', err));
-    }
+    void flowPromise.then((code) => {
+      if (!code?.userCode) return;
+      void copyToClipboard(code.userCode);
+    });
 
     popupRef.current = window.open(
       'about:blank',
@@ -266,7 +286,8 @@ function DeviceCodeContent({ device, onCancel }: { device: DeviceCode; onCancel:
   const [copied, setCopied] = useState(false);
 
   const copy = () => {
-    navigator.clipboard.writeText(device.userCode).then(() => {
+    void copyToClipboard(device.userCode).then((ok) => {
+      if (!ok) return;
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
@@ -310,7 +331,8 @@ function DeviceCodeContent({ device, onCancel }: { device: DeviceCode; onCancel:
           variant="primary"
           size="lg"
           onClick={() => {
-            void navigator.clipboard.writeText(device.userCode).then(() => {
+            void copyToClipboard(device.userCode).then((ok) => {
+              if (!ok) return;
               setCopied(true);
               setTimeout(() => setCopied(false), 4000);
             });
