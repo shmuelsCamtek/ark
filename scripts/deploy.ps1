@@ -83,6 +83,7 @@ try {
   Write-Host "==> Running remote swap-and-restart"
   $remote = @'
 $ErrorActionPreference = 'Stop'
+$ProgressPreference    = 'SilentlyContinue'
 $arkRoot = 'C:\Ark'
 $newDir  = Join-Path $arkRoot 'app-new'
 $curDir  = Join-Path $arkRoot 'app'
@@ -102,10 +103,10 @@ if (Test-Path (Join-Path $curDir '.env')) {
 }
 
 # Swap atomically. NSSM stop is required because nodejs locks files.
-& nssm stop Ark | Out-Null
+& nssm stop Ark 2>&1 | Out-Null
 if (Test-Path $curDir) { Rename-Item -Path $curDir -NewName 'app-old' }
 Rename-Item -Path $newDir -NewName 'app'
-& nssm start Ark | Out-Null
+& nssm start Ark 2>&1 | Out-Null
 
 # Best-effort cleanup.
 if (Test-Path $oldDir) { Remove-Item -Recurse -Force $oldDir }
@@ -113,8 +114,13 @@ Remove-Item -Force $zip
 
 # Health check (give the service ~5s to come up).
 Start-Sleep -Seconds 5
-$resp = Invoke-WebRequest -UseBasicParsing -Uri http://localhost:3001/api/health -TimeoutSec 5
-Write-Host "Health: $($resp.StatusCode) $($resp.Content)"
+try {
+  $resp = Invoke-WebRequest -UseBasicParsing -Uri http://localhost:3001/api/health -TimeoutSec 5
+  Write-Host "Remote: swapped + service started, health $($resp.StatusCode) OK"
+} catch {
+  Write-Host "Remote: health check failed - $($_.Exception.Message)"
+  throw
+}
 '@
 
   # Send $remote to the VM via -EncodedCommand to sidestep all shell quoting.
