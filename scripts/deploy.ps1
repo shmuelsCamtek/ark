@@ -101,23 +101,31 @@ Expand-Archive -Path $zip -DestinationPath $newDir -Force
 if (Test-Path (Join-Path $curDir '.env')) {
   Copy-Item (Join-Path $curDir '.env') (Join-Path $newDir '.env')
 }
+Write-Host "  [1/5] expanded release"
 
 # Swap atomically. NSSM stop is required because nodejs locks files.
 & nssm stop Ark 2>&1 | Out-Null
+Write-Host "  [2/5] stopped Ark service"
+
 if (Test-Path $curDir) { Rename-Item -Path $curDir -NewName 'app-old' }
 Rename-Item -Path $newDir -NewName 'app'
+Write-Host "  [3/5] swapped app folders"
+
 & nssm start Ark 2>&1 | Out-Null
 
 # Best-effort cleanup.
 if (Test-Path $oldDir) { Remove-Item -Recurse -Force $oldDir }
 Remove-Item -Force $zip
+Write-Host "  [4/5] started Ark service"
 
 # Health check (give the service ~5s to come up).
 Start-Sleep -Seconds 5
 try {
   $resp = Invoke-WebRequest -UseBasicParsing -Uri http://localhost:3001/api/health -TimeoutSec 5
+  Write-Host "  [5/5] health $($resp.StatusCode) OK"
   Write-Host "Remote: swapped + service started, health $($resp.StatusCode) OK"
 } catch {
+  Write-Host "  [5/5] health check FAILED - $($_.Exception.Message)"
   Write-Host "Remote: health check failed - $($_.Exception.Message)"
   throw
 }
