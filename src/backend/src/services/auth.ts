@@ -9,7 +9,48 @@ const AZURE_CLI_CLIENT_ID = '04b07795-8ddb-461a-bbee-02f9e1bf7b46';
 // Override with GRAPH_CLIENT_ID env var if you want to point at a custom AAD
 // App Registration instead.
 const GRAPH_CLIENT_ID = process.env.GRAPH_CLIENT_ID || 'd3590ed6-52b3-4102-aeff-aad2292ab01c';
-const AUTHORITY = `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID || 'organizations'}`;
+const TENANT = process.env.AZURE_TENANT_ID || 'organizations';
+// Microsoft serves the same identity platform under multiple hostnames that
+// resolve to different IP pools. On networks where a corp gateway drops
+// outbound traffic to one set of Microsoft auth IPs (e.g. Camtek wired LAN
+// dropping 20.190.x.x / 40.126.x.x), one of the alternatives is often still
+// reachable. Try them in order with a per-attempt timeout, remember whichever
+// host succeeded so subsequent calls go there first.
+const AUTH_HOSTS = (process.env.AZURE_AUTH_HOSTS ||
+  'login.microsoftonline.com,login.microsoft.com,login.windows.net')
+  .split(',').map((s) => s.trim()).filter(Boolean);
+const FETCH_TIMEOUT_MS = Number(process.env.AZURE_AUTH_FETCH_TIMEOUT_MS) || 10_000;
+const FETCH_RETRIES_PER_HOST = Number(process.env.AZURE_AUTH_FETCH_RETRIES) || 2;
+let workingHost: string | null = null;
+
+async function authFetch(path: string, init: Omit<RequestInit, 'signal'>): Promise<Response> {
+  const order = workingHost
+    ? [workingHost, ...AUTH_HOSTS.filter((h) => h !== workingHost)]
+    : [...AUTH_HOSTS];
+  let lastError: unknown = null;
+  for (const host of order) {
+    for (let attempt = 1; attempt <= FETCH_RETRIES_PER_HOST; attempt++) {
+      try {
+        const res = await fetch(`https://${host}/${TENANT}${path}`, {
+          ...init,
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        });
+        if (workingHost !== host) {
+          console.log(`[auth] using ${host} (working host pinned)`);
+          workingHost = host;
+        }
+        return res;
+      } catch (err) {
+        lastError = err;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[auth] ${host}${path} attempt ${attempt}/${FETCH_RETRIES_PER_HOST} failed: ${msg}`);
+      }
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('All Microsoft auth hosts unreachable');
+}
 const SCOPES = '499b84ac-1321-427f-aa17-267ca6975798/user_impersonation offline_access openid profile';
 const GRAPH_SCOPES = 'https://graph.microsoft.com/Sites.ReadWrite.All offline_access';
 
@@ -73,7 +114,7 @@ type AuthState =
 let state: AuthState = { status: 'idle' };
 
 export async function startDeviceFlow(): Promise<{ userCode: string; verificationUri: string; message: string }> {
-  const res = await fetch(`${AUTHORITY}/oauth2/v2.0/devicecode`, {
+  const res = await authFetch('/oauth2/v2.0/devicecode', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: AZURE_CLI_CLIENT_ID, scope: SCOPES }),
@@ -119,7 +160,7 @@ export async function pollDeviceFlow(): Promise<PollResult> {
     return { status: 'expired' };
   }
 
-  const res = await fetch(`${AUTHORITY}/oauth2/v2.0/token`, {
+  const res = await authFetch('/oauth2/v2.0/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -171,7 +212,7 @@ export function signOut(): void {
 }
 
 export async function startGraphDeviceFlow(): Promise<{ userCode: string; verificationUri: string; message: string }> {
-  const res = await fetch(`${AUTHORITY}/oauth2/v2.0/devicecode`, {
+  const res = await authFetch('/oauth2/v2.0/devicecode', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: GRAPH_CLIENT_ID, scope: GRAPH_SCOPES }),
@@ -215,7 +256,7 @@ export async function pollGraphDeviceFlow(): Promise<GraphPollResult> {
     return { status: 'expired' };
   }
 
-  const res = await fetch(`${AUTHORITY}/oauth2/v2.0/token`, {
+  const res = await authFetch('/oauth2/v2.0/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -252,7 +293,7 @@ export async function getGraphAccessToken(): Promise<string> {
   if (Date.now() < graphState.expiresAt - 60_000) {
     return graphState.accessToken;
   }
-  const res = await fetch(`${AUTHORITY}/oauth2/v2.0/token`, {
+  const res = await authFetch('/oauth2/v2.0/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -283,7 +324,7 @@ export async function getGraphAccessToken(): Promise<string> {
 
 async function refreshAccessToken(): Promise<boolean> {
   if (state.status !== 'authenticated') return false;
-  const res = await fetch(`${AUTHORITY}/oauth2/v2.0/token`, {
+  const res = await authFetch('/oauth2/v2.0/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({

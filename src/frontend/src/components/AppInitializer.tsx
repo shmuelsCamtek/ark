@@ -82,6 +82,30 @@ export function AppInitializer({ children }: { children: ReactNode }) {
       'ark-azure-signin',
       `popup=yes,width=${w},height=${h},left=${left},top=${top}`,
     );
+
+    // The popup may sit on about:blank for several seconds while the backend
+    // negotiates with Microsoft (and longer on networks that block one of the
+    // Microsoft auth IP ranges, forcing fallbacks to alternative hostnames).
+    // Render a minimal "Connecting…" page so the user knows it's working.
+    if (popupRef.current && !popupRef.current.closed) {
+      try {
+        popupRef.current.document.write(
+          `<!doctype html><html><head><title>Signing in to Microsoft…</title>` +
+            `<style>html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#f7f9fb;color:#1b2733}` +
+            `.wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:18px;padding:24px;text-align:center}` +
+            `.spin{width:36px;height:36px;border:3px solid #d0d7de;border-top-color:#008fbe;border-radius:50%;animation:s .8s linear infinite}` +
+            `@keyframes s{to{transform:rotate(360deg)}}` +
+            `.muted{color:#586675;font-size:13px;max-width:320px;line-height:1.4}</style></head>` +
+            `<body><div class="wrap"><div class="spin"></div>` +
+            `<div style="font-size:16px;font-weight:600">Connecting to Microsoft sign-in…</div>` +
+            `<div class="muted">If this doesn't redirect in a few seconds, return to Ark and use the manual link in the sign-in card.</div>` +
+            `</div></body></html>`,
+        );
+        popupRef.current.document.close();
+      } catch {
+        // Popup may have been closed or navigated away — best-effort only.
+      }
+    }
   }
 
   async function startDeviceFlow(): Promise<DeviceCode | null> {
@@ -305,6 +329,9 @@ function DeviceCodeContent({ device, onCancel }: { device: DeviceCode; onCancel:
         </Btn>
         <div style={{ fontSize: ARK_TOKENS.type.label, color: copied ? ARK_TOKENS.success : ARK_TOKENS.inkSubtle, marginTop: 8 }}>
           {copied ? 'Code copied — paste it in the Microsoft popup (Ctrl+V)' : 'Opening will copy the code so you can paste it.'}
+        </div>
+        <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkSubtle, marginTop: 8, wordBreak: 'break-all' }}>
+          If the popup is blank, open <a href={device.verificationUri} target="_blank" rel="noreferrer" style={{ color: ARK_TOKENS.azure }}>{device.verificationUri}</a> manually.
         </div>
       </div>
 
