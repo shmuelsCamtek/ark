@@ -45,7 +45,8 @@
       "PowerShell($env:PATH = \"C:\\\\Users\\\\shmuels\\\\AppData\\\\Roaming\\\\Python\\\\Python313\\\\Scripts;\" + $env:PATH; az --version 2>&1 | Select-Object -First 5)",
       "PowerShell(az login *)",
       "Bash(timeout 8 npx tsx src/index.ts)",
-      "Bash(dir \"C:\\\\temp\\\\Ark\" /B)"
+      "Bash(dir \"C:\\\\temp\\\\Ark\" /B)",
+      "Bash(curl -s http://localhost:3001/api/health)"
     ]
   }
 }
