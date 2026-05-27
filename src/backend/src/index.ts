@@ -49,6 +49,17 @@ app.get('*', (req, res, next) => {
 isManualLoaded();
 getManualSize();
 
+// Without ANTHROPIC_API_KEY the SDK throws "Could not resolve authentication
+// method" from inside every coach / doc-scan / mockup request — opaque 500s
+// with no startup signal. Surface it once, loudly, at boot.
+if (!process.env.ANTHROPIC_API_KEY?.trim()) {
+  console.warn(
+    '[startup] ANTHROPIC_API_KEY is not set — coach chat, attachment scan, ' +
+    'and mockup generation will all 500. Add it to .env (or NSSM ' +
+    'AppEnvironmentExtra) and restart the service.',
+  );
+}
+
 app.listen(PORT, () => {
   console.log(`Ark server listening on port ${PORT}`);
 });
