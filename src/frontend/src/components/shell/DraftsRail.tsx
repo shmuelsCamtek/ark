@@ -20,12 +20,19 @@ export function DraftsRail({ onCreate }: DraftsRailProps) {
 
   const filtered = useMemo(() => {
     const q = query.trim().replace(/^#/, '').toLowerCase();
-    if (!q) return drafts;
-    return drafts.filter((d) => {
-      const title = (d.title || 'Untitled story').toLowerCase();
-      const wid = d.workItemId?.toLowerCase() ?? '';
-      return title.includes(q) || wid.includes(q);
-    });
+    const matched = q
+      ? drafts.filter((d) => {
+          const title = (d.title || 'Untitled story').toLowerCase();
+          const wid = d.workItemId?.toLowerCase() ?? '';
+          return title.includes(q) || wid.includes(q);
+        })
+      : drafts;
+    // Most recently changed first. Copy before sorting — `drafts` is context state.
+    return [...matched].sort(
+      (a, b) =>
+        (Date.parse(b.updatedAt || b.createdAt) || 0) -
+        (Date.parse(a.updatedAt || a.createdAt) || 0),
+    );
   }, [drafts, query]);
 
   return (
