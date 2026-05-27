@@ -310,6 +310,14 @@ function DeviceCodeContent({
     });
   };
 
+  // Auto-click Copy as soon as the code appears, so the user can paste it
+  // straight into the Microsoft popup. Best-effort: clipboard writes without a
+  // user gesture may be blocked, in which case the Copy button stays available.
+  useEffect(() => {
+    copy();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [device.userCode]);
+
   return (
     <>
       <div style={{ fontSize: ARK_TOKENS.type.h1, fontWeight: ARK_TOKENS.weight.semibold, marginBottom: 6 }}>Sign in to continue</div>
