@@ -20,6 +20,42 @@
         "echo": true
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Build frontend",
+      "detail": "npm run build in src/frontend (vite build -> src/frontend/dist).",
+      "type": "shell",
+      "command": "npm run build",
+      "options": { "cwd": "${workspaceFolder}/src/frontend" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start backend (dev)",
+      "detail": "npm run dev in src/backend (Express on http://localhost:3001, tsx watch).",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/src/backend" },
+      "isBackground": true,
+      "presentation": { "group": "dev-servers", "reveal": "always", "panel": "dedicated", "clear": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start frontend (dev)",
+      "detail": "npm run dev in src/frontend (Vite on http://localhost:5173).",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/src/frontend" },
+      "isBackground": true,
+      "presentation": { "group": "dev-servers", "reveal": "always", "panel": "dedicated", "clear": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start FE + BE (dev)",
+      "detail": "Launch both dev servers in parallel (each in its own terminal).",
+      "dependsOn": ["Start backend (dev)", "Start frontend (dev)"],
+      "dependsOrder": "parallel"
     }
   ]
 }
