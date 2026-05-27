@@ -6,20 +6,33 @@ import {
   deleteDraft as removeDraft,
   getChat,
   putChat,
+  normalizeOwner,
   type StoredDraft,
   type ChatMessage,
 } from '../services/draftStore.ts';
+import { requireUser } from '../middleware/user.ts';
 
 export const draftsRouter = Router();
 
-// List all drafts
-draftsRouter.get('/', (_req, res) => {
-  res.json(listDrafts());
+// All draft access is scoped to the signed-in user.
+draftsRouter.use(requireUser);
+
+// Returns the draft only if it belongs to the caller, else undefined. Callers
+// respond 404 for both "missing" and "not yours" so ids stay non-enumerable.
+function ownedDraft(id: string, ownerEmail: string): StoredDraft | undefined {
+  const draft = getDraft(id);
+  if (!draft || typeof draft.ownerEmail !== 'string') return undefined;
+  return normalizeOwner(draft.ownerEmail) === ownerEmail ? draft : undefined;
+}
+
+// List the caller's drafts
+draftsRouter.get('/', (req, res) => {
+  res.json(listDrafts(req.userEmail));
 });
 
 // Get single draft
 draftsRouter.get('/:id', (req, res) => {
-  const draft = getDraft(req.params.id);
+  const draft = ownedDraft(req.params.id, req.userEmail);
   if (!draft) {
     res.status(404).json({ error: 'Draft not found' });
     return;
@@ -27,11 +40,12 @@ draftsRouter.get('/:id', (req, res) => {
   res.json(draft);
 });
 
-// Create draft
+// Create draft (owner is set server-side, never trusted from the client)
 draftsRouter.post('/', (req, res) => {
   const draft: StoredDraft = {
     ...req.body,
     id: req.body.id || crypto.randomUUID(),
+    ownerEmail: req.userEmail,
     createdAt: req.body.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -41,7 +55,7 @@ draftsRouter.post('/', (req, res) => {
 
 // Update draft
 draftsRouter.put('/:id', (req, res) => {
-  const existing = getDraft(req.params.id);
+  const existing = ownedDraft(req.params.id, req.userEmail);
   if (!existing) {
     res.status(404).json({ error: 'Draft not found' });
     return;
@@ -50,6 +64,7 @@ draftsRouter.put('/:id', (req, res) => {
     ...existing,
     ...req.body,
     id: req.params.id,
+    ownerEmail: req.userEmail,
     updatedAt: new Date().toISOString(),
   };
   putDraft(updated);
@@ -58,7 +73,7 @@ draftsRouter.put('/:id', (req, res) => {
 
 // Delete draft (cascades to chat file via store)
 draftsRouter.delete('/:id', (req, res) => {
-  if (!getDraft(req.params.id)) {
+  if (!ownedDraft(req.params.id, req.userEmail)) {
     res.status(404).json({ error: 'Draft not found' });
     return;
   }
@@ -68,7 +83,7 @@ draftsRouter.delete('/:id', (req, res) => {
 
 // Get chat history for a draft
 draftsRouter.get('/:id/chat', (req, res) => {
-  if (!getDraft(req.params.id)) {
+  if (!ownedDraft(req.params.id, req.userEmail)) {
     res.status(404).json({ error: 'Draft not found' });
     return;
   }
@@ -77,7 +92,7 @@ draftsRouter.get('/:id/chat', (req, res) => {
 
 // Replace chat history for a draft
 draftsRouter.put('/:id/chat', (req, res) => {
-  if (!getDraft(req.params.id)) {
+  if (!ownedDraft(req.params.id, req.userEmail)) {
     res.status(404).json({ error: 'Draft not found' });
     return;
   }
