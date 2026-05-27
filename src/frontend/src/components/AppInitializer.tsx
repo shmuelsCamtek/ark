@@ -96,41 +96,11 @@ export function AppInitializer({ children }: { children: ReactNode }) {
   }
 
   function handleSignInClick() {
-    // Best-effort: copy the user_code once it arrives so the user can paste
-    // it into the Microsoft popup. Runs after window.open below has stolen
-    // focus, so it may not succeed in every browser/context — the modal's
-    // Copy button is the always-available fallback.
-    const flowPromise = startDeviceFlow();
-    void flowPromise.then((code) => {
-      if (!code?.userCode) return;
-      void copyToClipboard(code.userCode);
-    });
-
-    openSignInPopup('about:blank');
-
-    // The popup may sit on about:blank for several seconds while the backend
-    // negotiates with Microsoft (and longer on networks that block one of the
-    // Microsoft auth IP ranges, forcing fallbacks to alternative hostnames).
-    // Render a minimal "Connecting…" page so the user knows it's working.
-    if (popupRef.current && !popupRef.current.closed) {
-      try {
-        popupRef.current.document.write(
-          `<!doctype html><html><head><title>Signing in to Microsoft…</title>` +
-            `<style>html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#f7f9fb;color:#1b2733}` +
-            `.wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:18px;padding:24px;text-align:center}` +
-            `.spin{width:36px;height:36px;border:3px solid #d0d7de;border-top-color:#008fbe;border-radius:50%;animation:s .8s linear infinite}` +
-            `@keyframes s{to{transform:rotate(360deg)}}` +
-            `.muted{color:#586675;font-size:13px;max-width:320px;line-height:1.4}</style></head>` +
-            `<body><div class="wrap"><div class="spin"></div>` +
-            `<div style="font-size:16px;font-weight:600">Connecting to Microsoft sign-in…</div>` +
-            `<div class="muted">If this doesn't redirect in a few seconds, return to Ark and use the manual link in the sign-in card.</div>` +
-            `</div></body></html>`,
-        );
-        popupRef.current.document.close();
-      } catch {
-        // Popup may have been closed or navigated away — best-effort only.
-      }
-    }
+    // Intentionally does NOT open the popup here. We open it from
+    // DeviceCodeContent once the device code is ready, so the code can be copied
+    // to the clipboard while THIS window still holds focus (a clipboard write
+    // fails the moment the popup steals focus). See the auto-launch effect there.
+    void startDeviceFlow();
   }
 
   async function startDeviceFlow(): Promise<DeviceCode | null> {
@@ -310,11 +280,19 @@ function DeviceCodeContent({
     });
   };
 
-  // Auto-click Copy as soon as the code appears, so the user can paste it
-  // straight into the Microsoft popup. Best-effort: clipboard writes without a
-  // user gesture may be blocked, in which case the Copy button stays available.
+  // Once the device code is ready, do exactly what "Open Microsoft sign-in"
+  // does — copy the code, then open the popup — but automatically. The copy
+  // runs while THIS window still has focus (the popup hasn't opened yet), which
+  // is the only moment a clipboard write reliably succeeds. The small delay lets
+  // the code paint so the user glimpses it before focus moves to the popup. If a
+  // popup blocker stops the auto-open, the "Open Microsoft sign-in" button is
+  // the manual fallback (and copies again, in-gesture).
   useEffect(() => {
-    copy();
+    const t = setTimeout(() => {
+      copy();
+      onOpenPopup(device.verificationUri);
+    }, 400);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [device.userCode]);
 
