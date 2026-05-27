@@ -67,23 +67,35 @@ export function MockupPanel({
     // no access to cookies, localStorage, parent DOM, or top-frame navigation.
     //
     // Sized to the viewport so the prototype fills the browser window. The
-    // 120px offset is approximately TopBar (56) + tab strip (40) + a small
-    // breathing margin (24).
+    // 168px offset is approximately TopBar (56) + tab strip (40) + the refresh
+    // bar (48) + a small breathing margin (24).
     return (
-      <iframe
-        title="Interactive GUI mockup"
-        srcDoc={mockup.html}
-        sandbox="allow-scripts"
-        style={{
-          width: '100%',
-          height: 'calc(100vh - 120px)',
-          minHeight: 400,
-          border: `1px solid ${ARK_TOKENS.border}`,
-          borderRadius: ARK_TOKENS.r2,
-          background: ARK_TOKENS.surface,
-          display: 'block',
-        }}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {onRefresh && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 12px' }}>
+            <Btn size="sm" onClick={onRefresh} disabled={refreshing}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Ico.refresh size={12} />
+                {refreshing ? 'Refreshing…' : 'Refresh'}
+              </span>
+            </Btn>
+          </div>
+        )}
+        <iframe
+          title="Interactive GUI mockup"
+          srcDoc={mockup.html}
+          sandbox="allow-scripts"
+          style={{
+            width: '100%',
+            height: 'calc(100vh - 168px)',
+            minHeight: 400,
+            border: `1px solid ${ARK_TOKENS.border}`,
+            borderRadius: ARK_TOKENS.r2,
+            background: ARK_TOKENS.surface,
+            display: 'block',
+          }}
+        />
+      </div>
     );
   }
 
