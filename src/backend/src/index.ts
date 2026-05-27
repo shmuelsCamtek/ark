@@ -44,10 +44,14 @@ app.get('*', (req, res, next) => {
   res.sendFile(path.join(STATIC_DIR, 'index.html'));
 });
 
-// Warm up the manual index so the first coach call doesn't pay the load cost.
-// The loader logs its own status (loaded / not found / parse error).
-isManualLoaded();
-getManualSize();
+// Warm up the manual index and record its status in the startup audit log.
+// (manualIndex.ts also logs the resolved path / failure detail separately.)
+if (isManualLoaded()) {
+  const { chunks, pages } = getManualSize();
+  console.log(`[startup] User Manual index loaded: ${chunks} chunks across ${pages} pages.`);
+} else {
+  console.warn('[startup] User Manual index NOT loaded — Ark Coach will run without product context.');
+}
 
 // Without ANTHROPIC_API_KEY the SDK throws "Could not resolve authentication
 // method" from inside every coach / doc-scan / mockup request — opaque 500s
