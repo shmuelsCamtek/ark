@@ -13,9 +13,9 @@ export const sharepointRouter = Router();
 const FILENAME_RE = /^[\w.\- @]+\.html$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-sharepointRouter.post('/login/start', async (_req, res) => {
+sharepointRouter.post('/login/start', async (req, res) => {
   try {
-    const info = await startGraphDeviceFlow();
+    const info = await startGraphDeviceFlow(req.sessionId);
     res.json(info);
   } catch (err) {
     console.error('[sharepoint] login start failed', err);
@@ -23,9 +23,9 @@ sharepointRouter.post('/login/start', async (_req, res) => {
   }
 });
 
-sharepointRouter.post('/login/poll', async (_req, res) => {
+sharepointRouter.post('/login/poll', async (req, res) => {
   try {
-    const result = await pollGraphDeviceFlow();
+    const result = await pollGraphDeviceFlow(req.sessionId);
     res.json(result);
   } catch (err) {
     console.error('[sharepoint] login poll failed', err);
@@ -64,7 +64,7 @@ sharepointRouter.post('/publish', async (req, res) => {
 
   let token: string;
   try {
-    token = await getGraphAccessToken();
+    token = await getGraphAccessToken(req.sessionId);
   } catch (err) {
     if (err instanceof GraphLoginRequiredError) {
       res.status(401).json({ error: 'graph_login_required' });

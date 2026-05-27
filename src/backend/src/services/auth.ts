@@ -85,7 +85,9 @@ type GraphAuthState =
       expiresAt: number;
     };
 
-let graphState: GraphAuthState = { status: 'idle' };
+// Per-session Graph auth state, keyed by the ark_sid cookie.
+const graphSessions = new Map<string, GraphAuthState>();
+const getGraphState = (sid: string): GraphAuthState => graphSessions.get(sid) ?? { status: 'idle' };
 
 export interface UserProfile {
   id: string;
@@ -111,9 +113,11 @@ type AuthState =
       profile: UserProfile;
     };
 
-let state: AuthState = { status: 'idle' };
+// Per-session Azure DevOps auth state, keyed by the ark_sid cookie.
+const sessions = new Map<string, AuthState>();
+const getState = (sid: string): AuthState => sessions.get(sid) ?? { status: 'idle' };
 
-export async function startDeviceFlow(): Promise<{ userCode: string; verificationUri: string; message: string }> {
+export async function startDeviceFlow(sid: string): Promise<{ userCode: string; verificationUri: string; message: string }> {
   const res = await authFetch('/oauth2/v2.0/devicecode', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -127,14 +131,14 @@ export async function startDeviceFlow(): Promise<{ userCode: string; verificatio
     expires_in: number;
     message: string;
   };
-  state = {
+  sessions.set(sid, {
     status: 'device_pending',
     deviceCode: data.device_code,
     userCode: data.user_code,
     verificationUri: data.verification_uri,
     message: data.message,
     expiresAt: Date.now() + data.expires_in * 1000,
-  };
+  });
   return {
     userCode: data.user_code,
     verificationUri: data.verification_uri,
@@ -148,7 +152,8 @@ export type PollResult =
   | { status: 'expired' }
   | { status: 'error'; error: string };
 
-export async function pollDeviceFlow(): Promise<PollResult> {
+export async function pollDeviceFlow(sid: string): Promise<PollResult> {
+  const state = getState(sid);
   if (state.status === 'authenticated') {
     return { status: 'authenticated', profile: state.profile };
   }
@@ -156,7 +161,7 @@ export async function pollDeviceFlow(): Promise<PollResult> {
     return { status: 'error', error: 'No device flow in progress' };
   }
   if (Date.now() > state.expiresAt) {
-    state = { status: 'idle' };
+    sessions.delete(sid);
     return { status: 'expired' };
   }
 
@@ -174,44 +179,47 @@ export async function pollDeviceFlow(): Promise<PollResult> {
   if (!res.ok) {
     if (data.error === 'authorization_pending') return { status: 'pending' };
     if (data.error === 'expired_token' || data.error === 'code_expired') {
-      state = { status: 'idle' };
+      sessions.delete(sid);
       return { status: 'expired' };
     }
     if (data.error === 'slow_down') return { status: 'pending' };
-    state = { status: 'idle' };
+    sessions.delete(sid);
     return { status: 'error', error: String(data.error_description ?? data.error ?? 'unknown') };
   }
 
   const profile = decodeProfile(String(data.id_token));
-  state = {
+  sessions.set(sid, {
     status: 'authenticated',
     accessToken: String(data.access_token),
     refreshToken: String(data.refresh_token),
     expiresAt: Date.now() + Number(data.expires_in) * 1000,
     profile,
-  };
+  });
   return { status: 'authenticated', profile };
 }
 
-export function getProfile(): UserProfile | null {
+export function getProfile(sid: string): UserProfile | null {
+  const state = getState(sid);
   return state.status === 'authenticated' ? state.profile : null;
 }
 
-export async function getAccessToken(): Promise<string | null> {
+export async function getAccessToken(sid: string): Promise<string | null> {
+  let state = getState(sid);
   if (state.status !== 'authenticated') return null;
   if (Date.now() > state.expiresAt - 60_000) {
-    const ok = await refreshAccessToken();
+    const ok = await refreshAccessToken(sid);
     if (!ok) return null;
+    state = getState(sid);
   }
   return state.status === 'authenticated' ? state.accessToken : null;
 }
 
-export function signOut(): void {
-  state = { status: 'idle' };
-  graphState = { status: 'idle' };
+export function signOut(sid: string): void {
+  sessions.delete(sid);
+  graphSessions.delete(sid);
 }
 
-export async function startGraphDeviceFlow(): Promise<{ userCode: string; verificationUri: string; message: string }> {
+export async function startGraphDeviceFlow(sid: string): Promise<{ userCode: string; verificationUri: string; message: string }> {
   const res = await authFetch('/oauth2/v2.0/devicecode', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -225,14 +233,14 @@ export async function startGraphDeviceFlow(): Promise<{ userCode: string; verifi
     expires_in: number;
     message: string;
   };
-  graphState = {
+  graphSessions.set(sid, {
     status: 'device_pending',
     deviceCode: data.device_code,
     userCode: data.user_code,
     verificationUri: data.verification_uri,
     message: data.message,
     expiresAt: Date.now() + data.expires_in * 1000,
-  };
+  });
   return {
     userCode: data.user_code,
     verificationUri: data.verification_uri,
@@ -246,13 +254,14 @@ export type GraphPollResult =
   | { status: 'expired' }
   | { status: 'error'; error: string };
 
-export async function pollGraphDeviceFlow(): Promise<GraphPollResult> {
+export async function pollGraphDeviceFlow(sid: string): Promise<GraphPollResult> {
+  const graphState = getGraphState(sid);
   if (graphState.status === 'authenticated') return { status: 'authenticated' };
   if (graphState.status !== 'device_pending') {
     return { status: 'error', error: 'No Graph device flow in progress' };
   }
   if (Date.now() > graphState.expiresAt) {
-    graphState = { status: 'idle' };
+    graphSessions.delete(sid);
     return { status: 'expired' };
   }
 
@@ -269,24 +278,25 @@ export async function pollGraphDeviceFlow(): Promise<GraphPollResult> {
   if (!res.ok) {
     if (data.error === 'authorization_pending') return { status: 'pending' };
     if (data.error === 'expired_token' || data.error === 'code_expired') {
-      graphState = { status: 'idle' };
+      graphSessions.delete(sid);
       return { status: 'expired' };
     }
     if (data.error === 'slow_down') return { status: 'pending' };
-    graphState = { status: 'idle' };
+    graphSessions.delete(sid);
     return { status: 'error', error: String(data.error_description ?? data.error ?? 'unknown') };
   }
 
-  graphState = {
+  graphSessions.set(sid, {
     status: 'authenticated',
     accessToken: String(data.access_token),
     refreshToken: String(data.refresh_token),
     expiresAt: Date.now() + Number(data.expires_in) * 1000,
-  };
+  });
   return { status: 'authenticated' };
 }
 
-export async function getGraphAccessToken(): Promise<string> {
+export async function getGraphAccessToken(sid: string): Promise<string> {
+  const graphState = getGraphState(sid);
   if (graphState.status !== 'authenticated') {
     throw new GraphLoginRequiredError();
   }
@@ -308,21 +318,23 @@ export async function getGraphAccessToken(): Promise<string> {
     const err = String(data.error ?? 'unknown');
     const desc = String(data.error_description ?? err);
     if (err === 'invalid_grant' || err === 'consent_required' || err === 'interaction_required') {
-      graphState = { status: 'idle' };
+      graphSessions.delete(sid);
       throw new GraphConsentRequiredError(err, desc);
     }
     throw new Error(`Graph token refresh failed: ${err} ${desc}`);
   }
-  graphState = {
+  const next: GraphAuthState = {
     status: 'authenticated',
     accessToken: String(data.access_token),
     refreshToken: String(data.refresh_token ?? graphState.refreshToken),
     expiresAt: Date.now() + Number(data.expires_in) * 1000,
   };
-  return graphState.accessToken;
+  graphSessions.set(sid, next);
+  return next.accessToken;
 }
 
-async function refreshAccessToken(): Promise<boolean> {
+async function refreshAccessToken(sid: string): Promise<boolean> {
+  const state = getState(sid);
   if (state.status !== 'authenticated') return false;
   const res = await authFetch('/oauth2/v2.0/token', {
     method: 'POST',
@@ -335,17 +347,17 @@ async function refreshAccessToken(): Promise<boolean> {
     }),
   });
   if (!res.ok) {
-    state = { status: 'idle' };
+    sessions.delete(sid);
     return false;
   }
   const data = (await res.json()) as Record<string, string | number>;
-  state = {
+  sessions.set(sid, {
     status: 'authenticated',
     accessToken: String(data.access_token),
     refreshToken: String(data.refresh_token ?? state.refreshToken),
     expiresAt: Date.now() + Number(data.expires_in) * 1000,
     profile: state.profile,
-  };
+  });
   return true;
 }
 

@@ -3,8 +3,8 @@ import { startDeviceFlow, pollDeviceFlow, getProfile, signOut } from '../service
 
 export const authRouter = Router();
 
-authRouter.get('/me', (_req, res) => {
-  const profile = getProfile();
+authRouter.get('/me', (req, res) => {
+  const profile = getProfile(req.sessionId);
   if (!profile) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
@@ -12,9 +12,9 @@ authRouter.get('/me', (_req, res) => {
   res.json(profile);
 });
 
-authRouter.post('/device/start', async (_req, res) => {
+authRouter.post('/device/start', async (req, res) => {
   try {
-    const result = await startDeviceFlow();
+    const result = await startDeviceFlow(req.sessionId);
     res.json(result);
   } catch (err) {
     console.error('[auth] device/start failed', err);
@@ -22,9 +22,9 @@ authRouter.post('/device/start', async (_req, res) => {
   }
 });
 
-authRouter.post('/device/poll', async (_req, res) => {
+authRouter.post('/device/poll', async (req, res) => {
   try {
-    const result = await pollDeviceFlow();
+    const result = await pollDeviceFlow(req.sessionId);
     res.json(result);
   } catch (err) {
     console.error('[auth] device/poll failed', err);
@@ -32,7 +32,7 @@ authRouter.post('/device/poll', async (_req, res) => {
   }
 });
 
-authRouter.post('/logout', (_req, res) => {
-  signOut();
+authRouter.post('/logout', (req, res) => {
+  signOut(req.sessionId);
   res.status(204).send();
 });

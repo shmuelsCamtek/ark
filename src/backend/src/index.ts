@@ -10,6 +10,7 @@ import { authRouter } from './routes/auth.ts';
 import { documentsRouter } from './routes/documents.ts';
 import { sharepointRouter } from './routes/sharepoint.ts';
 import { isManualLoaded, getManualSize } from './services/manualIndex.ts';
+import { sessionMiddleware } from './middleware/session.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +20,7 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+app.use(sessionMiddleware);
 
 // API routes
 app.use('/api/auth', authRouter);

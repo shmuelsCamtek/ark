@@ -25,7 +25,7 @@ azureRouter.get('/config', (_req, res) => {
 });
 
 async function withAzureToken(req: Request, res: Response, next: NextFunction) {
-  const token = await getAccessToken();
+  const token = await getAccessToken(req.sessionId);
   if (!token) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
