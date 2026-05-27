@@ -158,6 +158,17 @@ function toCoachMessages(msgs: SuggestMessage[]): CoachMessage[] {
   return merged;
 }
 
+// Coach AI calls can fail (backend 500 when the AI service is down, network
+// drop, etc.). Log the real cause for debugging and return one consistent,
+// reassuring message for the user instead of a silent empty bubble.
+function coachUnavailableMsg(err: unknown): SuggestMessage {
+  console.error('[coach] ai request failed', err);
+  return {
+    role: 'ai',
+    text: 'The Ark Coach is unavailable right now. Your story is saved — please try again in a moment.',
+  };
+}
+
 function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
   if (coach.type === 'quiz' && coach.quiz) {
     return {
@@ -241,9 +252,13 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
       .catch((err) => console.error('[SuggestChat] putChat failed', err));
   }, [messages, chatLoaded, draftId, draftsApi]);
 
-  // Show typing indicator while we wait for mount-time attachments to scan
+  // Show the typing indicator while mount-time attachments are still scanning,
+  // and clear it once they're ready. The initial-suggestions effect below
+  // re-sets typing when it actually fires the chat call, so this can't strand
+  // the indicator if that call never happens (e.g. attachments fail to scan).
   useEffect(() => {
-    if (!initialLoaded && !attachmentsReady) setTyping(true);
+    if (initialLoaded) return;
+    setTyping(!attachmentsReady);
   }, [attachmentsReady, initialLoaded]);
 
   // Initial contextual suggestions for real mode
@@ -262,10 +277,10 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
       setTyping(false);
       setMessages((prev) => [...prev, coachToSuggestMessage(response)]);
       setInitialLoaded(true);
-    }).catch(() => {
+    }).catch((err) => {
       if (cancelled) return;
       setTyping(false);
-      setMessages((prev) => [...prev, { role: 'ai', text: 'I\'m having trouble connecting. Try sending a message and I\'ll do my best to help.' }]);
+      setMessages((prev) => [...prev, coachUnavailableMsg(err)]);
       setInitialLoaded(true);
     });
     return () => { cancelled = true; };
@@ -314,11 +329,8 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
       .then((response) => {
         setMessages((m) => [...m, coachToSuggestMessage(response)]);
       })
-      .catch(() => {
-        setMessages((m) => [
-          ...m,
-          { role: 'ai', text: 'Sorry, I couldn’t continue. Please try again.' },
-        ]);
+      .catch((err) => {
+        setMessages((m) => [...m, coachUnavailableMsg(err)]);
       })
       .finally(() => {
         setTyping(false);
@@ -346,7 +358,7 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     setTyping(true);
     ai.chat(aiConvo, ctx)
       .then((response) => setMessages((m) => [...m, coachToSuggestMessage(response)]))
-      .catch(() => setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn’t continue. Please try again.' }]))
+      .catch((err) => setMessages((m) => [...m, coachUnavailableMsg(err)]))
       .finally(() => setTyping(false));
   };
 
@@ -379,7 +391,7 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     setTyping(true);
     ai.chat(aiConvo, ctx)
       .then((response) => setMessages((m) => [...m, coachToSuggestMessage(response)]))
-      .catch(() => setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn’t continue. Please try again.' }]))
+      .catch((err) => setMessages((m) => [...m, coachUnavailableMsg(err)]))
       .finally(() => setTyping(false));
   };
 
@@ -395,8 +407,8 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     const conversationMsgs = toCoachMessages([...messages, userMsg]);
     ai.chat(conversationMsgs, ctx).then((response) => {
       setMessages((m) => [...m, coachToSuggestMessage(response)]);
-    }).catch(() => {
-      setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn\'t process that. Please try again.' }]);
+    }).catch((err) => {
+      setMessages((m) => [...m, coachUnavailableMsg(err)]);
     }).finally(() => {
       setTyping(false);
     });
@@ -411,8 +423,8 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
       const conversationMsgs = toCoachMessages([...messages, userMsg]);
       const response = await ai.chat(conversationMsgs, ctx);
       setMessages((m) => [...m, coachToSuggestMessage(response)]);
-    } catch {
-      setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn\'t process that. Please try again.' }]);
+    } catch (err) {
+      setMessages((m) => [...m, coachUnavailableMsg(err)]);
     } finally {
       setTyping(false);
     }
@@ -439,8 +451,8 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
         const ctx = buildDraftContext(storyState, activeField);
         const response = await ai.suggestField(suggestMatch.field, suggestMatch.value, ctx);
         setMessages((m) => [...m, coachToSuggestMessage(response)]);
-      } catch {
-        setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn\'t generate suggestions right now.' }]);
+      } catch (err) {
+        setMessages((m) => [...m, coachUnavailableMsg(err)]);
       } finally {
         setTyping(false);
       }
@@ -452,8 +464,8 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
         const conversationMsgs = toCoachMessages([...messages, { role: 'user', text: chatPrompt }]);
         const response = await ai.chat(conversationMsgs, ctx);
         setMessages((m) => [...m, coachToSuggestMessage(response)]);
-      } catch {
-        setMessages((m) => [...m, { role: 'ai', text: 'Sorry, I couldn\'t generate suggestions right now.' }]);
+      } catch (err) {
+        setMessages((m) => [...m, coachUnavailableMsg(err)]);
       } finally {
         setTyping(false);
       }

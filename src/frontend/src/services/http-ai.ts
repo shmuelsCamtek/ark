@@ -28,6 +28,10 @@ export class HttpAiService implements AiService {
         draftContext,
       }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `AI chat failed (${res.status})`);
+    }
     const data = await res.json();
 
     // Handle quiz response — defensively normalize options so the user always
@@ -76,6 +80,10 @@ export class HttpAiService implements AiService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ field, currentValue, draftContext }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `AI suggest failed (${res.status})`);
+    }
     const data = await res.json();
 
     if (data.suggestions) {
