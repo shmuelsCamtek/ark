@@ -15,12 +15,14 @@ const KIND_LABEL: Record<ContextLogKind, string> = {
   uiBefore: 'Before screenshot',
   uiAfter: 'After screenshot',
   fieldEdit: 'Field edit',
+  manual: 'User Manual',
 };
 
 function KindIcon({ kind }: { kind: ContextLogKind }) {
   if (kind === 'doc') return <Ico.file size={12} />;
   if (kind === 'workItem' || kind === 'linkedWorkItem') return <Ico.link size={12} />;
   if (kind === 'fieldEdit') return <Ico.edit size={12} />;
+  if (kind === 'manual') return <Ico.info size={12} />;
   return <Ico.image size={12} />;
 }
 
@@ -32,6 +34,7 @@ function kindColor(kind: ContextLogKind): string {
     case 'uiBefore':
     case 'uiAfter': return ARK_TOKENS.markerRed;
     case 'fieldEdit': return ARK_TOKENS.success;
+    case 'manual': return ARK_TOKENS.ai;
   }
 }
 
@@ -158,12 +161,14 @@ export function ContextLogPopover({ entries, onClose }: ContextLogPopoverProps) 
                   </div>
                 )}
               </div>
-              <div
-                style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, flexShrink: 0, marginTop: 2 }}
-                title={new Date(e.addedAt).toLocaleString()}
-              >
-                {formatRelative(e.addedAt)}
-              </div>
+              {e.kind !== 'manual' && (
+                <div
+                  style={{ fontSize: ARK_TOKENS.type.micro, color: ARK_TOKENS.inkSubtle, flexShrink: 0, marginTop: 2 }}
+                  title={new Date(e.addedAt).toLocaleString()}
+                >
+                  {formatRelative(e.addedAt)}
+                </div>
+              )}
             </div>
           ))
         )}

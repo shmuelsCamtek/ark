@@ -35,7 +35,7 @@ export interface DraftMockup {
   generatedAt: string;
 }
 
-export type ContextLogKind = 'doc' | 'workItem' | 'linkedWorkItem' | 'uiBefore' | 'uiAfter' | 'fieldEdit';
+export type ContextLogKind = 'doc' | 'workItem' | 'linkedWorkItem' | 'uiBefore' | 'uiAfter' | 'fieldEdit' | 'manual';
 
 export interface ContextLogEntry {
   id: string;

@@ -2,8 +2,17 @@ import { Router } from 'express';
 import { chatWithCoach, suggestForField } from '../services/claude.ts';
 import { generateMockup, type MockupInput } from '../services/mockupGenerator.ts';
 import { getDraft, putDraft } from '../services/draftStore.ts';
+import { isManualLoaded, getManualSize } from '../services/manualIndex.ts';
 
 export const aiRouter = Router();
+
+// Whether the Camtek User Manual index is loaded (so the UI can show it as
+// standing coach context). No auth — just a boolean + counts.
+aiRouter.get('/manual', (_req, res) => {
+  const loaded = isManualLoaded();
+  const { chunks, pages } = getManualSize();
+  res.json({ loaded, chunks, pages });
+});
 
 // Chat with AI coach
 aiRouter.post('/chat', async (req, res) => {

@@ -1,5 +1,5 @@
 import type { CoachMessage, DraftMockup } from '../types';
-import type { AiService } from './ai';
+import type { AiService, ManualStatus } from './ai';
 
 let nextId = 1;
 function msgId() {
@@ -106,6 +106,16 @@ export class HttpAiService implements AiService {
       text: data.text,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  async getManualStatus(): Promise<ManualStatus> {
+    try {
+      const res = await fetch('/api/ai/manual');
+      if (!res.ok) return { loaded: false, chunks: 0, pages: 0 };
+      return (await res.json()) as ManualStatus;
+    } catch {
+      return { loaded: false, chunks: 0, pages: 0 };
+    }
   }
 
   async generateMockup(draftId: string): Promise<DraftMockup> {

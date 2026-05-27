@@ -207,6 +207,7 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [chatLoaded, setChatLoaded] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
+  const [manualStatus, setManualStatus] = useState<{ loaded: boolean; pages: number } | null>(null);
   // First setMessages after a load is just the load itself — skip persisting it back.
   const skipNextPersistRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -214,6 +215,16 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, typing]);
+
+  // Whether the Camtek User Manual is loaded as standing coach context — shown
+  // as a pinned row in the gear popover. Global + session-stable, so fetch once.
+  useEffect(() => {
+    let cancelled = false;
+    ai.getManualStatus()
+      .then((s) => { if (!cancelled) setManualStatus({ loaded: s.loaded, pages: s.pages }); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [ai]);
 
   // Hydrate chat from backend on mount / draft change.
   useEffect(() => {
@@ -516,6 +527,20 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     added: ARK_TOKENS.success,
   };
 
+  // Pin the User Manual at the top of the gear popover when it's loaded. It's
+  // global standing context, so it's injected here, never persisted on a draft.
+  // Appended (not prepended) because the popover renders entries reversed.
+  const manualEntry: ContextLogEntry | null = manualStatus?.loaded
+    ? {
+        id: 'ctx-user-manual',
+        kind: 'manual',
+        label: 'Camtek User Manual',
+        summary: manualStatus.pages > 0 ? `${manualStatus.pages} pages indexed` : 'Product reference',
+        addedAt: new Date(0).toISOString(),
+      }
+    : null;
+  const popoverEntries = manualEntry ? [...contextLog, manualEntry] : contextLog;
+
   return (
     <div
       className={typing ? 'ark-thinking' : undefined}
@@ -561,7 +586,7 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
             <Ico.gear size={14} />
           </button>
           {contextOpen && (
-            <ContextLogPopover entries={contextLog} onClose={() => setContextOpen(false)} />
+            <ContextLogPopover entries={popoverEntries} onClose={() => setContextOpen(false)} />
           )}
         </div>
       </div>
