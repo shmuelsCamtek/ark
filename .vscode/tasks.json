@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Deploy Ark to VM",
+      "detail": "Build + deploy to 62f5fb5e3738 as me_admin (password baked in; .vscode is gitignored).",
+      "type": "process",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-Command",
+        "& '${workspaceFolder}/scripts/deploy.ps1' -VmHost 62f5fb5e3738 -VmUser me_admin -Password (ConvertTo-SecureString '1122' -AsPlainText -Force)"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true,
+        "echo": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
