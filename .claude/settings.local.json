@@ -46,7 +46,15 @@
       "PowerShell(az login *)",
       "Bash(timeout 8 npx tsx src/index.ts)",
       "Bash(dir \"C:\\\\temp\\\\Ark\" /B)",
-      "Bash(curl -s http://localhost:3001/api/health)"
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(where.exe plink *)",
+      "Bash(where.exe pscp *)",
+      "Bash(where.exe sshpass *)",
+      "Bash(where.exe ssh *)",
+      "Bash(where.exe scp *)",
+      "Bash(pwsh *)",
+      "PowerShell($errs = $null; $null = [System.Management.Automation.Language.Parser]::ParseFile\\('C:\\\\temp\\\\Ark\\\\scripts\\\\deploy.ps1', [ref]$null, [ref]$errs\\); if \\($errs\\) { $errs | ForEach-Object { Write-Output $_.Message } } else { Write-Output 'PARSE OK' })",
+      "PowerShell($e=$null; $null=[System.Management.Automation.Language.Parser]::ParseFile\\('C:\\\\temp\\\\Ark\\\\scripts\\\\deploy.ps1',[ref]$null,[ref]$e\\); if\\($e\\){$e | ForEach-Object { $_.Message }}else{'PARSE OK'})"
     ]
   }
 }
