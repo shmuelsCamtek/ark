@@ -100,14 +100,21 @@ steps). Also remember to add the inbound firewall rule once:
 
 ```powershell
 cd C:\temp\Ark
-.\scripts\deploy.ps1 -VmHost 62f5fb5e3738 -VmUser me_admin
+$pw = Read-Host 'VM password' -AsSecureString
+.\scripts\deploy.ps1 -VmHost 62f5fb5e3738 -VmUser me_admin -Password $pw
 ```
+
+Auth uses the **Posh-SSH** module (not OpenSSH `ssh`/`scp`, which can't take a
+password programmatically). Pass the SSH password once via `-Password`
+(a `[SecureString]`); if you omit it the script prompts for it once and reuses
+it for both the upload and the remote swap. Never hardcode the password into a
+command you commit or paste into a shared file.
 
 What it does:
 1. Frontend: `npm ci --include=dev` + `vite build` (no `tsc` — see frontend `package.json`).
 2. Backend staging: copies `src/backend/` (minus `node_modules`, `data`, `.env`) to `$env:TEMP\ark-deploy-<stamp>\`, runs `npm ci --omit=dev` there.
-3. Zips the staged folder, SCPs to `C:/Ark/deploy.zip` on the VM (will prompt for SSH password).
-4. SSHes a swap-and-restart on the VM (prompts for password again): expand zip → preserve `.env` → `nssm stop Ark` → swap folders → `nssm start Ark` → health-check.
+3. Zips the staged folder, uploads it to `C:/Ark/deploy.zip` on the VM via `Set-SCPItem` (using the supplied credential — no prompt).
+4. Runs a swap-and-restart on the VM via `Invoke-SSHCommand`: expand zip → preserve `.env` → `nssm stop Ark` → swap folders → `nssm start Ark` → health-check.
 
 `--SkipBuild` re-uses the existing `src/backend/public` if you only need to redeploy backend changes.
 
