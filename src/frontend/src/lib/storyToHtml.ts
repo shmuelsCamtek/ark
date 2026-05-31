@@ -39,7 +39,7 @@ function flowBlockHtml(block: FlowBlock): string {
 const STYLES = `
   *, *::before, *::after { box-sizing: border-box; }
   body { margin: 0; padding: 40px 20px; font-family: Roboto, "Segoe UI", system-ui, sans-serif; color: #1a1a1a; background: #f5f6f7; -webkit-font-smoothing: antialiased; }
-  .page { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid #e0e2e5; border-radius: 8px; padding: 32px 40px; }
+  .page { max-width: 960px; margin: 0 auto; background: #fff; border: 1px solid #e0e2e5; border-radius: 8px; padding: 32px 40px; }
   .eyebrow { font-size: 11px; font-weight: 600; color: #4a4d52; letter-spacing: 0.3px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .eyebrow::before { content: ""; width: 10px; height: 10px; background: #008FBE; border-radius: 1px; }
   h1 { font-size: 28px; font-weight: 600; margin: 0 0 24px; letter-spacing: -0.3px; line-height: 1.2; }
@@ -71,8 +71,8 @@ const STYLES = `
   #t-story:checked ~ .ark-tabs label[for="t-story"] { color: #1a1a1a; font-weight: 600; border-bottom-color: #008FBE; }
   #t-mockup:checked ~ .ark-panel-story { display: none; }
   #t-mockup:checked ~ .ark-panel-mockup { display: block; }
-  .ark-mockup-frame { border: 1px solid #e0e2e5; border-radius: 8px; background: #fff; width: 100%; min-height: 480px; display: block; }
-  iframe.ark-mockup-frame { border: 1px solid #e0e2e5; border-radius: 8px; background: #fff; width: 100%; min-height: 480px; display: block; }
+  .ark-mockup-frame { border: 1px solid #e0e2e5; border-radius: 8px; background: #fff; width: 100%; height: 85vh; min-height: 480px; display: block; }
+  iframe.ark-mockup-frame { border: 1px solid #e0e2e5; border-radius: 8px; background: #fff; width: 100%; height: 85vh; min-height: 480px; display: block; }
   .ark-tab-badge { color: #7E57C2; font-weight: 600; margin-left: 6px; }
 `;
 

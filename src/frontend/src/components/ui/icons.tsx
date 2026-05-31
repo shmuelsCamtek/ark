@@ -123,6 +123,12 @@ export const Ico = {
       <path d="M2.5 11v2.5h11V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+  download: ({ size = 14 }: IcoProps) => (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+      <path d="M8 2v9M4.5 7.5L8 11l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2.5 11v2.5h11V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
   refresh: ({ size = 14 }: IcoProps) => (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
       <path d="M2 8a6 6 0 0110.5-4M14 8a6 6 0 01-10.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />

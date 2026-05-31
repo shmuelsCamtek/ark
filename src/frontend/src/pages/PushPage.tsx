@@ -11,6 +11,7 @@ import { renderFlow } from '../lib/renderFlowSvg';
 import { storyToHtml } from '../lib/storyToHtml';
 import { draftPictures } from '../lib/pictures';
 import type { GraphLoginInfo } from '../services/sharepoint';
+import type { StoryDraft } from '../types';
 
 type Stage = 'review' | 'publishing' | 'done' | 'consent' | 'error' | 'graph_login';
 
@@ -80,6 +81,43 @@ export function PushPage() {
     workItemId: draft?.workItemId,
   };
 
+  // Build the self-contained story HTML (story + pictures + optional mockup tab).
+  // Shared by Push (upload to SharePoint) and Save (download locally).
+  const buildStoryHtml = async (d: StoryDraft): Promise<string> => {
+    const flowBlocks = await renderFlow(d.flow || '');
+    return storyToHtml({
+      title: d.title || 'Untitled story',
+      background: d.background || '',
+      scenario: d.scenario,
+      flowBlocks,
+      persona: d.persona || '',
+      want: d.narrative.iWantTo || '',
+      benefit: d.narrative.soThat || '',
+      criteria: d.acceptanceCriteria.map((ac) => ({ id: ac.id, text: ac.text })),
+      pictures: draftPictures(d).map((p) => ({ dataUrl: p.dataUrl, caption: p.caption })),
+      workItemType: d.workItemType,
+      workItemId: d.workItemId,
+      mockupHtml: d.mockup?.status === 'ok' ? d.mockup.html : undefined,
+      generatedBy: user?.email || 'Ark Story Studio',
+      generatedAt: new Date().toISOString(),
+    });
+  };
+
+  // Save the generated HTML to the user's machine (no SharePoint / auth needed).
+  const handleSaveHtml = async () => {
+    if (!draft) return;
+    const html = await buildStoryHtml(draft);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${slugify(draft.title || 'untitled')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const handlePush = async () => {
     if (!draft) return;
     if (!user?.email) {
@@ -90,23 +128,7 @@ export function PushPage() {
     setStage('publishing');
     setPublishStatus('Generating HTML…');
     try {
-      const flowBlocks = await renderFlow(draft.flow || '');
-      const html = storyToHtml({
-        title: draft.title || 'Untitled story',
-        background: draft.background || '',
-        scenario: draft.scenario,
-        flowBlocks,
-        persona: draft.persona || '',
-        want: draft.narrative.iWantTo || '',
-        benefit: draft.narrative.soThat || '',
-        criteria: draft.acceptanceCriteria.map((ac) => ({ id: ac.id, text: ac.text })),
-        pictures: draftPictures(draft).map((p) => ({ dataUrl: p.dataUrl, caption: p.caption })),
-        workItemType: draft.workItemType,
-        workItemId: draft.workItemId,
-        mockupHtml: draft.mockup?.status === 'ok' ? draft.mockup.html : undefined,
-        generatedBy: user.email,
-        generatedAt: new Date().toISOString(),
-      });
+      const html = await buildStoryHtml(draft);
       setPublishStatus('Uploading to SharePoint…');
       const slug = slugify(draft.title || 'untitled');
       const filename = `${slug}-${draft.id}.html`;
@@ -246,6 +268,9 @@ export function PushPage() {
                 </a>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
+                <Btn variant="ghost" onClick={handleSaveHtml} icon={<Ico.download size={13} />}>
+                  Save
+                </Btn>
                 <Btn onClick={handleBackToEditor} icon={<Ico.arrow size={12} dir="left" />}>
                   Back
                 </Btn>
@@ -280,8 +305,8 @@ export function PushPage() {
           </div>
         )}
         <div className="ark-scroll" style={{ flex: 1, overflowY: 'auto', padding: '32px 48px 48px' }}>
-          <div style={{ maxWidth: 900, margin: '0 auto' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 720 }}>
+          <div style={{ maxWidth: 960, margin: '0 auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 880 }}>
               <div style={{ background: ARK_TOKENS.surface, borderRadius: ARK_TOKENS.r2, border: `1px solid ${ARK_TOKENS.border}`, padding: 24 }}>
                 <WorkItemHeader
                   title={storyTitle}
