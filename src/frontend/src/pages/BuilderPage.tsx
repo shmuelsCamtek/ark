@@ -17,11 +17,16 @@ import { evaluateCompletion } from '../lib/storyCompletion';
 import { scanUploadedDoc, scanAzureAttachment, type ScanResultPayload } from '../services/scan';
 import { appendContextEntry, appendOrReplaceFieldEditEntry } from '../lib/contextLog';
 import { fieldLabel } from '../lib/fieldLabels';
-import type { SupportingDoc } from '../types';
+import { draftPictures } from '../lib/pictures';
+import type { SupportingDoc, UiChange } from '../types';
 
 function docKindToSupportingType(kind: DocItem['kind']): SupportingDoc['type'] {
   return kind === 'pdf' ? 'pdf' : kind === 'image' ? 'image' : 'other';
 }
+
+// Cap on the raw bytes we persist per supporting doc for the coach to "see".
+// Larger files still scan to text; we just don't re-send the original to the model.
+const MAX_COACH_DOC_BYTES = 5 * 1024 * 1024;
 
 const COACH_MIN_WIDTH = 280;
 const COACH_MAX_WIDTH = 720;
@@ -176,11 +181,8 @@ function BuilderPageBody() {
         edgeCases: sd.edgeCases || [],
       }));
   });
-  const [showUiChange, setShowUiChange] = useState(
-    () => !!(draft?.uiChanges?.[0]?.beforeUrl || draft?.uiChanges?.[0]?.afterUrl),
-  );
-  const [uiBefore, setUiBefore] = useState<string | undefined>(draft?.uiChanges?.[0]?.beforeUrl);
-  const [uiAfter, setUiAfter] = useState<string | undefined>(draft?.uiChanges?.[0]?.afterUrl);
+  const [pictures, setPictures] = useState<UiChange[]>(() => draftPictures(draft));
+  const [showUiChange, setShowUiChange] = useState(() => draftPictures(draft).length > 0);
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
   const [recentFieldEdit, setRecentFieldEdit] = useState<string | null>(null);
   const [coachWidth, setCoachWidth] = useState<number>(() => readPersistedCoachWidth());
@@ -235,19 +237,10 @@ function BuilderPageBody() {
       persona,
       narrative: { asA: persona, iWantTo: want, soThat: benefit },
       acceptanceCriteria: criteria.map((c) => ({ id: String(c.id), text: c.text, source: 'manual' as const })),
-      uiChanges: (uiBefore || uiAfter)
-        ? [{
-            id: 'main',
-            description: '',
-            hasBefore: !!uiBefore,
-            hasAfter: !!uiAfter,
-            beforeUrl: uiBefore,
-            afterUrl: uiAfter,
-          }]
-        : [],
+      uiChanges: pictures,
       completionPct: Math.round((result.filled / result.total) * 100),
     });
-  }, [title, background, scenario, flow, persona, want, benefit, criteria, uiBefore, uiAfter, editId, draftId, updateDraft]);
+  }, [title, background, scenario, flow, persona, want, benefit, criteria, pictures, editId, draftId, updateDraft]);
 
   const setters: Record<string, (v: string) => void> = { title: setTitle, background: setBackground, scenario: setScenario, flow: setFlow, persona: setPersona, want: setWant, benefit: setBenefit };
   const fieldToSection: Record<string, string> = {
@@ -294,6 +287,7 @@ function BuilderPageBody() {
     doc: DocItem,
     payload: ScanResultPayload,
     uploadedMimeType?: string,
+    uploadedContent?: string,
   ) => {
     const id = editId || draftId;
     const sr: ScanResult = {
@@ -311,13 +305,27 @@ function BuilderPageBody() {
     updateDraft(id, (current) => {
       const existing = current.supportingDocs || [];
       const idx = existing.findIndex((s) => s.id === doc.id);
+      const type = docKindToSupportingType(doc.kind);
+      const mimeType = payload.mimeType ?? existing[idx]?.mimeType ?? uploadedMimeType;
+      // Persist the raw bytes only for image/PDF (the kinds the coach can "see")
+      // and only under a size cap, to keep the draft JSON in DATA_DIR sane.
+      const coachable = type === 'image' || type === 'pdf';
+      const approxBytes = uploadedContent ? Math.floor(uploadedContent.length * 0.75) : 0;
+      const dataUrl =
+        coachable && uploadedContent && mimeType && approxBytes <= MAX_COACH_DOC_BYTES
+          ? `data:${mimeType};base64,${uploadedContent}`
+          : existing[idx]?.dataUrl;
+      if (coachable && uploadedContent && approxBytes > MAX_COACH_DOC_BYTES) {
+        console.warn(`[docs] "${doc.name}" is too large to show the coach (~${Math.round(approxBytes / 1024 / 1024)} MB); using its scanned text only.`);
+      }
       const merged: SupportingDoc = {
         id: doc.id,
         name: doc.name,
-        type: docKindToSupportingType(doc.kind),
+        type,
         scanned: true,
         url: existing[idx]?.url,
-        mimeType: payload.mimeType ?? existing[idx]?.mimeType ?? uploadedMimeType,
+        mimeType,
+        dataUrl,
         summary: payload.summary,
         problemContext: payload.problemContext,
         stakeholders: payload.stakeholders,
@@ -347,7 +355,7 @@ function BuilderPageBody() {
         if (url) result = await scanAzureAttachment(url, doc.name);
       }
       if (result) {
-        persistScanResult(doc, result, payload?.mimeType);
+        persistScanResult(doc, result, payload?.mimeType, payload?.content);
         return;
       }
     } catch (err) {
@@ -465,15 +473,27 @@ function BuilderPageBody() {
     setNewCriterion('');
   };
 
-  const recordUiImage = (slot: 'before' | 'after', url: string, source?: 'replace' | 'annotate') => {
-    const id = editId || draftId;
-    const had = slot === 'before' ? !!uiBefore : !!uiAfter;
-    if (slot === 'before') setUiBefore(url);
-    else setUiAfter(url);
-    appendContextEntry(updateDraft, id, {
-      kind: slot === 'before' ? 'uiBefore' : 'uiAfter',
-      label: slot === 'before' ? 'Before screenshot' : 'After screenshot',
-      summary: source === 'annotate' ? 'Annotated' : had ? 'Replaced' : undefined,
+  const addPicture = (dataUrl: string, source?: 'paste' | 'upload') => {
+    const picId = 'pic' + Date.now() + Math.round(Math.random() * 1e6);
+    setPictures((prev) => [...prev, { id: picId, dataUrl, addedAt: new Date().toISOString() }]);
+    appendContextEntry(updateDraft, editId || draftId, {
+      kind: 'picture',
+      label: 'Picture',
+      summary: source === 'paste' ? 'Pasted' : 'Uploaded',
+    });
+  };
+  const removePicture = (picId: string) => {
+    setPictures((prev) => prev.filter((p) => p.id !== picId));
+  };
+  const updatePictureCaption = (picId: string, caption: string) => {
+    setPictures((prev) => prev.map((p) => (p.id === picId ? { ...p, caption } : p)));
+  };
+  const annotatePicture = (picId: string, dataUrl: string) => {
+    setPictures((prev) => prev.map((p) => (p.id === picId ? { ...p, dataUrl } : p)));
+    appendContextEntry(updateDraft, editId || draftId, {
+      kind: 'picture',
+      label: 'Picture',
+      summary: 'Annotated',
     });
   };
 
@@ -598,10 +618,14 @@ function BuilderPageBody() {
             workItemDiscussion: draft?.workItemDiscussion,
             linkedWorkItems: draft?.linkedWorkItems,
             epicName: draft?.epicName,
+            pictures: pictures.map(p => ({ dataUrl: p.dataUrl, caption: p.caption })),
             supportingDocs: docs.map(d => {
               const scan = scanResults.find(s => s.docId === d.id);
+              const persisted = draft?.supportingDocs?.find(s => s.id === d.id);
               return {
                 name: d.name, kind: d.kind, scanned: !!d.scanned,
+                mimeType: persisted?.mimeType,
+                dataUrl: persisted?.dataUrl,
                 ...(scan && {
                   summary: scan.summary,
                   problemContext: scan.problemContext,
@@ -789,15 +813,13 @@ function BuilderPageBody() {
                 onToggle={() => {
                   const next = !showUiChange;
                   setShowUiChange(next);
-                  if (!next) {
-                    setUiBefore(undefined);
-                    setUiAfter(undefined);
-                  }
+                  if (!next) setPictures([]);
                 }}
-                before={uiBefore}
-                after={uiAfter}
-                onSetBefore={(url, source) => recordUiImage('before', url, source)}
-                onSetAfter={(url, source) => recordUiImage('after', url, source)}
+                pictures={pictures}
+                onAdd={addPicture}
+                onUpdateCaption={updatePictureCaption}
+                onRemove={removePicture}
+                onAnnotate={annotatePicture}
               />
             </Field>
 

@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef, useCallback, type CSSProperties } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties } from 'react';
 import { ARK_TOKENS } from '../../tokens';
 import { Ico } from '../ui/icons';
 import { Badge } from '../ui/Badge';
 import { useServices } from '../../context/ServicesContext';
 import { ContextLogPopover } from './ContextLogPopover';
 import { fieldLabel } from '../../lib/fieldLabels';
+import { mimeFromDataUrl, base64FromDataUrl } from '../../lib/pictures';
+import type { CoachAttachment } from '../../services/ai';
 import type { CoachMessage, ContextLogEntry, SuggestMessage, WorkItemComment, WorkItemInfo } from '../../types';
 
 interface SuggestChatProps {
@@ -28,10 +30,13 @@ interface SuggestChatProps {
     workItemDiscussion?: WorkItemComment[];
     linkedWorkItems?: WorkItemInfo[];
     epicName?: string;
+    pictures?: { dataUrl: string; caption?: string }[];
     supportingDocs?: {
       name: string;
       kind: string;
       scanned: boolean;
+      mimeType?: string;
+      dataUrl?: string;
       summary?: string;
       problemContext?: string;
       stakeholders?: string[];
@@ -116,8 +121,38 @@ function buildDraftContext(storyState: SuggestChatProps['storyState'], activeFie
   if (storyState.workItemDiscussion?.length) ctx.workItemDiscussion = storyState.workItemDiscussion;
   if (storyState.linkedWorkItems?.length) ctx.linkedWorkItems = storyState.linkedWorkItems;
   if (storyState.epicName) ctx.epicName = storyState.epicName;
-  if (storyState.supportingDocs?.length) ctx.supportingDocs = storyState.supportingDocs;
+  if (storyState.supportingDocs?.length) {
+    // Strip the raw bytes (dataUrl) — those are sent as image/document blocks,
+    // never inlined as base64 into the text prompt.
+    ctx.supportingDocs = storyState.supportingDocs.map(({ dataUrl: _dataUrl, mimeType: _mimeType, ...rest }) => rest);
+  }
   return JSON.stringify(ctx);
+}
+
+// Collect the attached pictures and image/PDF docs as content blocks for the
+// coach to actually see. Returns base64 payloads (no data: prefix).
+function buildAttachments(storyState: SuggestChatProps['storyState']): CoachAttachment[] {
+  const out: CoachAttachment[] = [];
+  for (const p of storyState.pictures ?? []) {
+    if (!p.dataUrl) continue;
+    out.push({
+      name: p.caption || 'picture',
+      mimeType: mimeFromDataUrl(p.dataUrl),
+      data: base64FromDataUrl(p.dataUrl),
+      kind: 'image',
+    });
+  }
+  for (const d of storyState.supportingDocs ?? []) {
+    if (!d.dataUrl) continue;
+    if (d.kind !== 'image' && d.kind !== 'pdf') continue;
+    out.push({
+      name: d.name,
+      mimeType: d.mimeType || mimeFromDataUrl(d.dataUrl),
+      data: base64FromDataUrl(d.dataUrl),
+      kind: d.kind === 'pdf' ? 'pdf' : 'image',
+    });
+  }
+  return out;
 }
 
 function toCoachMessages(msgs: SuggestMessage[]): CoachMessage[] {
@@ -209,6 +244,10 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
 
 export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAutoMockup, phase = 'chat', onPhaseChange, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null, recentFieldEditLabel = null, contextLog = [], width }: SuggestChatProps) {
   const { ai, drafts: draftsApi } = useServices();
+  // Attached pictures + image/PDF docs, sent with every coach turn so the model
+  // can see them (the chat API is stateless — they must ride along each call).
+  const attachments = useMemo(() => buildAttachments(storyState), [storyState]);
+  const sendChat = (msgs: CoachMessage[], ctx: string) => ai['chat'](msgs, ctx, attachments);
   const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
@@ -292,7 +331,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
     let cancelled = false;
     setTyping(true);
     const ctx = buildDraftContext(storyState, activeField);
-    ai.chat(
+    sendChat(
       [{ id: 'init', type: 'user', text: 'I\'m starting a new user story. Based on what I have so far, what should I focus on?', timestamp: new Date().toISOString() }],
       ctx,
     ).then((response) => {
@@ -354,7 +393,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
       const conversationMsgs = toCoachMessages([...messages, userEcho]);
       const ctx = buildDraftContext(virtual, activeField);
       setTyping(true);
-      ai.chat(conversationMsgs, ctx)
+      sendChat(conversationMsgs, ctx)
         .then((response) => setMessages((prev) => [...prev, coachToSuggestMessage(response)]))
         .catch((err) => setMessages((prev) => [...prev, coachUnavailableMsg(err)]))
         .finally(() => {
@@ -392,7 +431,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
     const aiConvo: CoachMessage[] = [...toCoachMessages(messages), signal];
     const ctx = buildDraftContext(virtual, activeField);
     setTyping(true);
-    ai.chat(aiConvo, ctx)
+    sendChat(aiConvo, ctx)
       .then((response) => setMessages((prev) => [...prev, coachToSuggestMessage(response)]))
       .catch((err) => setMessages((prev) => [...prev, coachUnavailableMsg(err)]))
       .finally(() => {
@@ -498,7 +537,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
     const ctx = buildDraftContext(patched, activeField);
 
     setTyping(true);
-    ai.chat(aiConvo, ctx)
+    sendChat(aiConvo, ctx)
       .then((response) => {
         setMessages((m) => [...m, coachToSuggestMessage(response)]);
       })
@@ -529,7 +568,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
     const ctx = buildDraftContext(storyState, activeField);
 
     setTyping(true);
-    ai.chat(aiConvo, ctx)
+    sendChat(aiConvo, ctx)
       .then((response) => setMessages((m) => [...m, coachToSuggestMessage(response)]))
       .catch((err) => setMessages((m) => [...m, coachUnavailableMsg(err)]))
       .finally(() => setTyping(false));
@@ -562,7 +601,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
     const ctx = buildDraftContext(patched, activeField);
 
     setTyping(true);
-    ai.chat(aiConvo, ctx)
+    sendChat(aiConvo, ctx)
       .then((response) => setMessages((m) => [...m, coachToSuggestMessage(response)]))
       .catch((err) => setMessages((m) => [...m, coachUnavailableMsg(err)]))
       .finally(() => setTyping(false));
@@ -578,7 +617,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
 
     const ctx = buildDraftContext(storyState, activeField);
     const conversationMsgs = toCoachMessages([...messages, userMsg]);
-    ai.chat(conversationMsgs, ctx).then((response) => {
+    sendChat(conversationMsgs, ctx).then((response) => {
       setMessages((m) => [...m, coachToSuggestMessage(response)]);
     }).catch((err) => {
       setMessages((m) => [...m, coachUnavailableMsg(err)]);
@@ -594,7 +633,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
     try {
       const ctx = buildDraftContext(storyState, activeField);
       const conversationMsgs = toCoachMessages([...messages, userMsg]);
-      const response = await ai.chat(conversationMsgs, ctx);
+      const response = await sendChat(conversationMsgs, ctx);
       setMessages((m) => [...m, coachToSuggestMessage(response)]);
     } catch (err) {
       setMessages((m) => [...m, coachUnavailableMsg(err)]);
@@ -635,7 +674,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
       try {
         const ctx = buildDraftContext(storyState, activeField);
         const conversationMsgs = toCoachMessages([...messages, { role: 'user', text: chatPrompt }]);
-        const response = await ai.chat(conversationMsgs, ctx);
+        const response = await sendChat(conversationMsgs, ctx);
         setMessages((m) => [...m, coachToSuggestMessage(response)]);
       } catch (err) {
         setMessages((m) => [...m, coachUnavailableMsg(err)]);

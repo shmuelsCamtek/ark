@@ -12,6 +12,7 @@ const KIND_LABEL: Record<ContextLogKind, string> = {
   doc: 'Document',
   workItem: 'Work item',
   linkedWorkItem: 'Linked work item',
+  picture: 'Picture',
   uiBefore: 'Before screenshot',
   uiAfter: 'After screenshot',
   fieldEdit: 'Field edit',
@@ -31,6 +32,7 @@ function kindColor(kind: ContextLogKind): string {
     case 'doc': return ARK_TOKENS.ai;
     case 'workItem': return ARK_TOKENS.azure;
     case 'linkedWorkItem': return ARK_TOKENS.azureDark;
+    case 'picture':
     case 'uiBefore':
     case 'uiAfter': return ARK_TOKENS.markerRed;
     case 'fieldEdit': return ARK_TOKENS.success;

@@ -3,6 +3,7 @@ import { ARK_TOKENS } from '../../tokens';
 import { Ico } from '../ui/icons';
 import { UiChangePreview } from './UiChangePreview';
 import { FlowPreview } from './FlowPreview';
+import type { UiChange } from '../../types';
 
 interface Criterion {
   id: string | number;
@@ -26,13 +27,11 @@ interface WorkItemPreviewProps {
   benefit: string;
   criteria: Criterion[];
   docs: DocItem[];
-  showUiChange: boolean;
+  pictures?: UiChange[];
   compact?: boolean;
   hideHeader?: boolean;
   workItemType?: string;
   workItemId?: string;
-  uiBeforeUrl?: string;
-  uiAfterUrl?: string;
 }
 
 interface WorkItemHeaderProps {
@@ -59,7 +58,7 @@ export function WorkItemHeader({ title, workItemType, workItemId }: WorkItemHead
   );
 }
 
-export function WorkItemPreview({ title, background, scenario, flow, persona, want, benefit, criteria, docs, showUiChange, compact, hideHeader, workItemType, workItemId, uiBeforeUrl, uiAfterUrl }: WorkItemPreviewProps) {
+export function WorkItemPreview({ title, background, scenario, flow, persona, want, benefit, criteria, docs, pictures, compact, hideHeader, workItemType, workItemId }: WorkItemPreviewProps) {
   return (
     <div style={{ fontSize: ARK_TOKENS.type.body, lineHeight: ARK_TOKENS.leading.normal }}>
       {!hideHeader && (
@@ -123,10 +122,10 @@ export function WorkItemPreview({ title, background, scenario, flow, persona, wa
         )}
       </div>
 
-      {showUiChange && (
+      {pictures && pictures.length > 0 && (
         <div style={{ marginTop: 22 }}>
-          <SectionLabel>UI change · Before → After</SectionLabel>
-          <UiChangePreview enabled compact onToggle={() => {}} before={uiBeforeUrl} after={uiAfterUrl} />
+          <SectionLabel>Pictures</SectionLabel>
+          <UiChangePreview enabled compact onToggle={() => {}} pictures={pictures} />
         </div>
       )}
 

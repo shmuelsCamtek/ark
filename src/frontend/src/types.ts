@@ -11,6 +11,7 @@ export interface SupportingDoc {
   scanned: boolean;
   url?: string;
   mimeType?: string;
+  dataUrl?: string;        // base64 data URL of the original file (images/PDFs only) — lets the coach see the actual file, not just its scanned text
   summary?: string;
   problemContext?: string;
   stakeholders?: string[];
@@ -19,13 +20,14 @@ export interface SupportingDoc {
   edgeCases?: string[];
 }
 
+// A picture attached to the story (UI screenshot or any reference image).
+// Replaces the former Before/After model; legacy drafts are migrated by
+// `draftPictures()` in lib/pictures.ts.
 export interface UiChange {
   id: string;
-  description: string;
-  hasBefore: boolean;
-  hasAfter: boolean;
-  beforeUrl?: string;
-  afterUrl?: string;
+  dataUrl: string;        // data:image/...;base64,…
+  caption?: string;       // optional free-text label (was the Before/After tag)
+  addedAt?: string;
 }
 
 export interface DraftMockup {
@@ -35,7 +37,9 @@ export interface DraftMockup {
   generatedAt: string;
 }
 
-export type ContextLogKind = 'doc' | 'workItem' | 'linkedWorkItem' | 'uiBefore' | 'uiAfter' | 'fieldEdit' | 'manual';
+// 'uiBefore' / 'uiAfter' are retained only so logs saved before the move to a
+// flat picture list still render; new picture entries use 'picture'.
+export type ContextLogKind = 'doc' | 'workItem' | 'linkedWorkItem' | 'picture' | 'uiBefore' | 'uiAfter' | 'fieldEdit' | 'manual';
 
 export interface ContextLogEntry {
   id: string;

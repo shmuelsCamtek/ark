@@ -2,15 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { ARK_TOKENS } from '../../tokens';
 import { Ico } from '../ui/icons';
 import { AnnotateModal } from './AnnotateModal';
+import type { UiChange } from '../../types';
 
 interface UiChangePreviewProps {
   enabled: boolean;
   onToggle: () => void;
   compact?: boolean;
-  before?: string;
-  after?: string;
-  onSetBefore?: (url: string, source?: 'annotate') => void;
-  onSetAfter?: (url: string, source?: 'annotate') => void;
+  pictures: UiChange[];
+  onAdd?: (dataUrl: string, source?: 'paste' | 'upload') => void;
+  onUpdateCaption?: (id: string, caption: string) => void;
+  onRemove?: (id: string) => void;
+  onAnnotate?: (id: string, dataUrl: string) => void;
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -24,15 +26,14 @@ function readFileAsDataUrl(file: File): Promise<string> {
 
 export function UiChangePreview({
   enabled, onToggle, compact,
-  before, after, onSetBefore, onSetAfter,
+  pictures, onAdd, onUpdateCaption, onRemove, onAnnotate,
 }: UiChangePreviewProps) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const slotRef = useRef<'before' | 'after'>('before');
-  const [annotating, setAnnotating] = useState<'before' | 'after' | null>(null);
+  const [annotating, setAnnotating] = useState<UiChange | null>(null);
 
-  // Ctrl+V paste → set Before
+  // Ctrl+V paste → add a picture
   useEffect(() => {
-    if (!enabled || compact || !onSetBefore) return;
+    if (!enabled || compact || !onAdd) return;
     const handler = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
@@ -41,7 +42,7 @@ export function UiChangePreview({
           const file = item.getAsFile();
           if (!file) continue;
           e.preventDefault();
-          readFileAsDataUrl(file).then(onSetBefore).catch((err) => {
+          readFileAsDataUrl(file).then((url) => onAdd(url, 'paste')).catch((err) => {
             console.error('[ui-change] paste read failed', err);
           });
           return;
@@ -50,24 +51,29 @@ export function UiChangePreview({
     };
     document.addEventListener('paste', handler);
     return () => document.removeEventListener('paste', handler);
-  }, [enabled, compact, onSetBefore]);
-
-  const pickFile = (slot: 'before' | 'after') => {
-    slotRef.current = slot;
-    fileRef.current?.click();
-  };
+  }, [enabled, compact, onAdd]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
-    if (!file) return;
-    readFileAsDataUrl(file)
-      .then((url) => {
-        if (slotRef.current === 'before') onSetBefore?.(url);
-        else onSetAfter?.(url);
-      })
-      .catch((err) => console.error('[ui-change] file read failed', err));
+    files.forEach((file) => {
+      readFileAsDataUrl(file)
+        .then((url) => onAdd?.(url, 'upload'))
+        .catch((err) => console.error('[ui-change] file read failed', err));
+    });
   };
+
+  // Compact (preview) mode: read-only gallery of thumbnails, no controls.
+  if (compact) {
+    if (pictures.length === 0) return null;
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {pictures.map((p) => (
+          <PicThumb key={p.id} src={p.dataUrl} caption={p.caption} height={96} />
+        ))}
+      </div>
+    );
+  }
 
   if (!enabled) {
     return (
@@ -92,16 +98,13 @@ export function UiChangePreview({
               This story includes a UI change
             </div>
             <div style={{ fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.inkMuted, lineHeight: ARK_TOKENS.leading.normal }}>
-              Tick this if you want to capture a before/after. Tickets without UI work can skip this.
+              Tick this to attach screenshots or pictures. Ark uses them as context; tickets without UI work can skip this.
             </div>
           </div>
         </label>
       </div>
     );
   }
-
-  const annotateSource = annotating === 'before' ? before : annotating === 'after' ? after : undefined;
-  const annotateTarget = before ? 'before' : after ? 'after' : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -115,89 +118,96 @@ export function UiChangePreview({
         />
         <span style={{ fontWeight: 600 }}>This story includes a UI change</span>
         <span style={{ flex: 1 }} />
-        {!compact && (
-          <button
-            type="button"
-            onClick={onToggle}
-            style={{
-              border: 'none', background: 'transparent', color: ARK_TOKENS.inkSubtle,
-              fontSize: ARK_TOKENS.type.label, cursor: 'pointer', padding: 4, fontFamily: 'inherit',
-            }}
-          >
-            Remove
-          </button>
-        )}
-      </label>
-
-      {!compact && (
-        <div
+        <button
+          type="button"
+          onClick={onToggle}
           style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 10px',
-            background: ARK_TOKENS.azureFaint,
-            border: `1px dashed ${ARK_TOKENS.azure}`,
-            borderRadius: ARK_TOKENS.r2,
-            fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.azureDark,
+            border: 'none', background: 'transparent', color: ARK_TOKENS.inkSubtle,
+            fontSize: ARK_TOKENS.type.label, cursor: 'pointer', padding: 4, fontFamily: 'inherit',
           }}
         >
-          <Ico.copy size={12} />
-          <span style={{ flex: 1 }}>
-            Paste a screenshot of the current window <span style={{ color: ARK_TOKENS.inkMuted }}>(Ctrl+V)</span> — Ark will set it as <b>Before</b>.
-          </span>
-          <button
-            type="button"
-            onClick={() => pickFile('before')}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '3px 8px', border: `1px solid ${ARK_TOKENS.azure}`,
-              background: ARK_TOKENS.surface, borderRadius: ARK_TOKENS.r,
-              fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.azure, cursor: 'pointer', fontFamily: 'inherit', fontWeight: ARK_TOKENS.weight.semibold,
-            }}
-          >
-            <Ico.upload size={10} /> Upload
-          </button>
-        </div>
-      )}
+          Remove
+        </button>
+      </label>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: compact ? 6 : 10, alignItems: 'stretch' }}>
-        <UiThumb label="Before" variant="before" compact={compact} src={before} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: ARK_TOKENS.inkSubtle }}>
-          <Ico.arrow size={14} />
-        </div>
-        <UiThumb label="After" variant="after" compact={compact} src={after} />
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 10px',
+          background: ARK_TOKENS.azureFaint,
+          border: `1px dashed ${ARK_TOKENS.azure}`,
+          borderRadius: ARK_TOKENS.r2,
+          fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.azureDark,
+        }}
+      >
+        <Ico.copy size={12} />
+        <span style={{ flex: 1 }}>
+          Paste a screenshot <span style={{ color: ARK_TOKENS.inkMuted }}>(Ctrl+V)</span> or upload — Ark adds it to the picture list.
+        </span>
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '3px 8px', border: `1px solid ${ARK_TOKENS.azure}`,
+            background: ARK_TOKENS.surface, borderRadius: ARK_TOKENS.r,
+            fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.azure, cursor: 'pointer', fontFamily: 'inherit', fontWeight: ARK_TOKENS.weight.semibold,
+          }}
+        >
+          <Ico.upload size={10} /> Add picture
+        </button>
       </div>
 
-      {!compact && (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <ActionBtn icon="upload" label="Replace before" onClick={() => pickFile('before')} />
-          <ActionBtn icon="upload" label="Replace after" onClick={() => pickFile('after')} />
-          <ActionBtn
-            icon="edit"
-            label="Annotate"
-            disabled={!annotateTarget}
-            title={annotateTarget ? undefined : 'Add a Before or After image first'}
-            onClick={() => annotateTarget && setAnnotating(annotateTarget)}
-          />
+      {pictures.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {pictures.map((p, i) => (
+            <div
+              key={p.id}
+              style={{
+                display: 'flex', gap: 10,
+                padding: 8,
+                border: `1px solid ${ARK_TOKENS.border}`,
+                borderRadius: ARK_TOKENS.r2,
+                background: ARK_TOKENS.surface,
+              }}
+            >
+              <PicThumb src={p.dataUrl} height={84} width={120} />
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <input
+                  type="text"
+                  value={p.caption ?? ''}
+                  placeholder={`Caption (optional) — picture ${i + 1}`}
+                  onChange={(e) => onUpdateCaption?.(p.id, e.target.value)}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '5px 8px',
+                    border: `1px solid ${ARK_TOKENS.border}`, borderRadius: ARK_TOKENS.r,
+                    fontSize: ARK_TOKENS.type.label, color: ARK_TOKENS.ink, fontFamily: 'inherit',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <ActionBtn icon="edit" label="Annotate" onClick={() => setAnnotating(p)} />
+                  <ActionBtn icon="x" label="Remove" onClick={() => onRemove?.(p.id)} />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {!compact && (
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
-      )}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
 
-      {annotating && annotateSource && (
+      {annotating && (
         <AnnotateModal
-          image={annotateSource}
-          onSave={(dataUrl) => {
-            if (annotating === 'before') onSetBefore?.(dataUrl, 'annotate');
-            else onSetAfter?.(dataUrl, 'annotate');
-          }}
+          image={annotating.dataUrl}
+          onSave={(dataUrl) => onAnnotate?.(annotating.id, dataUrl)}
           onClose={() => setAnnotating(null)}
         />
       )}
@@ -208,7 +218,7 @@ export function UiChangePreview({
 function ActionBtn({
   icon, label, onClick, disabled, title,
 }: {
-  icon: 'upload' | 'edit';
+  icon: 'upload' | 'edit' | 'x';
   label: string;
   onClick: () => void;
   disabled?: boolean;
@@ -230,15 +240,12 @@ function ActionBtn({
         opacity: disabled ? 0.6 : 1,
       }}
     >
-      {icon === 'upload' ? <Ico.upload size={10} /> : <Ico.edit size={10} />} {label}
+      {icon === 'upload' ? <Ico.upload size={10} /> : icon === 'edit' ? <Ico.edit size={10} /> : <Ico.x size={10} />} {label}
     </button>
   );
 }
 
-function UiThumb({ label, variant, compact, src }: { label: string; variant: 'before' | 'after'; compact?: boolean; src?: string }) {
-  const isAfter = variant === 'after';
-  const h = compact ? 96 : 132;
-
+function PicThumb({ src, caption, height, width }: { src: string; caption?: string; height: number; width?: number }) {
   return (
     <div
       style={{
@@ -247,76 +254,31 @@ function UiThumb({ label, variant, compact, src }: { label: string; variant: 'be
         background: ARK_TOKENS.surface,
         overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
+        flexShrink: 0,
+        width: width ?? 'auto',
       }}
     >
-      <div
-        style={{
-          height: h, background: '#F1F4F9',
-          display: 'flex', flexDirection: 'column',
-          padding: src ? 0 : 8, gap: 4,
-          position: 'relative',
-        }}
-      >
-        {src ? (
-          <img
-            src={src}
-            alt={`${label} screenshot`}
-            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-          />
-        ) : (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 4, borderRadius: 3, background: '#fff', border: `1px solid ${ARK_TOKENS.border}` }}>
-              <div style={{ width: 6, height: 6, borderRadius: 3, background: isAfter ? '#388E3C' : '#E11A22' }} />
-              <div style={{ height: 4, background: '#E3E6ED', flex: 1, borderRadius: 1 }} />
-              <div style={{ height: 4, background: '#E3E6ED', width: 24, borderRadius: 1 }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 4, borderRadius: 3, background: '#fff', border: `1px solid ${ARK_TOKENS.border}` }}>
-              <div style={{ width: 6, height: 6, borderRadius: 3, background: '#E11A22' }} />
-              <div style={{ height: 4, background: '#E3E6ED', flex: 1, borderRadius: 1 }} />
-              <div style={{ height: 4, background: '#E3E6ED', width: 24, borderRadius: 1 }} />
-            </div>
-            {isAfter ? (
-              <div
-                style={{
-                  position: 'absolute', right: 8, bottom: 8,
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  padding: '3px 8px',
-                  background: ARK_TOKENS.azure, color: '#fff',
-                  borderRadius: 12, fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.3,
-                  boxShadow: '0 1px 3px rgba(0,143,190,0.4)',
-                }}
-              >
-                <Ico.refresh size={8} /> AUTO-RETRY ON
-              </div>
-            ) : (
-              <div
-                style={{
-                  position: 'absolute', right: 8, bottom: 8,
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  padding: '3px 8px',
-                  background: '#fff', color: ARK_TOKENS.inkMuted,
-                  border: `1px solid ${ARK_TOKENS.border}`,
-                  borderRadius: 12, fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.medium,
-                }}
-              >
-                Retry manually
-              </div>
-            )}
-          </>
-        )}
+      <div style={{ height, width: width ?? 'auto', minWidth: width ?? 120, background: '#F1F4F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img
+          src={src}
+          alt={caption || 'picture'}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+        />
       </div>
-      <div
-        style={{
-          padding: '4px 8px',
-          fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.semibold, letterSpacing: 0.5,
-          color: isAfter ? ARK_TOKENS.azure : ARK_TOKENS.inkMuted,
-          background: isAfter ? ARK_TOKENS.azureFaint : ARK_TOKENS.surfaceAlt,
-          borderTop: `1px solid ${ARK_TOKENS.border}`,
-          textTransform: 'uppercase',
-        }}
-      >
-        {label}
-      </div>
+      {caption && (
+        <div
+          style={{
+            padding: '4px 8px', maxWidth: width ?? 200,
+            fontSize: ARK_TOKENS.type.micro, fontWeight: ARK_TOKENS.weight.medium,
+            color: ARK_TOKENS.inkMuted, background: ARK_TOKENS.surfaceAlt,
+            borderTop: `1px solid ${ARK_TOKENS.border}`,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}
+          title={caption}
+        >
+          {caption}
+        </div>
+      )}
     </div>
   );
 }

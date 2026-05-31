@@ -1,5 +1,5 @@
 import type { CoachMessage, DraftMockup } from '../types';
-import type { AiService, ManualStatus } from './ai';
+import type { AiService, ManualStatus, CoachAttachment } from './ai';
 
 let nextId = 1;
 function msgId() {
@@ -20,7 +20,7 @@ function realOptions(options: string[]): string[] {
 }
 
 export class HttpAiService implements AiService {
-  async chat(messages: CoachMessage[], draftContext: string): Promise<CoachMessage> {
+  async chat(messages: CoachMessage[], draftContext: string, attachments?: CoachAttachment[]): Promise<CoachMessage> {
     const res = await fetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -30,6 +30,7 @@ export class HttpAiService implements AiService {
           content: m.text,
         })),
         draftContext,
+        attachments,
       }),
     });
     if (!res.ok) {

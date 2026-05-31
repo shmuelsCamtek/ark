@@ -9,6 +9,7 @@ import { useServices } from '../context/ServicesContext';
 import { evaluateDraft } from '../lib/storyCompletion';
 import { renderFlow } from '../lib/renderFlowSvg';
 import { storyToHtml } from '../lib/storyToHtml';
+import { draftPictures } from '../lib/pictures';
 import type { GraphLoginInfo } from '../services/sharepoint';
 
 type Stage = 'review' | 'publishing' | 'done' | 'consent' | 'error' | 'graph_login';
@@ -64,7 +65,6 @@ export function PushPage() {
   }, [stage, draft, completion.complete, id, navigate]);
 
   const storyTitle = draft?.title || 'Untitled story';
-  const uiChange = draft?.uiChanges?.[0];
   const storyData = {
     title: storyTitle,
     background: draft?.background || '',
@@ -75,9 +75,7 @@ export function PushPage() {
     benefit: draft?.narrative.soThat || '',
     criteria: draft?.acceptanceCriteria.map((ac) => ({ id: ac.id, text: ac.text })) || [],
     docs: [],
-    showUiChange: !!(uiChange?.beforeUrl || uiChange?.afterUrl),
-    uiBeforeUrl: uiChange?.beforeUrl,
-    uiAfterUrl: uiChange?.afterUrl,
+    pictures: draftPictures(draft),
     workItemType: draft?.workItemType,
     workItemId: draft?.workItemId,
   };
@@ -102,8 +100,7 @@ export function PushPage() {
         want: draft.narrative.iWantTo || '',
         benefit: draft.narrative.soThat || '',
         criteria: draft.acceptanceCriteria.map((ac) => ({ id: ac.id, text: ac.text })),
-        uiBeforeUrl: draft.uiChanges?.[0]?.beforeUrl,
-        uiAfterUrl: draft.uiChanges?.[0]?.afterUrl,
+        pictures: draftPictures(draft).map((p) => ({ dataUrl: p.dataUrl, caption: p.caption })),
         workItemType: draft.workItemType,
         workItemId: draft.workItemId,
         mockupHtml: draft.mockup?.status === 'ok' ? draft.mockup.html : undefined,
