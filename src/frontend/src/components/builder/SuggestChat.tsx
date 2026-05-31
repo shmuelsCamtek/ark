@@ -914,19 +914,43 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
           />
         ))}
         {typing && (
-          <div style={{ display: 'flex', gap: 4, padding: '4px 0 4px 32px', alignItems: 'center' }}>
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: 3,
-                  background: ARK_TOKENS.inkSubtle,
-                  animation: `ark-pulse 1.2s ease-in-out ${i * 0.15}s infinite`,
-                }}
-              />
-            ))}
+          <div style={{ display: 'flex', gap: 10, animation: 'ark-fadein 0.25s' }}>
+            <div
+              className="ark-icon-pulse"
+              style={{
+                width: 22, height: 22, borderRadius: 11,
+                background: ARK_TOKENS.azure, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, marginTop: 1,
+              }}
+            >
+              <Ico.sparkle size={10} />
+            </div>
+            <div
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '8px 12px',
+                borderRadius: ARK_TOKENS.r2,
+                background: 'rgba(126, 87, 194, 0.07)',
+                border: '1px solid rgba(126, 87, 194, 0.18)',
+              }}
+            >
+              <span style={{ fontSize: ARK_TOKENS.type.label, fontWeight: ARK_TOKENS.weight.semibold, color: ARK_TOKENS.ai }}>
+                Ark is thinking
+              </span>
+              <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    style={{
+                      width: 6, height: 6, borderRadius: 3,
+                      background: ARK_TOKENS.ai,
+                      animation: `ark-typing-bounce 1s ${i * 0.15}s infinite`,
+                    }}
+                  />
+                ))}
+              </span>
+            </div>
           </div>
         )}
       </div>
