@@ -41,6 +41,10 @@ interface SuggestChatProps {
     }[];
   };
   onApply: (field: string, value: string) => void;
+  onBatchApply?: (updates: { field: string; value: string }[]) => void;
+  onAutoMockup?: () => void;
+  phase?: 'chat' | 'ac';
+  onPhaseChange?: (phase: 'chat' | 'ac') => void;
   activeField: string;
   setActiveField: (f: string) => void;
   attachmentsReady?: boolean;
@@ -177,6 +181,8 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
       text: coach.text,
       quizQuestion: coach.quiz.question,
       options: coach.quiz.options,
+      autoCaptured: coach.autoCaptured || undefined,
+      autoCapturedValue: coach.autoCaptured ? coach.value : undefined,
     };
   }
   if (coach.type === 'criteria-bundle') {
@@ -194,12 +200,14 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
       intro: coach.text,
       field: coach.field,
       options: coach.value ? [coach.value] : [],
+      autoCaptured: coach.autoCaptured || undefined,
+      autoCapturedValue: coach.autoCaptured ? coach.value : undefined,
     };
   }
   return { role: 'ai', text: coach.text };
 }
 
-export function SuggestChat({ draftId, storyState, onApply, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null, recentFieldEditLabel = null, contextLog = [], width }: SuggestChatProps) {
+export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAutoMockup, phase = 'chat', onPhaseChange, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null, recentFieldEditLabel = null, contextLog = [], width }: SuggestChatProps) {
   const { ai, drafts: draftsApi } = useServices();
   const [messages, setMessages] = useState<SuggestMessage[]>([]);
   const [input, setInput] = useState('');
@@ -210,6 +218,10 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
   const [manualStatus, setManualStatus] = useState<{ loaded: boolean; pages: number } | null>(null);
   // First setMessages after a load is just the load itself — skip persisting it back.
   const skipNextPersistRef = useRef(false);
+  // Guards: auto-advance/handoff/mockup must each fire at most once per logical event.
+  const autoAdvancingRef = useRef(false);
+  const handoffFiringRef = useRef(false);
+  const autoMockupFiredRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -297,7 +309,149 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
     return () => { cancelled = true; };
   }, [attachmentsReady, chatLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-advance for single-option prompts: when the latest AI message is
+  // flagged autoCaptured and hasn't been advanced yet, mark it advanced and
+  // send the synthetic signal to the AI so the conversation flows on without
+  // the user clicking anything. Field updates are deferred — they batch-apply
+  // at the AC handoff (see effect below) unless we're already in the 'ac'
+  // phase, in which case we apply immediately.
+  useEffect(() => {
+    if (typing) return;
+    if (autoAdvancingRef.current) return;
+    if (!chatLoaded) return;
+    if (messages.length === 0) return;
+    const idx = messages.length - 1;
+    const m = messages[idx];
+    if (!m || m.role !== 'ai' || !m.autoCaptured) return;
+    const alreadyAdvanced = m.kind === 'quiz'
+      ? !!m.quizAnswered
+      : (m.appliedOptionIndices?.length ?? 0) > 0;
+    if (alreadyAdvanced) return;
+    const value = m.autoCapturedValue || '';
+    if (!value) return;
+    const field = m.field || '';
+
+    autoAdvancingRef.current = true;
+
+    // Compute the "virtual" patched state including this capture plus any
+    // prior auto-captured (still-buffered) values, so the coach's next-field
+    // hint is correct even if we haven't flushed to the real form yet.
+    let virtual = storyState;
+    for (let i = 0; i < idx; i++) {
+      const prev = messages[i];
+      if (prev.autoCaptured && prev.field && prev.autoCapturedValue) {
+        virtual = patchStoryState(virtual, prev.field, prev.autoCapturedValue);
+      }
+    }
+    if (field) virtual = patchStoryState(virtual, field, value);
+
+    if (m.kind === 'quiz') {
+      setMessages((prev) => prev.map((mm, i) =>
+        i === idx ? { ...mm, quizAnswered: true, quizAnswer: value } : mm,
+      ));
+      const userEcho: SuggestMessage = { role: 'user', text: value };
+      setMessages((prev) => [...prev, userEcho]);
+      const conversationMsgs = toCoachMessages([...messages, userEcho]);
+      const ctx = buildDraftContext(virtual, activeField);
+      setTyping(true);
+      ai.chat(conversationMsgs, ctx)
+        .then((response) => setMessages((prev) => [...prev, coachToSuggestMessage(response)]))
+        .catch((err) => setMessages((prev) => [...prev, coachUnavailableMsg(err)]))
+        .finally(() => {
+          setTyping(false);
+          autoAdvancingRef.current = false;
+        });
+      return;
+    }
+
+    // Suggestion path.
+    if (phase === 'ac') {
+      // Post-handoff: apply immediately, no buffering.
+      onApply(field, value);
+    }
+    setMessages((prev) => prev.map((mm, i) =>
+      i === idx ? { ...mm, appliedOptionIndices: [...(mm.appliedOptionIndices ?? []), 0] } : mm,
+    ));
+
+    const truncated = value.length > 120 ? value.slice(0, 117) + '…' : value;
+    const next = nextEmptyField(virtual);
+    let tail: string;
+    if (field === 'scenario' && !hasMermaidBlock(virtual.flow)) {
+      tail = `Now offer me sequence/flow diagrams for The Flow section — a single \`suggestions\` block with field='flow' containing exactly two options: (1) a \`\`\`mermaid sequenceDiagram, (2) a \`\`\`mermaid flowchart or graph. Each option's text is the fenced mermaid block ONLY (no prose). Keep diagrams short (≤ 8 nodes/steps) and faithful to the scenario prose. If a diagram genuinely wouldn't help, say so briefly and move on to Title instead.`;
+    } else {
+      tail = next
+        ? `Now help me with **${next}** — the next empty field. Ask me a clarifying question (quiz) or draft a value.`
+        : `All four fields are filled now. Ask me via quiz whether I want to refine any of them or add more acceptance criteria.`;
+    }
+    const signal: CoachMessage = {
+      id: `auto-apply-${Date.now()}`,
+      type: 'user',
+      text: `I applied your suggestion to ${fieldLabel(field)}: "${truncated}". ${tail}`,
+      timestamp: new Date().toISOString(),
+    };
+    const aiConvo: CoachMessage[] = [...toCoachMessages(messages), signal];
+    const ctx = buildDraftContext(virtual, activeField);
+    setTyping(true);
+    ai.chat(aiConvo, ctx)
+      .then((response) => setMessages((prev) => [...prev, coachToSuggestMessage(response)]))
+      .catch((err) => setMessages((prev) => [...prev, coachUnavailableMsg(err)]))
+      .finally(() => {
+        setTyping(false);
+        autoAdvancingRef.current = false;
+      });
+  }, [messages, typing, chatLoaded, phase, storyState, activeField, ai, onApply]);
+
+  // AC handoff: when a criteria-bundle arrives that hasn't yet been
+  // handed-off, flush every still-buffered single-option capture to the form
+  // in one atomic batch, flip phase to 'ac' (which unlocks the form in
+  // BuilderPage), and drop a summary ack in the chat showing what was applied.
+  useEffect(() => {
+    if (!chatLoaded) return;
+    if (handoffFiringRef.current) return;
+    const bundleIdx = messages.findIndex(
+      (m) => m.kind === 'criteria-bundle' && !m.handoffApplied,
+    );
+    if (bundleIdx === -1) return;
+    handoffFiringRef.current = true;
+
+    const captures: { field: string; value: string }[] = [];
+    for (let i = 0; i < bundleIdx; i++) {
+      const m = messages[i];
+      if (m.autoCaptured && m.field && m.autoCapturedValue) {
+        captures.push({ field: m.field, value: m.autoCapturedValue });
+      }
+    }
+
+    if (captures.length > 0 && onBatchApply) {
+      onBatchApply(captures);
+    }
+    if (onPhaseChange) onPhaseChange('ac');
+
+    setMessages((prev) => {
+      const next = prev.map((m, i) => (i === bundleIdx ? { ...m, handoffApplied: true } : m));
+      if (captures.length === 0) return next;
+      const summaryLines = captures
+        .map((c) => `${fieldLabel(c.field)}: ${c.value.length > 80 ? c.value.slice(0, 77) + '…' : c.value}`)
+        .join('\n');
+      const summary: SuggestMessage = {
+        role: 'ai',
+        kind: 'ack',
+        text: `Applied to your story:\n${summaryLines}`,
+      };
+      // Insert the summary just before the criteria-bundle so the form-fill
+      // story is visible above the AC list.
+      return [...next.slice(0, bundleIdx), summary, ...next.slice(bundleIdx)];
+    });
+
+    handoffFiringRef.current = false;
+  }, [messages, chatLoaded, onBatchApply, onPhaseChange]);
+
   const handleApply = (msgIdx: number, optIdx: number, field: string, text: string) => {
+    const targetMsg = messages[msgIdx];
+    const isCriteriaBundle = targetMsg?.kind === 'criteria-bundle';
+    const isFirstAcAccept =
+      isCriteriaBundle && (targetMsg?.appliedOptionIndices?.length ?? 0) === 0;
+
     onApply(field, text);
     setMessages((prev) =>
       prev.map((m, i) => {
@@ -306,6 +460,14 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
         return cur.includes(optIdx) ? m : { ...m, appliedOptionIndices: [...cur, optIdx] };
       }),
     );
+
+    // Auto-fire the Interactive User Story exactly once when the user first
+    // accepts an AC from the criteria-bundle. Guarded against rapid double-fires
+    // and against re-firing on reload (appliedOptionIndices was empty pre-click).
+    if (isFirstAcAccept && !autoMockupFiredRef.current && onAutoMockup) {
+      autoMockupFiredRef.current = true;
+      onAutoMockup();
+    }
 
     // Skip the follow-up call if one is already in flight (e.g. user rapid-clicks
     // multiple criteria chips). The coach will pick up state when the pending call
@@ -494,7 +656,8 @@ export function SuggestChat({ draftId, storyState, onApply, activeField, setActi
 
   let activeQuizIdx = -1;
   for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].kind === 'quiz' && !messages[i].quizAnswered) {
+    const m = messages[i];
+    if (m.kind === 'quiz' && !m.quizAnswered && !m.autoCaptured) {
       activeQuizIdx = i;
       break;
     }
@@ -885,6 +1048,10 @@ function SuggestMsg({
       </div>
     );
   }
+
+  // Auto-captured single-option prompts are silently absorbed during chat and
+  // surfaced as part of the AC handoff summary. Don't render them.
+  if (msg.autoCaptured) return null;
 
   if (msg.kind === 'ack') {
     return (

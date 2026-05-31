@@ -15,6 +15,10 @@ function normalizeQuizOptions(raw: unknown[]): string[] {
   return hasEscape ? cleaned : [...cleaned, SOMETHING_ELSE];
 }
 
+function realOptions(options: string[]): string[] {
+  return options.filter((o) => !SOMETHING_ELSE_RE.test(o));
+}
+
 export class HttpAiService implements AiService {
   async chat(messages: CoachMessage[], draftContext: string): Promise<CoachMessage> {
     const res = await fetch('/api/ai/chat', {
@@ -38,11 +42,15 @@ export class HttpAiService implements AiService {
     // has a "Something else…" escape hatch even if the model misbehaves.
     if (data.quiz && data.quiz.question && Array.isArray(data.quiz.options)) {
       const options = normalizeQuizOptions(data.quiz.options);
+      const real = realOptions(options);
+      const autoCaptured = real.length === 1;
       return {
         id: msgId(),
         type: 'quiz',
         text: data.text || '',
         quiz: { question: data.quiz.question, options },
+        value: autoCaptured ? real[0] : undefined,
+        autoCaptured,
         timestamp: new Date().toISOString(),
       };
     }
@@ -52,15 +60,23 @@ export class HttpAiService implements AiService {
       const first = data.suggestions[0];
       // Structured suggestion: { field, options }
       if (first.field && first.options) {
+        const isCriteria = first.field === 'criteria';
+        // The chat only ever renders coach.value as a single button regardless
+        // of how many options the backend produced, so every non-criteria
+        // suggestion is effectively single-option from the user's perspective.
+        // Auto-capture all of them — they'll be flushed at the AC handoff.
+        const value = isCriteria ? undefined : first.options[0];
+        const autoCaptured = !isCriteria && typeof value === 'string' && value.length > 0;
         return {
           id: msgId(),
-          type: first.field === 'criteria' ? 'criteria-bundle' : 'suggestion',
+          type: isCriteria ? 'criteria-bundle' : 'suggestion',
           text: data.text,
           field: first.field,
-          criteria: first.field === 'criteria'
+          criteria: isCriteria
             ? first.options.map((s: string, i: number) => ({ id: `ac-http-${i}`, text: s, source: 'ai' as const }))
             : undefined,
-          value: first.field !== 'criteria' ? first.options[0] : undefined,
+          value,
+          autoCaptured: autoCaptured || undefined,
           timestamp: new Date().toISOString(),
         };
       }
@@ -87,15 +103,19 @@ export class HttpAiService implements AiService {
     const data = await res.json();
 
     if (data.suggestions) {
+      const isCriteria = field === 'acceptanceCriteria';
+      const value = isCriteria ? undefined : data.suggestions[0];
+      const autoCaptured = !isCriteria && typeof value === 'string' && value.length > 0;
       return {
         id: msgId(),
-        type: field === 'acceptanceCriteria' ? 'criteria-bundle' : 'suggestion',
+        type: isCriteria ? 'criteria-bundle' : 'suggestion',
         text: data.text,
         field,
-        criteria: field === 'acceptanceCriteria'
+        criteria: isCriteria
           ? data.suggestions.map((s: string, i: number) => ({ id: `ac-http-${i}`, text: s, source: 'ai' as const }))
           : undefined,
-        value: field !== 'acceptanceCriteria' ? data.suggestions[0] : undefined,
+        value,
+        autoCaptured: autoCaptured || undefined,
         timestamp: new Date().toISOString(),
       };
     }

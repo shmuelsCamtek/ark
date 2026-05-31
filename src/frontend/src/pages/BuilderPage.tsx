@@ -184,6 +184,12 @@ function BuilderPageBody() {
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
   const [recentFieldEdit, setRecentFieldEdit] = useState<string | null>(null);
   const [coachWidth, setCoachWidth] = useState<number>(() => readPersistedCoachWidth());
+  // Chat-first flow: the form is empty + read-only during the conversation
+  // and unlocks only when the coach reaches Acceptance Criteria. If the draft
+  // already has any AC persisted, we must already be past the handoff.
+  const [phase, setPhase] = useState<'chat' | 'ac'>(() =>
+    (draft?.acceptanceCriteria?.length ?? 0) > 0 ? 'ac' : 'chat',
+  );
   const autoScanFiredRef = useRef(false);
   const pendingScanIdsRef = useRef<Set<string>>(new Set());
   const prevScanCountRef = useRef(0);
@@ -268,6 +274,19 @@ function BuilderPageBody() {
       requestAnimationFrame(() => {
         document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
+    }
+  };
+
+  // Apply all captured single-option values to their fields at once when the
+  // coach reaches the AC handoff. No per-field scroll — the user is reading
+  // the chat, not the form.
+  const applyBatch = (updates: { field: string; value: string }[]) => {
+    for (const u of updates) {
+      if (u.field === 'criteria') {
+        setCriteria((prev) => [...prev, { id: Date.now() + Math.random(), text: u.value }]);
+      } else if (setters[u.field]) {
+        setters[u.field](u.value);
+      }
     }
   };
 
@@ -595,6 +614,10 @@ function BuilderPageBody() {
             }),
           }}
           onApply={applySuggestion}
+          onBatchApply={applyBatch}
+          onAutoMockup={handleGenerateMockup}
+          phase={phase}
+          onPhaseChange={setPhase}
           activeField={activeField}
           setActiveField={setActiveField}
           contextLog={draft?.contextLog ?? []}
@@ -638,7 +661,31 @@ function BuilderPageBody() {
                   refreshing={generatingMockup}
                 />
               ) : (
-                <>
+                <div
+                  style={{
+                    pointerEvents: phase === 'chat' ? 'none' : 'auto',
+                    opacity: phase === 'chat' ? 0.55 : 1,
+                    transition: 'opacity 0.25s ease',
+                  }}
+                  aria-disabled={phase === 'chat'}
+                >
+                  {phase === 'chat' && (
+                    <div
+                      style={{
+                        marginBottom: 16,
+                        padding: '10px 14px',
+                        background: ARK_TOKENS.surfaceAlt,
+                        border: `1px dashed ${ARK_TOKENS.border}`,
+                        borderRadius: ARK_TOKENS.r2,
+                        fontSize: ARK_TOKENS.type.label,
+                        color: ARK_TOKENS.inkMuted,
+                        lineHeight: ARK_TOKENS.leading.normal,
+                      }}
+                    >
+                      Talk it through with the coach on the left. Your story fields fill in
+                      automatically once you reach acceptance criteria.
+                    </div>
+                  )}
             <Field
               id="field-title"
               label="Title"
@@ -820,7 +867,7 @@ function BuilderPageBody() {
                 onScan={handleDocScan}
               />
             </Field>
-                </>
+                </div>
               )}
             </div>
           </div>

@@ -93,6 +93,13 @@ export interface SuggestMessage {
   quizAnswer?: string;
   bundleResolved?: boolean;
   appliedOptionIndices?: number[];
+  // Single-option prompts (one real choice) are silently captured during chat
+  // and revealed in a batch when the AC handoff happens.
+  autoCaptured?: boolean;
+  autoCapturedValue?: string;
+  // Marked on the first criteria-bundle once its handoff batch-apply has fired,
+  // so reloads don't refire the batch.
+  handoffApplied?: boolean;
 }
 
 export interface CoachMessage {
@@ -105,6 +112,7 @@ export interface CoachMessage {
   quiz?: { question: string; options: string[] };
   used?: boolean;
   timestamp: string;
+  autoCaptured?: boolean;
 }
 
 export interface UserProfile {
