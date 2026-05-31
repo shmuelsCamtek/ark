@@ -16,6 +16,12 @@ text file, then retrieve the most relevant chunks per call.
    ```
    It walks the PDF page-by-page, extracts text, and writes
    `manual-index.json` next to this README. A 500-page manual takes a minute or two.
+
+   To also caption figures/screenshots (see "Figure captioning" below):
+   ```bash
+   npm run index-manual -- --captions        # interactive
+   npm run index-manual -- --captions --yes   # no prompts
+   ```
 3. Restart the backend. Startup log should read:
    `Manual index loaded from …: N chunks across N pages.`
 
@@ -37,12 +43,23 @@ When the manual changes, re-run `npm run index-manual` and restart the
 backend. The index file records the source PDF's SHA-256 so drift can be
 detected later if we want to.
 
-## v2 (planned)
+## Figure captioning (`--captions`)
 
-Image captioning via Claude Vision: for pages with figures and screenshots,
-emit a 2-3 sentence caption alongside the page text so visual content is
-searchable. The current index file format already carries `imagePaths` per
-chunk for this future enhancement.
+Opt-in figure captioning makes the manual's visual content searchable. With
+`--captions`, the indexer detects pages that contain images (via pdfjs
+operator lists), copies each such page into a 1-page PDF (`pdf-lib`), sends it
+to Claude as a document block, and appends the returned 2-3 sentence caption to
+that page's chunk text, prefixed with `[Figure]`. Captions therefore flow
+through the existing keyword search and into the coach's context as plain text —
+no runtime change needed. The original full manual PDF is still **never** sent
+at request time.
+
+Notes:
+- Requires `ANTHROPIC_API_KEY`; makes one Claude call per image-bearing page.
+- Runs at concurrency 3 with exponential backoff on 429/5xx.
+- Resume-safe: progress is written to `manual-index.partial.json` and a re-run
+  with the same PDF (matched by SHA-256) skips pages already captioned.
+- Pages the model judges to have no meaningful figure get no caption.
 
 ## Files in this folder
 
