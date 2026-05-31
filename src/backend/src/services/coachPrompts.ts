@@ -81,18 +81,20 @@ function renderLinkedNode(node: ContextWorkItemNode, indent: string): string[] {
   const linkLabel = node.linkType ? `${node.linkType} · ` : '';
   lines.push(`${indent}- [${linkLabel}${node.type} #${node.id}] ${node.title} — ${node.state}`);
   const childIndent = indent + '  ';
+  // Render linked items at the same fidelity as the source work item: full
+  // (untruncated) fields and full discussion.
   if (node.description) {
-    lines.push(`${childIndent}${truncate(stripHtml(node.description), 300)}`);
+    lines.push(`${childIndent}${stripHtml(node.description)}`);
   }
   if (node.technicalDescription) {
-    lines.push(`${childIndent}Tech: ${truncate(stripHtml(node.technicalDescription), 300)}`);
+    lines.push(`${childIndent}Tech: ${stripHtml(node.technicalDescription)}`);
   }
   if (node.reproSteps) {
-    lines.push(`${childIndent}Repro: ${truncate(stripHtml(node.reproSteps), 300)}`);
+    lines.push(`${childIndent}Repro: ${stripHtml(node.reproSteps)}`);
   }
   if (node.discussion?.length) {
     lines.push(`${childIndent}Recent comments:`);
-    lines.push(...renderComments(node.discussion, 3, 200, childIndent + '  '));
+    lines.push(...renderComments(node.discussion, 10, 500, childIndent + '  '));
   }
   for (const child of node.linkedWorkItems ?? []) {
     lines.push(...renderLinkedNode(child, childIndent));

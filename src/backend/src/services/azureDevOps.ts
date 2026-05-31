@@ -44,7 +44,7 @@ export interface WorkItemComment {
   text: string;
 }
 
-export type LinkRelation = 'Parent' | 'Child' | 'Related' | 'Predecessor' | 'Successor';
+export type LinkRelation = 'Parent' | 'Child' | 'Related' | 'Predecessor' | 'Successor' | 'Duplicate';
 
 export interface WorkItemResult {
   id: number;
@@ -78,6 +78,8 @@ const LINK_TYPE_MAP: Record<string, LinkRelation> = {
   'System.LinkTypes.Related': 'Related',
   'System.LinkTypes.Dependency-Reverse': 'Predecessor',
   'System.LinkTypes.Dependency-Forward': 'Successor',
+  'System.LinkTypes.Duplicate-Forward': 'Duplicate',
+  'System.LinkTypes.Duplicate-Reverse': 'Duplicate',
 };
 
 const DEFAULT_MAX_DEPTH = 3;

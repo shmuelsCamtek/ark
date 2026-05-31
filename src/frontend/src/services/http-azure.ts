@@ -54,6 +54,22 @@ export class HttpAzureService implements AzureService {
     return configPromise;
   }
 
+  async downloadAttachment(url: string): Promise<string | null> {
+    try {
+      const res = await fetch('/api/azure/attachments/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) return null;
+      const { base64, mimeType } = (await res.json()) as { base64?: string; mimeType?: string };
+      if (!base64) return null;
+      return `data:${mimeType || 'application/octet-stream'};base64,${base64}`;
+    } catch {
+      return null;
+    }
+  }
+
   async getWorkItemTitles(ids: string[]): Promise<WorkItemTitle[]> {
     const numeric = ids.map((s) => Number(s)).filter((n) => Number.isFinite(n));
     if (numeric.length === 0) return [];

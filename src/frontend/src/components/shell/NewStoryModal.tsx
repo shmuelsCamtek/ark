@@ -5,7 +5,8 @@ import { useNavigate } from '../../router';
 import { createEmptyDraft, useApp } from '../../context/AppContext';
 import { HttpAzureService } from '../../services/http-azure';
 import { buildContextEntry } from '../../lib/contextLog';
-import type { ContextLogEntry, WorkItemAttachment, WorkItemComment, WorkItemInfo } from '../../types';
+import { classifyAttachment, extractInlineImageUrls, attachmentKey } from '../../lib/attachments';
+import type { ContextLogEntry, SupportingDoc, UiChange, WorkItemAttachment, WorkItemComment, WorkItemInfo } from '../../types';
 
 interface ResolvedItem {
   id: number;
@@ -55,6 +56,59 @@ function toResolved(item: WorkItemInfo): ResolvedItem {
   };
 }
 
+// Flatten attachments from the source item and every (nested) linked item,
+// de-duped by attachment id (the same item can be linked multiple ways).
+function collectAttachments(resolved: ResolvedItem): WorkItemAttachment[] {
+  const out: WorkItemAttachment[] = [];
+  const seen = new Set<string>();
+  const add = (atts?: WorkItemAttachment[]) => {
+    for (const a of atts ?? []) {
+      if (seen.has(a.id)) continue;
+      seen.add(a.id);
+      out.push(a);
+    }
+  };
+  const walk = (nodes?: WorkItemInfo[]) => {
+    for (const n of nodes ?? []) {
+      add(n.attachments);
+      walk(n.linkedWorkItems);
+    }
+  };
+  add(resolved.attachments);
+  walk(resolved.linkedWorkItems);
+  return out;
+}
+
+// Inline images pasted into a work item's HTML fields (Description / Repro /
+// Technical) across the source and every nested linked item, de-duped by the
+// Azure attachment guid. These are NOT AttachedFile relations.
+function collectInlineImages(resolved: ResolvedItem): { url: string; name: string }[] {
+  const out: { url: string; name: string }[] = [];
+  const seen = new Set<string>();
+  const addFrom = (html?: string) => {
+    for (const img of extractInlineImageUrls(html)) {
+      const key = attachmentKey(img.url);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(img);
+    }
+  };
+  const addNode = (n: { description?: string; reproSteps?: string; technicalDescription?: string }) => {
+    addFrom(n.description);
+    addFrom(n.reproSteps);
+    addFrom(n.technicalDescription);
+  };
+  const walk = (nodes?: WorkItemInfo[]) => {
+    for (const n of nodes ?? []) {
+      addNode(n);
+      walk(n.linkedWorkItems);
+    }
+  };
+  addNode(resolved);
+  walk(resolved.linkedWorkItems);
+  return out;
+}
+
 function Spinner({ size = 14 }: { size?: number }) {
   return (
     <div
@@ -86,6 +140,9 @@ export function NewStoryModal({ open, onClose }: NewStoryModalProps) {
   const [highlightIndex, setHighlightIndex] = useState(0);
   const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // In-flight full-graph resolve for the selected item, so Create can await it
+  // instead of importing the light (childless) version.
+  const fullResolveRef = useRef<Promise<WorkItemInfo | null> | null>(null);
 
   // Reset modal state every time it reopens
   useEffect(() => {
@@ -171,70 +228,113 @@ export function NewStoryModal({ open, onClose }: NewStoryModalProps) {
     setShowDropdown(false);
     setSearchResults([]);
 
-    azure.resolveWorkItem(item.id).then((full) => {
+    const p = azure.resolveWorkItem(item.id);
+    fullResolveRef.current = p;
+    p.then((full) => {
       if (full) setResolved(toResolved(full));
     });
   }, [azure]);
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    if (connecting) return;
     setConnecting(true);
-    setTimeout(() => {
-      const hasItem = resolved && !resolved.notFound;
 
-      const supportingDocs = (hasItem && resolved.attachments || []).map((att) => {
-        const ext = att.name.split('.').pop()?.toLowerCase() || '';
-        const type: 'pdf' | 'image' | 'other' = ext === 'pdf' ? 'pdf'
-          : ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(ext) ? 'image'
-          : 'other';
-        return {
-          id: att.id,
-          name: att.name,
-          type,
-          scanned: false,
-          url: att.url,
-        };
-      });
+    // Ensure we have the FULL work-item graph (children + attachments) before
+    // importing — selecting an item only sets a light version, then resolves the
+    // graph asynchronously. Await that in-flight resolve so Create never imports
+    // the childless version.
+    let resolvedFull = resolved;
+    if (resolved && !resolved.notFound) {
+      try {
+        const fresh = fullResolveRef.current
+          ? await fullResolveRef.current
+          : await azure.resolveWorkItem(String(resolved.id));
+        if (fresh) resolvedFull = toResolved(fresh);
+      } catch {
+        /* keep the light version on failure */
+      }
+    }
+    const full = resolvedFull;
+    const hasItem = full && !full.notFound;
 
-      const contextLog: ContextLogEntry[] = [];
-      if (hasItem) {
-        const now = new Date().toISOString();
-        contextLog.push(buildContextEntry({
-          kind: 'workItem',
-          label: `${resolved.type || 'Work item'} #${resolved.id} — ${resolved.title}`,
-          summary: resolved.description?.replace(/\s+/g, ' ').slice(0, 140),
-          addedAt: now,
-        }));
-        for (const linked of resolved.linkedWorkItems || []) {
-          contextLog.push(buildContextEntry({
-            kind: 'linkedWorkItem',
-            label: `${linked.linkType ?? 'Linked'} · ${linked.type} #${linked.id} — ${linked.title}`,
-            summary: linked.description?.replace(/\s+/g, ' ').slice(0, 140),
-            addedAt: now,
-          }));
+    // Route every attachment (source + all linked items): images become
+    // UI-change pictures (downloaded to data URLs); other files become
+    // Supporting documents (scanned on demand in the builder).
+    const supportingDocs: SupportingDoc[] = [];
+    const uiChanges: UiChange[] = [];
+    if (hasItem) {
+      const now = new Date().toISOString();
+      const fileAtts = collectAttachments(full);
+      const inlineImgs = collectInlineImages(full);
+
+      // Build the image set: AttachedFile images + inline images, deduped by
+      // attachment guid. Non-image AttachedFiles go straight to Supporting docs.
+      const imageSeen = new Set<string>();
+      const images: { id: string; name: string; url: string }[] = [];
+      const addImage = (name: string, url: string) => {
+        const key = attachmentKey(url);
+        if (imageSeen.has(key)) return;
+        imageSeen.add(key);
+        images.push({ id: key, name, url });
+      };
+      for (const att of fileAtts) {
+        const type = classifyAttachment(att.name);
+        if (type === 'image') addImage(att.name, att.url);
+        else supportingDocs.push({ id: att.id, name: att.name, type, scanned: false, url: att.url });
+      }
+      for (const img of inlineImgs) addImage(img.name, img.url);
+
+      for (const img of images) {
+        const dataUrl = await azure.downloadAttachment(img.url);
+        if (dataUrl) {
+          uiChanges.push({ id: img.id, dataUrl, caption: img.name, addedAt: now });
+        } else {
+          // Download failed — keep it as a Supporting doc so it isn't lost.
+          supportingDocs.push({ id: img.id, name: img.name, type: 'image', scanned: false, url: img.url });
         }
       }
+    }
 
-      const draft = createEmptyDraft({
-        title: hasItem ? resolved.title : '',
-        workItemId: hasItem ? workItemId : undefined,
-        workItemType: hasItem ? resolved.type : undefined,
-        workItemTitle: hasItem ? resolved.title : undefined,
-        workItemState: hasItem ? resolved.state : undefined,
-        workItemAssignedTo: hasItem ? resolved.assignedTo : undefined,
-        workItemDescription: hasItem ? resolved.description : undefined,
-        workItemReproSteps: hasItem ? resolved.reproSteps : undefined,
-        workItemTechnicalDescription: hasItem ? resolved.technicalDescription : undefined,
-        workItemDiscussion: hasItem ? resolved.discussion : undefined,
-        linkedWorkItems: hasItem ? resolved.linkedWorkItems : undefined,
-        epicId: hasItem ? String(resolved.id) : undefined,
-        epicName: hasItem ? resolved.title : undefined,
-        supportingDocs,
-        contextLog,
-      });
-      addDraft(draft);
-      navigate(`/stories/${draft.id}/edit`);
-      onClose();
-    }, 900);
+    const contextLog: ContextLogEntry[] = [];
+    if (hasItem) {
+      const now = new Date().toISOString();
+      contextLog.push(buildContextEntry({
+        kind: 'workItem',
+        label: `${full.type || 'Work item'} #${full.id} — ${full.title}`,
+        summary: full.description?.replace(/\s+/g, ' ').slice(0, 140),
+        addedAt: now,
+      }));
+      for (const linked of full.linkedWorkItems || []) {
+        contextLog.push(buildContextEntry({
+          kind: 'linkedWorkItem',
+          label: `${linked.linkType ?? 'Linked'} · ${linked.type} #${linked.id} — ${linked.title}`,
+          summary: linked.description?.replace(/\s+/g, ' ').slice(0, 140),
+          addedAt: now,
+        }));
+      }
+    }
+
+    const draft = createEmptyDraft({
+      title: hasItem ? full.title : '',
+      workItemId: hasItem ? workItemId : undefined,
+      workItemType: hasItem ? full.type : undefined,
+      workItemTitle: hasItem ? full.title : undefined,
+      workItemState: hasItem ? full.state : undefined,
+      workItemAssignedTo: hasItem ? full.assignedTo : undefined,
+      workItemDescription: hasItem ? full.description : undefined,
+      workItemReproSteps: hasItem ? full.reproSteps : undefined,
+      workItemTechnicalDescription: hasItem ? full.technicalDescription : undefined,
+      workItemDiscussion: hasItem ? full.discussion : undefined,
+      linkedWorkItems: hasItem ? full.linkedWorkItems : undefined,
+      epicId: hasItem ? String(full.id) : undefined,
+      epicName: hasItem ? full.title : undefined,
+      supportingDocs,
+      uiChanges,
+      contextLog,
+    });
+    addDraft(draft);
+    navigate(`/stories/${draft.id}/edit`);
+    onClose();
   };
 
   const handleSkip = () => {

@@ -141,7 +141,7 @@ export interface WorkItemComment {
   text: string;
 }
 
-export type WorkItemLinkType = 'Parent' | 'Child' | 'Related' | 'Predecessor' | 'Successor';
+export type WorkItemLinkType = 'Parent' | 'Child' | 'Related' | 'Predecessor' | 'Successor' | 'Duplicate';
 
 export interface WorkItemInfo {
   id: string;

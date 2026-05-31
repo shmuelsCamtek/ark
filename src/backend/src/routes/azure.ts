@@ -58,6 +58,28 @@ azureRouter.post('/attachments/scan', async (req, res) => {
   }
 });
 
+// Fetch an Azure DevOps attachment's raw bytes (base64 + mime). Used to turn
+// image attachments into data URLs for the UI-change picture list.
+azureRouter.post('/attachments/download', async (req, res) => {
+  const { url } = (req.body || {}) as { url?: string };
+  if (!url) {
+    res.status(400).json({ error: 'url is required' });
+    return;
+  }
+  try {
+    const fetched = await fetchAzureAttachment(url, req.azureDevOpsToken!);
+    if (!fetched) {
+      res.status(404).json({ error: 'Attachment not found' });
+      return;
+    }
+    res.json({ base64: fetched.base64, mimeType: fetched.mimeType });
+  } catch (err) {
+    console.error('Attachment download error:', err);
+    const message = err instanceof Error ? err.message : 'Failed to download attachment';
+    res.status(500).json({ error: message });
+  }
+});
+
 // Search work items by title or ID
 azureRouter.get('/workitems', async (req, res) => {
   try {

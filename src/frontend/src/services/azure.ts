@@ -22,4 +22,6 @@ export interface AzureService {
   }): Promise<{ id: string; url: string }>;
   getConfig(): Promise<AzureConfig | null>;
   getWorkItemTitles(ids: string[]): Promise<WorkItemTitle[]>;
+  // Download an attachment's bytes as a data URL (data:<mime>;base64,…), or null on failure.
+  downloadAttachment(url: string): Promise<string | null>;
 }
