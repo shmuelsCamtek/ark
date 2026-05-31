@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { chatWithCoach, suggestForField } from '../services/claude.ts';
 import { generateMockup, type MockupInput } from '../services/mockupGenerator.ts';
+import { draftAttachments } from '../services/attachments.ts';
 import { getDraft, putDraft, normalizeOwner } from '../services/draftStore.ts';
 import { isManualLoaded, getManualSize } from '../services/manualIndex.ts';
 import { requireUser } from '../middleware/user.ts';
@@ -18,8 +19,8 @@ aiRouter.get('/manual', (_req, res) => {
 // Chat with AI coach
 aiRouter.post('/chat', async (req, res) => {
   try {
-    const { messages, draftContext } = req.body;
-    const response = await chatWithCoach(messages, draftContext || '');
+    const { messages, draftContext, attachments } = req.body;
+    const response = await chatWithCoach(messages, draftContext || '', attachments);
     res.json(response);
   } catch (err) {
     console.error('AI chat error:', err);
@@ -66,6 +67,7 @@ aiRouter.post('/mockup', requireUser, async (req, res) => {
       flow: draft.flow as string | undefined,
       workItemDescription: draft.workItemDescription as string | undefined,
       workItemReproSteps: draft.workItemReproSteps as string | undefined,
+      attachments: draftAttachments(draft),
     };
     const result = await generateMockup(input);
     putDraft({ ...draft, mockup: result });

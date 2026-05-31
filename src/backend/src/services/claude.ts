@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { buildCoachSystemPrompt, buildFieldSuggestionPrompt } from './coachPrompts.ts';
 import { buildManualContext } from './manualContext.ts';
+import { buildAttachmentBlocks, type CoachAttachment } from './attachments.ts';
 
 let _client: Anthropic | null = null;
 function client() {
@@ -123,6 +124,7 @@ function parseStructuredResponse(text: string): CoachResponse {
 export async function chatWithCoach(
   messages: ChatMessage[],
   draftContext: string | DraftContext,
+  attachments?: CoachAttachment[],
 ): Promise<CoachResponse> {
   const ctx = parseDraftContext(draftContext);
   const lastUser = messages.length > 0 ? messages[messages.length - 1]?.content ?? '' : '';
@@ -131,10 +133,26 @@ export async function chatWithCoach(
   const baseSystemPrompt = buildCoachSystemPrompt(ctx, { manualAvailable: manualContext.length > 0 });
   const systemPrompt = withManualContext(baseSystemPrompt, manualContext);
 
-  const conversation: Anthropic.MessageParam[] = messages.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
+  const conversation: Anthropic.MessageParam[] = [];
+
+  // Lead with the attached pictures/documents as a synthetic first turn so the
+  // model can see them throughout the conversation. cache_control on the last
+  // block lets the API reuse the attachment payload across turns when the
+  // preceding prefix is unchanged, instead of re-billing the full bytes.
+  const attachmentBlocks = buildAttachmentBlocks(attachments);
+  if (attachmentBlocks.length > 0) {
+    const blocks: Anthropic.ContentBlockParam[] = [
+      { type: 'text', text: 'The user attached these pictures and documents to the story. Treat them as visual/source context and refer to them when relevant.' },
+      ...attachmentBlocks,
+    ];
+    blocks[blocks.length - 1] = { ...blocks[blocks.length - 1], cache_control: { type: 'ephemeral' } } as Anthropic.ContentBlockParam;
+    conversation.push({ role: 'user', content: blocks });
+    conversation.push({ role: 'assistant', content: 'Noted — I can see the attached pictures and documents.' });
+  }
+
+  for (const m of messages) {
+    conversation.push({ role: m.role, content: m.content });
+  }
 
   const response = await client().messages.create({
     model: 'claude-sonnet-4-20250514',

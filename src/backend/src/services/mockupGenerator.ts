@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { buildManualContext } from './manualContext.ts';
+import { buildAttachmentBlocks, type CoachAttachment } from './attachments.ts';
 
 let _client: Anthropic | null = null;
 function client(): Anthropic {
@@ -26,6 +27,7 @@ export interface MockupInput {
   flow?: string;
   workItemDescription?: string;
   workItemReproSteps?: string;
+  attachments?: CoachAttachment[];
 }
 
 const SYSTEM_PROMPT = `You are a UI designer who turns user stories into INTERACTIVE HTML prototypes.
@@ -171,11 +173,22 @@ export async function generateMockup(input: MockupInput): Promise<MockupResult> 
     ? `${manualContext}\n\n---\n\n${SYSTEM_PROMPT}`
     : SYSTEM_PROMPT;
 
+  // When the user attached pictures/screenshots, show them to the model so the
+  // generated UI mirrors the real design (layout, components, labels, styling).
+  const attachmentBlocks = buildAttachmentBlocks(input.attachments);
+  const userContent: Anthropic.MessageParam['content'] = attachmentBlocks.length > 0
+    ? [
+        { type: 'text', text: 'The user attached these reference screenshots / pictures of the UI. Match the prototype to what they show — reuse their layout, components, labels, and visual style where relevant, within the HTML constraints below.' },
+        ...attachmentBlocks,
+        { type: 'text', text: userText },
+      ]
+    : userText;
+
   const response = await client().messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4000,
     system,
-    messages: [{ role: 'user', content: userText }],
+    messages: [{ role: 'user', content: userContent }],
   });
 
   const block = response.content[0];
