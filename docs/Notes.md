@@ -31,8 +31,8 @@
   - [x] "I want to" => "I want"
 - [x] multi selection selction is not noticable.
 - [x] Add new section "The scenario", open text (user input with claude audeting).
-- [ ] date and time preview page
-- [ ] fix: darg and drop.
+- [x] date and time preview page
+- [x] fix: darg and drop.
 - [x] fix: when resuming to workitem:
   - [x]  the selected items in chect are not selected (applied).
 - [ ]  better chat pending.
