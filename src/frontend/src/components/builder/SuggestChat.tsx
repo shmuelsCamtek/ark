@@ -48,6 +48,9 @@ interface SuggestChatProps {
   onApply: (field: string, value: string) => void;
   onBatchApply?: (updates: { field: string; value: string }[]) => void;
   onAutoMockup?: () => void;
+  // Ask the host to reveal/enable the picture uploader (used when the user
+  // chooses to add screenshots before the interactive GUI is generated).
+  onRequestPictures?: () => void;
   phase?: 'chat' | 'ac';
   onPhaseChange?: (phase: 'chat' | 'ac') => void;
   activeField: string;
@@ -242,7 +245,7 @@ function coachToSuggestMessage(coach: CoachMessage): SuggestMessage {
   return { role: 'ai', text: coach.text };
 }
 
-export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAutoMockup, phase = 'chat', onPhaseChange, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null, recentFieldEditLabel = null, contextLog = [], width }: SuggestChatProps) {
+export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAutoMockup, onRequestPictures, phase = 'chat', onPhaseChange, activeField, setActiveField: _setActiveField, attachmentsReady = true, scanningDocNames = [], recentlyAddedDocName = null, recentFieldEditLabel = null, contextLog = [], width }: SuggestChatProps) {
   const { ai, drafts: draftsApi } = useServices();
   // Attached pictures + image/PDF docs, sent with every coach turn so the model
   // can see them (the chat API is stateless — they must ride along each call).
@@ -261,11 +264,41 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
   const autoAdvancingRef = useRef(false);
   const handoffFiringRef = useRef(false);
   const autoMockupFiredRef = useRef(false);
+  // Interactive-GUI gate: after "I'll add pictures first", wait for the picture
+  // count to rise above the baseline, then re-ask whether to generate.
+  const [awaitingPictures, setAwaitingPictures] = useState(false);
+  const pictureBaselineRef = useRef(0);
+  const readyQuizPendingRef = useRef(false);
+  // True while a mockup-gate quiz is shown but unanswered, so further AC accepts
+  // don't spawn a competing "what's next?" coach prompt that buries the gate.
+  const mockupGatePendingRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, typing]);
+
+  // After "I'll add pictures first", re-ask to build the GUI as soon as a new
+  // picture is added (above the baseline). Re-arms on each "I'll add more".
+  const pictureCount = storyState.pictures?.length ?? 0;
+  useEffect(() => {
+    if (!awaitingPictures || readyQuizPendingRef.current) return;
+    if (pictureCount > pictureBaselineRef.current) {
+      readyQuizPendingRef.current = true;
+      mockupGatePendingRef.current = true;
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'ai',
+          kind: 'quiz',
+          gate: 'mockup-ready',
+          text: 'Got your screenshot. Ready to build the interactive GUI now?',
+          quizQuestion: 'Build the interactive GUI now?',
+          options: ['Generate now', "I'll add more"],
+        },
+      ]);
+    }
+  }, [pictureCount, awaitingPictures]);
 
   // Whether the Camtek User Manual is loaded as standing coach context — shown
   // as a pinned row in the gear popover. Global + session-stable, so fetch once.
@@ -500,13 +533,33 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
       }),
     );
 
-    // Auto-fire the Interactive User Story exactly once when the user first
-    // accepts an AC from the criteria-bundle. Guarded against rapid double-fires
-    // and against re-firing on reload (appliedOptionIndices was empty pre-click).
-    if (isFirstAcAccept && !autoMockupFiredRef.current && onAutoMockup) {
+    // First AC accept: instead of auto-generating the interactive GUI, ask whether
+    // the user wants to add UI screenshots first. The local 'mockup-choose' quiz
+    // drives generation (see handleQuizAnswer). Guarded to fire once per draft
+    // instance and (via appliedOptionIndices) not to re-fire on reload.
+    if (isFirstAcAccept && !autoMockupFiredRef.current) {
       autoMockupFiredRef.current = true;
-      onAutoMockup();
+      mockupGatePendingRef.current = true;
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'ai',
+          kind: 'quiz',
+          gate: 'mockup-choose',
+          text: "Your story's ready. Want to add UI screenshots before I build the interactive prototype?",
+          quizQuestion: 'Add screenshots before building the interactive GUI?',
+          options: ['Generate now', "I'll add pictures first"],
+        },
+      ]);
+      // The gate quiz takes over this turn; skip the usual next-step coach prompt
+      // so the user isn't shown two competing questions at once.
+      return;
     }
+
+    // While the mockup gate is unanswered (or we're waiting for the user to add
+    // pictures), don't fire the next-step coach prompt — it would post a
+    // "what's next?" quiz that buries the gate.
+    if (mockupGatePendingRef.current || awaitingPictures) return;
 
     // Skip the follow-up call if one is already in flight (e.g. user rapid-clicks
     // multiple criteria chips). The coach will pick up state when the pending call
@@ -608,6 +661,39 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
   };
 
   const handleQuizAnswer = useCallback((msgIdx: number, answer: string) => {
+    // Control quizzes (interactive-GUI gate) act locally and never call the coach.
+    const gate = messages[msgIdx]?.gate;
+    if (gate) {
+      setMessages((prev) => prev.map((m, i) => (i === msgIdx ? { ...m, quizAnswered: true, quizAnswer: answer } : m)));
+      mockupGatePendingRef.current = false;
+      const generateNow = answer === 'Generate now';
+      if (gate === 'mockup-choose') {
+        if (generateNow) {
+          onAutoMockup?.();
+        } else {
+          readyQuizPendingRef.current = false;
+          pictureBaselineRef.current = storyState.pictures?.length ?? 0;
+          setAwaitingPictures(true);
+          onRequestPictures?.();
+          setMessages((m) => [
+            ...m,
+            { role: 'ai', kind: 'ack', text: "Great — add your screenshots in the UI-change panel on the right. I'll check back once you've added one." },
+          ]);
+        }
+      } else if (gate === 'mockup-ready') {
+        readyQuizPendingRef.current = false;
+        if (generateNow) {
+          setAwaitingPictures(false);
+          onAutoMockup?.();
+        } else {
+          // "I'll add more" — re-arm for the next picture the user adds.
+          pictureBaselineRef.current = storyState.pictures?.length ?? 0;
+          setAwaitingPictures(true);
+        }
+      }
+      return;
+    }
+
     // Mark quiz as answered and remember the answer for compact rendering
     setMessages((prev) => prev.map((m, i) => i === msgIdx ? { ...m, quizAnswered: true, quizAnswer: answer } : m));
     // Send the answer as a user message
@@ -624,7 +710,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
     }).finally(() => {
       setTyping(false);
     });
-  }, [ai, messages, storyState, activeField]);
+  }, [ai, messages, storyState, activeField, onAutoMockup, onRequestPictures]);
 
   const sendMessage = useCallback(async (text: string) => {
     const userMsg: SuggestMessage = { role: 'user', text };

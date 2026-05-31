@@ -104,6 +104,9 @@ export interface SuggestMessage {
   // Marked on the first criteria-bundle once its handoff batch-apply has fired,
   // so reloads don't refire the batch.
   handoffApplied?: boolean;
+  // Client-only "control" quizzes whose answers trigger JS directly (no AI
+  // round-trip) — used to gate interactive-GUI generation on adding pictures.
+  gate?: 'mockup-choose' | 'mockup-ready';
 }
 
 export interface CoachMessage {

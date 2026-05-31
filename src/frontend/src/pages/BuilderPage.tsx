@@ -640,6 +640,10 @@ function BuilderPageBody() {
           onApply={applySuggestion}
           onBatchApply={applyBatch}
           onAutoMockup={handleGenerateMockup}
+          onRequestPictures={() => {
+            setShowUiChange(true);
+            setActiveTab('story');
+          }}
           phase={phase}
           onPhaseChange={setPhase}
           activeField={activeField}
