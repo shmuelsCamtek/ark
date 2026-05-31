@@ -667,9 +667,27 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
       setMessages((prev) => prev.map((m, i) => (i === msgIdx ? { ...m, quizAnswered: true, quizAnswer: answer } : m)));
       mockupGatePendingRef.current = false;
       const generateNow = answer === 'Generate now';
+      // Kick off generation AND resume the normal post-AC coaching (offer to
+      // refine the other sections or add more ACs) that the gate had deferred.
+      const generateAndContinue = () => {
+        onAutoMockup?.();
+        const signal: CoachMessage = {
+          id: `ac-wrapup-${Date.now()}`,
+          type: 'user',
+          text: 'The acceptance criteria are in and the interactive GUI is generating. Now ask me via quiz whether I want to refine any of the other sections (Background, The Scenario, Persona, Desire, Benefit, Title) or add more acceptance criteria.',
+          timestamp: new Date().toISOString(),
+        };
+        const aiConvo: CoachMessage[] = [...toCoachMessages(messages), signal];
+        const ctx = buildDraftContext(storyState, activeField);
+        setTyping(true);
+        sendChat(aiConvo, ctx)
+          .then((response) => setMessages((m) => [...m, coachToSuggestMessage(response)]))
+          .catch((err) => setMessages((m) => [...m, coachUnavailableMsg(err)]))
+          .finally(() => setTyping(false));
+      };
       if (gate === 'mockup-choose') {
         if (generateNow) {
-          onAutoMockup?.();
+          generateAndContinue();
         } else {
           readyQuizPendingRef.current = false;
           pictureBaselineRef.current = storyState.pictures?.length ?? 0;
@@ -684,7 +702,7 @@ export function SuggestChat({ draftId, storyState, onApply, onBatchApply, onAuto
         readyQuizPendingRef.current = false;
         if (generateNow) {
           setAwaitingPictures(false);
-          onAutoMockup?.();
+          generateAndContinue();
         } else {
           // "I'll add more" — re-arm for the next picture the user adds.
           pictureBaselineRef.current = storyState.pictures?.length ?? 0;
