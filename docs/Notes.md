@@ -36,6 +36,7 @@
 - [x] fix: when resuming to workitem:
   - [x]  the selected items in chect are not selected (applied).
 - [ ]  better chat pending.
+- [x]  make sure linked WIs attachments and information is being read. 
 
 ## Sidebar
 - [x] sidebar, ![alt text](image.png)
