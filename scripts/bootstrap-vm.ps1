@@ -107,7 +107,7 @@ if (-not (Test-Path $envFile)) {
   )
   if ($tenant)     { $lines += "AZURE_TENANT_ID=$tenant" }
   if ($sharepoint) { $lines += "SHAREPOINT_SITE_URL=$sharepoint" }
-  $lines += "PORT=3001"
+  $lines += "PORT=8000"
   # DATA_DIR is set via the service env-extra below; including it here is
   # harmless but redundant.
 

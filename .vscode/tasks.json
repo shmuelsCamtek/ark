@@ -33,7 +33,7 @@
     },
     {
       "label": "Start backend (dev)",
-      "detail": "npm run dev in src/backend (Express on http://localhost:3001, tsx watch).",
+      "detail": "npm run dev in src/backend (Express on http://localhost:8000, tsx watch).",
       "type": "shell",
       "command": "npm run dev",
       "options": { "cwd": "${workspaceFolder}/src/backend" },

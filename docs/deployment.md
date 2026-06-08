@@ -2,7 +2,7 @@
 
 Production runs as a single Node 20 process under NSSM on a Camtek-managed
 internal Windows VM. The same process serves `/api/*` and the React SPA on
-port 3001. Reachable only on Camtek VPN / corp network. Plain HTTP — TLS is
+port 8000. Reachable only on Camtek VPN / corp network. Plain HTTP — TLS is
 expected to be added later via a reverse proxy if needed.
 
 Deploys are manual from your Windows 11 laptop while connected to VPN:
@@ -73,12 +73,12 @@ without rebuilding the frontend:
 From any laptop on Camtek VPN:
 
 ```powershell
-curl http://<vm-host>:3001/api/health
+curl http://<vm-host>:8000/api/health
 ```
 Expected: `{"status":"ok","timestamp":"..."}`
 
-Open `http://<vm-host>:3001/` in a browser. Sign in via the device-code flow.
-Confirm drafts list loads. Paste `http://<vm-host>:3001/stories` directly in
+Open `http://<vm-host>:8000/` in a browser. Sign in via the device-code flow.
+Confirm drafts list loads. Paste `http://<vm-host>:8000/stories` directly in
 the URL bar to confirm the SPA fallback works.
 
 ---

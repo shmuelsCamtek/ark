@@ -41,7 +41,7 @@ if (-not (Test-Path $envFile)) {
   )
   if ($tenant)     { $lines += "AZURE_TENANT_ID=$tenant" }
   if ($sharepoint) { $lines += "SHAREPOINT_SITE_URL=$sharepoint" }
-  $lines += "PORT=3001"
+  $lines += "PORT=8000"
   Set-Content -Path $envFile -Value $lines -Encoding utf8
   icacls $envFile /inheritance:r /grant:r "Administrators:R" "SYSTEM:R" | Out-Null
   Write-Host "Wrote $envFile (ACL restricted)"

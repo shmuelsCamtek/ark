@@ -89,14 +89,14 @@ try {
   # Free the local dev ports before building/deploying. No-op if nothing is
   # listening (-ErrorAction SilentlyContinue keeps it non-fatal even though
   # $ErrorActionPreference is 'Stop').
-  Invoke-Step 'Shutdown backend dev server (port 3001)' {
-    $procs = Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue |
+  Invoke-Step 'Shutdown backend dev server (port 8000)' {
+    $procs = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue |
       Select-Object -ExpandProperty OwningProcess -Unique
     if ($procs) {
       $procs | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
       Write-Host "     stopped PID(s): $($procs -join ', ')"
     } else {
-      Write-Host "     nothing listening on 3001"
+      Write-Host "     nothing listening on 8000"
     }
   }
 
@@ -204,7 +204,7 @@ Write-Host "  [4/5] started Ark service"
 # Health check (give the service ~5s to come up).
 Start-Sleep -Seconds 5
 try {
-  $resp = Invoke-WebRequest -UseBasicParsing -Uri http://localhost:3001/api/health -TimeoutSec 5
+  $resp = Invoke-WebRequest -UseBasicParsing -Uri http://localhost:8000/api/health -TimeoutSec 5
   Write-Host "  [5/5] health $($resp.StatusCode) OK"
   Write-Host "Remote: swapped + service started, health $($resp.StatusCode) OK"
 } catch {

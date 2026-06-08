@@ -52,7 +52,7 @@ No frontend env vars are needed. Optionally pin the tenant via backend `AZURE_TE
 cd src/backend
 npm install
 cp .env.example .env   # then fill in API keys
-npm run dev             # starts Express on http://localhost:3001 (watch mode)
+npm run dev             # starts Express on http://localhost:8000 (watch mode)
 npm run typecheck       # tsc --noEmit
 ```
 
@@ -63,7 +63,7 @@ Required `.env` keys:
 - `USER_MANUAL_PATH` *(optional, indexing-time only)* — absolute path to the Camtek User Manual PDF. Read by `npm run index-manual` to build a small text index; defaults to `src/backend/manual/camtek-user-manual.pdf`. The runtime never reads the PDF itself.
 - `USER_MANUAL_INDEX_PATH` *(optional)* — override the runtime path to the generated `manual-index.json`. Defaults to `src/backend/manual/manual-index.json`.
 
-The frontend Vite dev server proxies `/api` requests to `localhost:3001`.
+The frontend Vite dev server proxies `/api` requests to `localhost:8000`.
 
 ### Indexing the User Manual (one-time / on update)
 
@@ -83,7 +83,7 @@ No test framework is configured yet.
 
 Production runs as a Node 20 process under NSSM on a Camtek-managed internal
 Windows VM at `62f5fb5e3738` (10.5.0.19). One process serves `/api/*` and the
-React SPA on port 3001, reachable only on Camtek VPN. See
+React SPA on port 8000, reachable only on Camtek VPN. See
 `docs/deployment.md` for the full runbook.
 
 ### One-time VM bootstrap (already done)
@@ -94,7 +94,7 @@ VM. It installs Node 20 LTS + NSSM, creates `C:\Ark\{app,data,logs}`, writes
 the `Ark` Windows Service. If the script halts midway, finish with
 `scripts\bootstrap-vm-finish.ps1` (idempotent rescue that skips already-done
 steps). Also remember to add the inbound firewall rule once:
-`New-NetFirewallRule -DisplayName "Ark TCP 3001" -Direction Inbound -Protocol TCP -LocalPort 3001 -Action Allow -Profile Any`.
+`New-NetFirewallRule -DisplayName "Ark TCP 8000" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Any`.
 
 ### Recurring deploy (from your laptop, on Camtek VPN)
 
