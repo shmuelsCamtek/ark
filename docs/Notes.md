@@ -72,3 +72,11 @@
 
 the site can be hosted in github.
 the application should be only client side.
+
+
+features:
+ - [ ] share as link
+ - [ ] can user share User sotry with other users?
+ - [ ] approve by 
+   - [ ] revisions
+   - [ ] 
