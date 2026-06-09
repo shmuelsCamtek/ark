@@ -22,7 +22,26 @@ foreach ($d in 'C:\Ark','C:\Ark\app','C:\Ark\data','C:\Ark\logs') {
   }
 }
 
-# 2. .env (prompts for secrets if missing)
+# 2. Source clone (prompts for a GitHub PAT if missing)
+$repoDir  = 'C:\Ark\repo'
+$repoSlug = 'shmuelsCamtek/ark.git'
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+  throw "git is not installed / not on PATH. Install Git for Windows, then re-run."
+}
+if (-not (Test-Path (Join-Path $repoDir '.git'))) {
+  Write-Host ""
+  Write-Host "Cloning $repoSlug into $repoDir -- you will be prompted for a GitHub PAT."
+  $pat      = Read-Host -AsSecureString "GitHub PAT (repo read access)"
+  $patPlain = [System.Net.NetworkCredential]::new('', $pat).Password
+  git clone "https://$patPlain@github.com/$repoSlug" $repoDir
+  if ($LASTEXITCODE -ne 0) { throw "git clone failed ($LASTEXITCODE). Check the PAT and network." }
+  icacls $repoDir /inheritance:r /grant:r "Administrators:F" "SYSTEM:F" | Out-Null
+  Write-Host "Cloned $repoDir (ACL restricted)"
+} else {
+  Write-Host "Exists  $repoDir"
+}
+
+# 3. .env (prompts for secrets if missing)
 $envFile = 'C:\Ark\app\.env'
 if (-not (Test-Path $envFile)) {
   Write-Host ""
@@ -49,7 +68,7 @@ if (-not (Test-Path $envFile)) {
   Write-Host "Exists  $envFile"
 }
 
-# 3. NSSM service
+# 4. NSSM service
 $nssm = 'C:\Program Files\nssm\nssm.exe'
 if (-not (Test-Path $nssm)) { throw "NSSM not installed at $nssm" }
 
@@ -68,13 +87,14 @@ if (-not (Get-Service -Name Ark -ErrorAction SilentlyContinue)) {
   Write-Host "Exists  Ark service"
 }
 
-# 4. Verify
+# 5. Verify
 Write-Host ""
 Write-Host "=== Verification ==="
 Get-Service Ark | Format-List Name, Status, StartType
 Write-Host "C:\Ark\app exists:        $(Test-Path C:\Ark\app)"
 Write-Host "C:\Ark\data exists:       $(Test-Path C:\Ark\data)"
 Write-Host "C:\Ark\logs exists:       $(Test-Path C:\Ark\logs)"
+Write-Host "C:\Ark\repo exists:       $(Test-Path C:\Ark\repo\.git)"
 Write-Host "C:\Ark\app\.env exists:   $(Test-Path C:\Ark\app\.env)"
 Write-Host ""
 Write-Host "Bootstrap finish complete. Next: from the laptop run scripts\deploy.ps1."

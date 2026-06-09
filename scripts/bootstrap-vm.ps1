@@ -28,9 +28,13 @@ $arkRoot   = 'C:\Ark'
 $appDir    = Join-Path $arkRoot 'app'
 $dataDir   = Join-Path $arkRoot 'data'
 $logsDir   = Join-Path $arkRoot 'logs'
+$repoDir   = Join-Path $arkRoot 'repo'
 $envFile   = Join-Path $appDir  '.env'
 $nssmDir   = 'C:\Program Files\nssm'
 $nssmExe   = Join-Path $nssmDir 'nssm.exe'
+# The deploy pulls and builds from this clone. The remote URL carries a PAT
+# (set once below) so deploy.ps1 never needs the token.
+$repoSlug  = 'shmuelsCamtek/ark.git'
 
 function Test-NodeOk {
   $node = Get-Command node -ErrorAction SilentlyContinue
@@ -88,7 +92,28 @@ foreach ($d in @($arkRoot, $appDir, $dataDir, $logsDir)) {
   }
 }
 
-# 4. .env --------------------------------------------------------------------
+# 4. Source clone ------------------------------------------------------------
+# Deploys pull and build from C:\Ark\repo. Clone it once here with a GitHub PAT
+# embedded in the remote URL; the token is then persisted in the clone's
+# .git\config so deploy.ps1 only ever runs `git fetch`.
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+  throw "git is not installed / not on PATH. Install Git for Windows, then re-run."
+}
+if (-not (Test-Path (Join-Path $repoDir '.git'))) {
+  Write-Host "==> Cloning $repoSlug into $repoDir (you will be prompted for a GitHub PAT)"
+  $pat      = Read-Host -AsSecureString "GitHub PAT (repo read access)"
+  $patPlain = [System.Net.NetworkCredential]::new('', $pat).Password
+  $cloneUrl = "https://$patPlain@github.com/$repoSlug"
+  git clone $cloneUrl $repoDir
+  if ($LASTEXITCODE -ne 0) { throw "git clone failed ($LASTEXITCODE). Check the PAT and network." }
+  # The PAT lives in $repoDir\.git\config; restrict the tree to admins + SYSTEM.
+  icacls $repoDir /inheritance:r /grant:r "Administrators:F" "SYSTEM:F" | Out-Null
+  Write-Host "==> Clone complete; repo ACL restricted to Administrators/SYSTEM."
+} else {
+  Write-Host "==> $repoDir already cloned, leaving alone."
+}
+
+# 5. .env --------------------------------------------------------------------
 if (-not (Test-Path $envFile)) {
   Write-Host "==> Creating $envFile (you will be prompted for secrets)"
   $anthropic   = Read-Host -AsSecureString "ANTHROPIC_API_KEY"
@@ -119,7 +144,7 @@ if (-not (Test-Path $envFile)) {
   Write-Host "==> $envFile already exists, leaving alone."
 }
 
-# 5. Service registration ----------------------------------------------------
+# 6. Service registration ----------------------------------------------------
 $svc = Get-Service -Name Ark -ErrorAction SilentlyContinue
 if (-not $svc) {
   Write-Host "==> Registering Ark service with NSSM"
@@ -140,5 +165,6 @@ if (-not $svc) {
 
 Write-Host ""
 Write-Host "Bootstrap complete. Next: from your laptop, run"
-Write-Host "  .\scripts\deploy.ps1 -VmHost <this-vm-host> -VmUser <your-domain-user>"
-Write-Host "to push the first build. The service will start automatically."
+Write-Host "  .\scripts\deploy.ps1 -VmHost <this-vm-host> -VmUser <your-vm-user>"
+Write-Host "to trigger the first build. The VM pulls from git, builds, and the"
+Write-Host "service starts automatically."

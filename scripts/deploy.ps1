@@ -1,41 +1,45 @@
 #requires -Version 7.0
 <#
 .SYNOPSIS
-  Build Ark Story Studio and deploy it to an internal Windows VM over SSH.
+  Trigger a git-based, build-on-host deploy of Ark Story Studio on an internal
+  Windows VM, over SSH.
+
+  This script does NOT build anything locally. It opens one SSH session to the
+  VM and drives the deploy there, one titled step at a time: the VM pulls the
+  latest code from git, builds it, installs it (atomic swap + service restart),
+  and cleans up. Each step streams its output as it runs.
 
 .PARAMETER VmHost
-  Hostname or IP of the VM, e.g. ark-vm.camtek.local
+  Hostname or IP of the VM. Defaults to 10.5.0.19.
 
 .PARAMETER VmUser
-  SSH username on the VM. Must be a member of Administrators
-  (NSSM start/stop and Expand-Archive into Program-Files-adjacent paths
-  need elevation).
+  SSH username on the VM. Must be a member of Administrators (NSSM start/stop
+  and writing under C:\Ark need elevation). Defaults to me_admin.
 
 .PARAMETER Password
-  SSH password for $VmUser, as a [SecureString]. Used for both the SCP upload
-  and the remote swap (via the Posh-SSH module) so the deploy runs without an
-  interactive prompt. If omitted, the script prompts for it once.
+  SSH password for $VmUser, as a [SecureString]. Used for the remote session
+  via the Posh-SSH module so the deploy runs without an interactive prompt.
+  If omitted, the script prompts for it once. Never hardcode this into a
+  committed file.
 
-.PARAMETER SkipBuild
-  Skip the frontend build (useful for re-deploying after just an env change).
+.PARAMETER Branch
+  Git branch the VM should deploy. Defaults to main.
 
 .EXAMPLE
-  .\scripts\deploy.ps1 -VmHost 62f5fb5e3738 -VmUser me_admin
+  .\scripts\deploy.ps1
 
 .EXAMPLE
   $pw = Read-Host 'VM password' -AsSecureString
-  .\scripts\deploy.ps1 -VmHost 62f5fb5e3738 -VmUser me_admin -Password $pw
+  .\scripts\deploy.ps1 -VmHost 10.5.0.19 -VmUser me_admin -Password $pw
 #>
 param(
-  [Parameter(Mandatory = $true)] [string] $VmHost,
-  [Parameter(Mandatory = $true)] [string] $VmUser,
+  [Parameter()] [string] $VmHost = '10.5.0.19',
+  [Parameter()] [string] $VmUser = 'me_admin',
   [Parameter()] [SecureString] $Password,
-  [switch] $SkipBuild
+  [Parameter()] [string] $Branch = 'main'
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = Split-Path -Parent $PSScriptRoot
-Set-Location $repoRoot
 
 # Posh-SSH lets us pass the password programmatically; OpenSSH's ssh/scp cannot.
 try {
@@ -49,13 +53,12 @@ if (-not $Password) {
 }
 $cred = [System.Management.Automation.PSCredential]::new($VmUser, $Password)
 
-# Named steps with an overall progress bar + per-step timing. Work runs in the
-# foreground (& $Action) so npm/vite output streams live; Write-Progress is a
-# no-op when output is redirected, leaving the "OK [k/N] ... 12.3s" lines as the
-# log of record.
+# Named steps with an overall progress bar + per-step timing. Each step runs as
+# its own remote command on the shared SSH session, so the "[k/N] <title>"
+# banner appears live as that step starts rather than all at once at the end.
 $script:deployTimer = [System.Diagnostics.Stopwatch]::StartNew()
 $script:stepIndex   = 0
-$script:totalSteps  = if ($SkipBuild) { 8 } else { 9 }
+$script:totalSteps  = 6
 
 function Invoke-Step {
   param(
@@ -79,156 +82,153 @@ function Invoke-Step {
   Write-Host ("  OK [{0}/{1}] {2}  {3:n1}s" -f $i, $n, $Name, $sw.Elapsed.TotalSeconds) -ForegroundColor Green
 }
 
-$stamp    = Get-Date -Format 'yyyyMMdd-HHmmss'
-$staging  = Join-Path $env:TEMP "ark-deploy-$stamp"
-$zip      = "$staging.zip"
-
-try {
-  Write-Host "==> Repo root: $repoRoot"
-
-  # Free the local dev ports before building/deploying. No-op if nothing is
-  # listening (-ErrorAction SilentlyContinue keeps it non-fatal even though
-  # $ErrorActionPreference is 'Stop').
-  Invoke-Step 'Shutdown backend dev server (port 8000)' {
-    $procs = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue |
-      Select-Object -ExpandProperty OwningProcess -Unique
-    if ($procs) {
-      $procs | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
-      Write-Host "     stopped PID(s): $($procs -join ', ')"
-    } else {
-      Write-Host "     nothing listening on 8000"
-    }
+# Run a PowerShell snippet on the VM over the shared session. Sent base64 via
+# -EncodedCommand to sidestep all shell quoting; throws on a non-zero exit.
+function Invoke-Remote {
+  param(
+    [Parameter(Mandatory)] $Session,
+    [Parameter(Mandatory)] [string] $Script,
+    [int] $TimeoutSec = 600
+  )
+  $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Script))
+  $cmd = Invoke-SSHCommand -SSHSession $Session -TimeOut $TimeoutSec `
+    -Command "powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $b64"
+  if ($cmd.Output) { $cmd.Output | ForEach-Object { Write-Host "     $_" } }
+  if ($cmd.ExitStatus -ne 0) {
+    if ($cmd.Error) { $cmd.Error | ForEach-Object { Write-Host "     $_" -ForegroundColor Yellow } }
+    throw "remote step failed with exit status $($cmd.ExitStatus)"
   }
+}
 
-  Invoke-Step 'Shutdown frontend dev server (port 5173)' {
-    $procs = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue |
-      Select-Object -ExpandProperty OwningProcess -Unique
-    if ($procs) {
-      $procs | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
-      Write-Host "     stopped PID(s): $($procs -join ', ')"
-    } else {
-      Write-Host "     nothing listening on 5173"
-    }
-  }
+# --- Remote step scripts (run on the VM) ------------------------------------
+# Each is self-contained and uses absolute paths: the SSH session does not
+# preserve a working directory between commands.
 
-  if (-not $SkipBuild) {
-    Invoke-Step 'Build frontend' {
-      # --include=dev so build tools (vite, @types/react, etc.) install
-      # even when NODE_ENV=production is set globally on this machine.
-      npm --prefix src\frontend ci --include=dev
-      if ($LASTEXITCODE -ne 0) { throw "npm ci (frontend) failed with exit code $LASTEXITCODE" }
-      npm --prefix src\frontend run build
-      if ($LASTEXITCODE -ne 0) { throw "npm run build (frontend) failed with exit code $LASTEXITCODE" }
-      if (-not (Test-Path src\frontend\dist\index.html)) {
-        throw "Frontend build did not produce src\frontend\dist\index.html"
-      }
-    }
+# 1. Pull latest source. $Branch is injected locally; everything else is literal
+#    so the VM's PowerShell evaluates it.
+$gitScript = (@"
+`$Branch = '$Branch'
+"@) + @'
 
-    Invoke-Step 'Bundle frontend into backend\public' {
-      if (Test-Path src\backend\public) {
-        Remove-Item -Recurse -Force src\backend\public
-      }
-      Copy-Item -Recurse src\frontend\dist src\backend\public
-    }
-  } else {
-    Invoke-Step 'Verify existing build' {
-      if (-not (Test-Path src\backend\public\index.html)) {
-        throw "src\backend\public\index.html is missing; remove -SkipBuild and try again."
-      }
-    }
-  }
+$ErrorActionPreference = 'Stop'
+$repo = 'C:\Ark\repo'
+if (-not (Test-Path (Join-Path $repo '.git'))) {
+  throw "No git clone at $repo. Run the bootstrap clone step first (see docs/deployment.md)."
+}
+git -C $repo fetch --prune origin
+if ($LASTEXITCODE -ne 0) { throw "git fetch failed ($LASTEXITCODE)" }
+git -C $repo reset --hard "origin/$Branch"
+if ($LASTEXITCODE -ne 0) { throw "git reset --hard origin/$Branch failed ($LASTEXITCODE)" }
+git -C $repo clean -fd
+if ($LASTEXITCODE -ne 0) { throw "git clean failed ($LASTEXITCODE)" }
+Write-Host ("now at " + (git -C $repo log -1 --oneline))
+'@
 
-  Invoke-Step 'Stage backend' {
-    New-Item -ItemType Directory -Path $staging | Out-Null
-    # Copy backend tree but skip dev artifacts the VM doesn't need.
-    $sourceItems = Get-ChildItem src\backend\* -Force | Where-Object {
-      $_.Name -notin @('node_modules', 'data', '.env', '.env.example')
-    }
-    Copy-Item -Path $sourceItems -Destination $staging -Recurse -Force
-  }
-
-  Invoke-Step 'Install backend deps' {
-    Push-Location $staging
-    try {
-      npm ci --omit=dev
-      if ($LASTEXITCODE -ne 0) { throw "npm ci (backend staging) failed with exit code $LASTEXITCODE" }
-    } finally { Pop-Location }
-  }
-
-  Invoke-Step 'Package release' {
-    Compress-Archive -Path "$staging\*" -DestinationPath $zip -Force
-  }
-
-  Invoke-Step 'Upload to VM' {
-    Set-SCPItem -ComputerName $VmHost -Credential $cred -Path $zip `
-      -Destination 'C:/Ark' -NewName 'deploy.zip' -AcceptKey -Force
-  }
-
-  $remote = @'
+# 2. Build the frontend and bundle it into the backend's public/ folder.
+$buildScript = @'
 $ErrorActionPreference = 'Stop'
 $ProgressPreference    = 'SilentlyContinue'
-$arkRoot = 'C:\Ark'
-$newDir  = Join-Path $arkRoot 'app-new'
-$curDir  = Join-Path $arkRoot 'app'
-$oldDir  = Join-Path $arkRoot 'app-old'
-$zip     = Join-Path $arkRoot 'deploy.zip'
-
-# Clean any leftovers from a previous failed deploy.
-if (Test-Path $newDir) { Remove-Item -Recurse -Force $newDir }
-if (Test-Path $oldDir) { Remove-Item -Recurse -Force $oldDir }
-
-# Expand new release.
-Expand-Archive -Path $zip -DestinationPath $newDir -Force
-
-# Carry the existing .env forward (it is intentionally NOT in the zip).
-if (Test-Path (Join-Path $curDir '.env')) {
-  Copy-Item (Join-Path $curDir '.env') (Join-Path $newDir '.env')
+$fe = 'C:\Ark\repo\src\frontend'
+# --include=dev so build tools (vite, @types/*) install even when NODE_ENV=production.
+npm --prefix $fe ci --include=dev
+if ($LASTEXITCODE -ne 0) { throw "npm ci (frontend) failed ($LASTEXITCODE)" }
+npm --prefix $fe run build
+if ($LASTEXITCODE -ne 0) { throw "vite build failed ($LASTEXITCODE)" }
+$dist = Join-Path $fe 'dist'
+if (-not (Test-Path (Join-Path $dist 'index.html'))) {
+  throw "frontend build did not produce dist\index.html"
 }
-Write-Host "  [1/5] expanded release"
+$public = 'C:\Ark\repo\src\backend\public'
+if (Test-Path $public) { Remove-Item -Recurse -Force $public }
+Copy-Item -Recurse $dist $public
+Write-Host "bundled frontend into backend\public"
+'@
 
-# Swap atomically. NSSM stop is required because nodejs locks files.
+# 3. Assemble the runnable release into app-new and install prod-only deps.
+$assembleScript = @'
+$ErrorActionPreference = 'Stop'
+$ProgressPreference    = 'SilentlyContinue'
+$repoBackend = 'C:\Ark\repo\src\backend'
+$app    = 'C:\Ark\app'
+$appNew = 'C:\Ark\app-new'
+$appOld = 'C:\Ark\app-old'
+if (Test-Path $appNew) { Remove-Item -Recurse -Force $appNew }
+if (Test-Path $appOld) { Remove-Item -Recurse -Force $appOld }
+New-Item -ItemType Directory -Path $appNew | Out-Null
+# Copy the backend tree (public included) but skip dev artifacts and runtime state.
+$items = Get-ChildItem "$repoBackend\*" -Force | Where-Object {
+  $_.Name -notin @('node_modules', 'data', '.env', '.env.example')
+}
+Copy-Item -Path $items -Destination $appNew -Recurse -Force
+npm --prefix $appNew ci --omit=dev
+if ($LASTEXITCODE -ne 0) { throw "npm ci (backend) failed ($LASTEXITCODE)" }
+# Carry the live .env forward (it is intentionally not in git).
+if (Test-Path (Join-Path $app '.env')) {
+  Copy-Item (Join-Path $app '.env') (Join-Path $appNew '.env')
+  Write-Host "carried .env forward"
+} else {
+  Write-Host "WARNING: no existing .env at $app\.env - the service may fail to start"
+}
+'@
+
+# 4. Install: stop the service, atomic folder swap, start the service.
+$installScript = @'
+$ErrorActionPreference = 'Stop'
+$app    = 'C:\Ark\app'
+$appNew = 'C:\Ark\app-new'
+if (-not (Test-Path $appNew)) { throw "app-new is missing; assemble step did not run" }
 & nssm stop Ark 2>&1 | Out-Null
-Write-Host "  [2/5] stopped Ark service"
-
-if (Test-Path $curDir) { Rename-Item -Path $curDir -NewName 'app-old' }
-Rename-Item -Path $newDir -NewName 'app'
-Write-Host "  [3/5] swapped app folders"
-
+Write-Host "stopped Ark service"
+if (Test-Path $app) { Rename-Item -Path $app -NewName 'app-old' }
+Rename-Item -Path $appNew -NewName 'app'
+Write-Host "swapped app folders"
 & nssm start Ark 2>&1 | Out-Null
+Write-Host "started Ark service"
+'@
 
-# Best-effort cleanup.
-if (Test-Path $oldDir) { Remove-Item -Recurse -Force $oldDir }
-Remove-Item -Force $zip
-Write-Host "  [4/5] started Ark service"
-
-# Health check (give the service ~5s to come up).
+# 5. Health check against the port from .env (fallback 8000).
+$healthScript = @'
+$ErrorActionPreference = 'Stop'
+$port = 8000
+$envFile = 'C:\Ark\app\.env'
+if (Test-Path $envFile) {
+  $m = Select-String -Path $envFile -Pattern '^\s*PORT\s*=\s*(\d+)' | Select-Object -First 1
+  if ($m) { $port = [int]$m.Matches[0].Groups[1].Value }
+}
 Start-Sleep -Seconds 5
 try {
-  $resp = Invoke-WebRequest -UseBasicParsing -Uri http://localhost:8000/api/health -TimeoutSec 5
-  Write-Host "  [5/5] health $($resp.StatusCode) OK"
-  Write-Host "Remote: swapped + service started, health $($resp.StatusCode) OK"
+  $resp = Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:$port/api/health" -TimeoutSec 5
+  if ($resp.StatusCode -ne 200) { throw "status $($resp.StatusCode)" }
+  Write-Host "health $($resp.StatusCode) OK on port $port"
 } catch {
-  Write-Host "  [5/5] health check FAILED - $($_.Exception.Message)"
-  Write-Host "Remote: health check failed - $($_.Exception.Message)"
+  Write-Host "health check FAILED on port $port - $($_.Exception.Message)"
   throw
 }
 '@
 
-  Invoke-Step 'Swap & restart on VM' {
-    # Send $remote to the VM via -EncodedCommand to sidestep all shell quoting.
-    $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($remote))
-    $session = New-SSHSession -ComputerName $VmHost -Credential $cred -AcceptKey -Force
-    try {
-      $cmd = Invoke-SSHCommand -SSHSession $session -TimeOut 300 `
-        -Command "powershell -NoProfile -EncodedCommand $b64"
-      if ($cmd.Output) { $cmd.Output | ForEach-Object { Write-Host $_ } }
-      if ($cmd.ExitStatus -ne 0) {
-        if ($cmd.Error) { $cmd.Error | ForEach-Object { Write-Host $_ } }
-        throw "Remote swap failed with exit status $($cmd.ExitStatus)"
-      }
-    } finally {
-      Remove-SSHSession -SSHSession $session | Out-Null
-    }
+# 6. Clean all: drop the transient swap/rollback folders. The repo clone and its
+#    cached node_modules are kept for fast subsequent builds.
+$cleanScript = @'
+$ErrorActionPreference = 'Stop'
+foreach ($d in 'C:\Ark\app-old', 'C:\Ark\app-new') {
+  if (Test-Path $d) { Remove-Item -Recurse -Force $d; Write-Host "removed $d" }
+}
+Write-Host "clean complete"
+'@
+
+try {
+  Write-Host "==> Deploying branch '$Branch' to $VmUser@$VmHost (build runs on the VM)"
+
+  $session = New-SSHSession -ComputerName $VmHost -Credential $cred -AcceptKey -Force
+  try {
+    Invoke-Step 'Update source from git'              { Invoke-Remote $session $gitScript      -TimeoutSec 300 }
+    Invoke-Step 'Build frontend'                      { Invoke-Remote $session $buildScript     -TimeoutSec 900 }
+    Invoke-Step 'Assemble release + install deps'     { Invoke-Remote $session $assembleScript  -TimeoutSec 900 }
+    Invoke-Step 'Install (swap + restart service)'    { Invoke-Remote $session $installScript   -TimeoutSec 120 }
+    Invoke-Step 'Health check'                        { Invoke-Remote $session $healthScript    -TimeoutSec 60  }
+    Invoke-Step 'Clean all'                           { Invoke-Remote $session $cleanScript     -TimeoutSec 120 }
+  } finally {
+    Remove-SSHSession -SSHSession $session | Out-Null
   }
 
   Write-Progress -Id 1 -Activity 'Deploying Ark Story Studio' -Completed
@@ -237,6 +237,4 @@ try {
 }
 finally {
   Write-Progress -Id 1 -Activity 'Deploying Ark Story Studio' -Completed
-  if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
-  if (Test-Path $zip)     { Remove-Item -Force $zip }
 }
