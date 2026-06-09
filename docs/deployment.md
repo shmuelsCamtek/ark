@@ -5,9 +5,13 @@ internal Windows VM. The same process serves `/api/*` and the React SPA on
 port 8000. Reachable only on Camtek VPN / corp network. Plain HTTP — TLS is
 expected to be added later via a reverse proxy if needed.
 
-Deploys are manual from your Windows 11 laptop while connected to VPN:
-`scripts\deploy.ps1` builds the frontend, bundles the backend, SCPs a zip to
-the VM, and restarts the Ark service.
+Deploys are **git-based and build on the VM**. From your Windows 11 laptop
+(on VPN), `scripts\deploy.ps1` opens one SSH session and drives the deploy
+on the VM, one titled step at a time: the VM pulls the latest code from git
+(`C:\Ark\repo`), builds the frontend, assembles the backend release, swaps it
+into place atomically, restarts the Ark service, and cleans up. Nothing is
+built or uploaded from the laptop — the laptop only triggers and streams
+progress.
 
 ---
 
@@ -22,7 +26,13 @@ Do this once, on the VM, with an Administrator account.
    ```powershell
    .\bootstrap-vm.ps1
    ```
-4. The script will prompt for `ANTHROPIC_API_KEY` (hidden input), the Azure
+4. The script requires **Git for Windows** to be installed. If `C:\Ark\repo`
+   doesn't exist yet, it prompts for a **GitHub PAT** (repo read access) and
+   clones `shmuelsCamtek/ark.git` into `C:\Ark\repo`. The PAT is embedded in
+   the clone's remote URL (persisted in `C:\Ark\repo\.git\config`) so the
+   recurring deploy never needs the token. The repo tree's ACL is restricted
+   to Administrators and SYSTEM.
+5. The script then prompts for `ANTHROPIC_API_KEY` (hidden input), the Azure
    DevOps org / project, optional `AZURE_TENANT_ID`, and optional
    `SHAREPOINT_SITE_URL`. It writes `C:\Ark\app\.env` and restricts its ACL
    to Administrators and SYSTEM.
@@ -30,41 +40,49 @@ Do this once, on the VM, with an Administrator account.
 After bootstrap, the VM has:
 - Node 20 LTS installed system-wide.
 - NSSM 2.24 at `C:\Program Files\nssm\nssm.exe` and on PATH.
+- `C:\Ark\repo\` (git clone with PAT in its remote URL).
 - `C:\Ark\app\` (empty), `C:\Ark\data\`, `C:\Ark\logs\`.
 - `C:\Ark\app\.env` with secrets.
 - An `Ark` Windows Service registered with `Startup type: Automatic`, but
   not yet running (no code in `app\` yet).
 
+If `bootstrap-vm.ps1` halts midway, finish with the idempotent
+`bootstrap-vm-finish.ps1` (it skips already-done steps, including the clone).
+
 ---
 
-## 2. First deploy from your laptop
+## 2. Deploy from your laptop
 
-1. Make sure your laptop is on Camtek VPN.
+1. Make sure your laptop is on Camtek VPN. Make sure the code you want live is
+   pushed to `main` (the VM deploys from git, not your working tree).
 2. From the repo root:
    ```powershell
-   .\scripts\deploy.ps1 -VmHost <vm-host> -VmUser CAMTEK\<your-user>
+   $pw = Read-Host 'VM password' -AsSecureString
+   .\scripts\deploy.ps1 -VmHost 10.5.0.19 -VmUser me_admin -Password $pw
    ```
-3. The script will:
-   - `npm ci && npm run build` in `src\frontend`.
-   - Copy `dist\` into `src\backend\public\`.
-   - Stage `src\backend\` (sans `node_modules`, `data\`, and `.env`) into
-     `$env:TEMP\ark-deploy-<timestamp>\`.
-   - `npm ci --omit=dev` in staging (so prod-only `node_modules` ship).
-   - Zip the staging folder.
-   - `scp` the zip to `C:\Ark\deploy.zip` on the VM.
-   - SSH a swap-and-restart: expand into `app-new\`, copy existing `.env`
-     forward, stop `Ark`, rename `app -> app-old`, rename `app-new -> app`,
-     start `Ark`, hit `/api/health` from the VM, print the result.
-4. Expected on success: `Health: 200 {"status":"ok","timestamp":"..."}`.
+   `-VmHost`, `-VmUser`, and `-Branch` default to `10.5.0.19`, `me_admin`, and
+   `main`; pass `-Branch <name>` to deploy a different branch. If you omit
+   `-Password` the script prompts once.
+3. The script opens one SSH session and runs these six titled steps on the VM,
+   streaming each step's output as it goes:
+   1. **Update source from git** — `git fetch` + `reset --hard origin/<branch>`
+      + `clean -fd` in `C:\Ark\repo`.
+   2. **Build frontend** — `npm ci` + `vite build` in `repo\src\frontend`, then
+      bundle `dist\` into `repo\src\backend\public\`.
+   3. **Assemble release + install deps** — copy `repo\src\backend\` (sans
+      `node_modules`, `data\`, `.env`) into `C:\Ark\app-new`, `npm ci
+      --omit=dev` there, carry the live `.env` forward.
+   4. **Install (swap + restart)** — stop `Ark`, rename `app -> app-old`,
+      `app-new -> app`, start `Ark`.
+   5. **Health check** — `GET /api/health` from the VM (port read from `.env`,
+      default 8000).
+   6. **Clean all** — remove the transient `app-old` / `app-new` folders.
+4. Expected on success: `health 200 OK on port 8000` and
+   `==> Deploy complete in MM:SS`.
 
-Subsequent deploys: same command. The swap is atomic — if the upload or
-expand fails, the previous version keeps running.
-
-`-SkipBuild`: if you only changed backend env / config, you can re-deploy
-without rebuilding the frontend:
-```powershell
-.\scripts\deploy.ps1 -VmHost <host> -VmUser <user> -SkipBuild
-```
+The swap is atomic — if any step before the swap fails, the previous version
+keeps running. The first deploy is the same command (the empty `app\` is just
+replaced).
 
 ---
 
@@ -109,6 +127,15 @@ ssh CAMTEK\<user>@<vm-host> "nssm restart Ark"
 SSH to the VM, edit `C:\Ark\app\.env` (you'll need admin since the ACL is
 restricted), save, then `nssm restart Ark`. No redeploy.
 
+### Rotate the GitHub PAT
+
+The deploy's PAT lives in `C:\Ark\repo\.git\config`. To rotate it, SSH to the
+VM (as admin) and re-point the remote:
+```powershell
+git -C C:\Ark\repo remote set-url origin "https://<new-pat>@github.com/shmuelsCamtek/ark.git"
+```
+No service restart needed; it only affects the next deploy's `git fetch`.
+
 ### Roll back
 
 After a deploy, the previous version sits at `C:\Ark\app-old\` *until the
@@ -143,7 +170,9 @@ Remove-Item -Recurse -Force C:\Ark
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `scp` hangs forever | Not on VPN, or VM hostname doesn't resolve | `ping <vm-host>` first; check `~\.ssh\config` |
+| SSH session won't open / deploy hangs at step 1 | Not on VPN, or VM host doesn't resolve | `ping <vm-host>` first; confirm you're on Camtek VPN |
+| `git fetch` fails in step 1 (auth) | PAT expired or revoked | Rotate the PAT (see Operations → Rotate the GitHub PAT) |
+| `npm ci` fails in step 2/3 | VM lost internet, or `package-lock.json` out of sync | Check VM egress to the npm registry; ensure the lockfile is committed |
 | `nssm: command not found` over SSH | NSSM isn't on the SYSTEM PATH for the SSH user's session | Use full path `& 'C:\Program Files\nssm\nssm.exe' restart Ark`, or restart the SSH connection so PATH refreshes |
 | Service "starts" then immediately stops | Likely a Node crash on boot — `.env` malformed or missing required key | Read `C:\Ark\logs\ark-stderr.log` |
 | `/api/health` returns 404 | Service crashed; you reached a different listener (IIS default?) | `Get-Service Ark` + `nssm status Ark`; check `ark-stderr.log` |

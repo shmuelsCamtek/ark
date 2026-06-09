@@ -89,9 +89,11 @@ React SPA on port 8000, reachable only on Camtek VPN. See
 ### One-time VM bootstrap (already done)
 
 Done by running `scripts\bootstrap-vm.ps1` from an elevated PowerShell on the
-VM. It installs Node 20 LTS + NSSM, creates `C:\Ark\{app,data,logs}`, writes
-`C:\Ark\app\.env` (ACL-restricted to Administrators/SYSTEM), and registers
-the `Ark` Windows Service. If the script halts midway, finish with
+VM. It installs Node 20 LTS + NSSM, creates `C:\Ark\{app,data,logs}`, clones
+the repo into `C:\Ark\repo` with a GitHub PAT embedded in the remote URL
+(prompted once), writes `C:\Ark\app\.env` (ACL-restricted to
+Administrators/SYSTEM), and registers the `Ark` Windows Service. Requires Git
+for Windows on the VM. If the script halts midway, finish with
 `scripts\bootstrap-vm-finish.ps1` (idempotent rescue that skips already-done
 steps). Also remember to add the inbound firewall rule once:
 `New-NetFirewallRule -DisplayName "Ark TCP 8000" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Any`.
@@ -101,22 +103,25 @@ steps). Also remember to add the inbound firewall rule once:
 ```powershell
 cd C:\temp\Ark
 $pw = Read-Host 'VM password' -AsSecureString
-.\scripts\deploy.ps1 -VmHost 62f5fb5e3738 -VmUser me_admin -Password $pw
+.\scripts\deploy.ps1 -VmHost 10.5.0.19 -VmUser me_admin -Password $pw
 ```
 
-Auth uses the **Posh-SSH** module (not OpenSSH `ssh`/`scp`, which can't take a
-password programmatically). Pass the SSH password once via `-Password`
-(a `[SecureString]`); if you omit it the script prompts for it once and reuses
-it for both the upload and the remote swap. Never hardcode the password into a
-command you commit or paste into a shared file.
+The deploy is **git-based and builds on the VM** — nothing is built or
+uploaded from the laptop. `deploy.ps1` is a thin orchestrator: it opens one
+**Posh-SSH** session (not OpenSSH `ssh`/`scp`, which can't take a password
+programmatically) and runs six titled steps on the VM, streaming each step's
+output live. `-VmHost`/`-VmUser`/`-Branch` default to `10.5.0.19`/`me_admin`/
+`main`; if you omit `-Password` it prompts once. Never hardcode the password
+into a command you commit. The VM authenticates to GitHub via a PAT in the
+`C:\Ark\repo` remote URL — `deploy.ps1` never sees the token.
 
-What it does:
-1. Frontend: `npm ci --include=dev` + `vite build` (no `tsc` — see frontend `package.json`).
-2. Backend staging: copies `src/backend/` (minus `node_modules`, `data`, `.env`) to `$env:TEMP\ark-deploy-<stamp>\`, runs `npm ci --omit=dev` there.
-3. Zips the staged folder, uploads it to `C:/Ark/deploy.zip` on the VM via `Set-SCPItem` (using the supplied credential — no prompt).
-4. Runs a swap-and-restart on the VM via `Invoke-SSHCommand`: expand zip → preserve `.env` → `nssm stop Ark` → swap folders → `nssm start Ark` → health-check.
-
-`--SkipBuild` re-uses the existing `src/backend/public` if you only need to redeploy backend changes.
+The six remote steps (each one `Invoke-SSHCommand`, wrapped in `Invoke-Step`):
+1. **Update source from git** — `git fetch` + `reset --hard origin/<branch>` + `clean -fd` in `C:\Ark\repo`.
+2. **Build frontend** — `npm ci --include=dev` + `vite build` in `repo\src\frontend`, bundle `dist\` into `repo\src\backend\public\`.
+3. **Assemble release + install deps** — copy `repo\src\backend\` (minus `node_modules`, `data`, `.env`) into `C:\Ark\app-new`, `npm ci --omit=dev`, carry `.env` forward.
+4. **Install (swap + restart)** — `nssm stop Ark` → rename `app→app-old`, `app-new→app` → `nssm start Ark`.
+5. **Health check** — `GET /api/health` from the VM (port read from `.env`, default 8000).
+6. **Clean all** — remove transient `app-old` / `app-new`.
 
 ### Secrets
 
@@ -132,7 +137,7 @@ NSSM rotates stdout/stderr at 10 MiB. Tail live: SSH to VM and `Get-Content -Wai
 
 ### Built artifact
 
-`src/backend/public/` is generated locally during deploy. Gitignored — never commit it.
+`src/backend/public/` is generated on the VM during deploy (from the frontend `vite build`). Gitignored — never commit it.
 
 ### Gotchas the deploy scripts already handle
 
