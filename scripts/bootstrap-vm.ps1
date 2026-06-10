@@ -39,24 +39,30 @@ $repoSlug  = 'shmuelsCamtek/ark.git'
 function Test-NodeOk {
   $node = Get-Command node -ErrorAction SilentlyContinue
   if (-not $node) { return $false }
-  $v = & node --version
-  return $v -match '^v20\.'
+  $v = (& node --version) -replace '^v', ''
+  $p = $v.Split('.')
+  $maj = [int]$p[0]; $min = [int]$p[1]
+  # Need Node 20.19+ (several frontend deps require it, and older 20.x ships the
+  # npm 10.8.x "Exit handler never called!" bug) or any newer LTS major.
+  return ($maj -gt 20) -or ($maj -eq 20 -and $min -ge 19)
 }
 
-# 1. Node 20 -----------------------------------------------------------------
+# 1. Node 20 LTS (latest patch) ---------------------------------------------
 if (-not (Test-NodeOk)) {
-  Write-Host "==> Installing Node.js 20 LTS"
-  $msi = Join-Path $env:TEMP 'node20.msi'
-  Invoke-WebRequest -UseBasicParsing `
-    -Uri 'https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi' `
-    -OutFile $msi
+  Write-Host "==> Installing the latest Node.js 20 LTS"
+  $base = 'https://nodejs.org/dist/latest-v20.x/'
+  $msiName = (Invoke-WebRequest -UseBasicParsing $base).Links.href |
+    Where-Object { $_ -match '^node-v20\.\d+\.\d+-x64\.msi$' } | Select-Object -First 1
+  if (-not $msiName) { throw "Could not find a Node 20 x64 MSI at $base" }
+  $msi = Join-Path $env:TEMP $msiName
+  Invoke-WebRequest -UseBasicParsing ($base + $msiName) -OutFile $msi
   Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /quiet /norestart" -Wait
   Remove-Item $msi
   # Refresh PATH for current session.
   $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
               [Environment]::GetEnvironmentVariable('Path', 'User')
   if (-not (Test-NodeOk)) {
-    throw "Node 20 install failed. Install manually from https://nodejs.org/."
+    throw "Node 20.19+ install failed. Install manually from https://nodejs.org/."
   }
 }
 Write-Host "Node version: $(node --version)"
@@ -90,6 +96,18 @@ foreach ($d in @($arkRoot, $appDir, $dataDir, $logsDir)) {
     Write-Host "==> Creating $d"
     New-Item -ItemType Directory -Path $d | Out-Null
   }
+}
+
+# 3b. Defender exclusion -----------------------------------------------------
+# Real-time AV scanning of the thousands of files npm writes into node_modules
+# slows `npm ci` to a crawl (10+ min) and the file-lock contention can crash
+# npm ("Exit handler never called!"). Exclude the app root. No-op / harmless if
+# Defender isn't the active AV.
+try {
+  Add-MpPreference -ExclusionPath $arkRoot -ErrorAction Stop
+  Write-Host "==> Added Defender exclusion for $arkRoot"
+} catch {
+  Write-Host "==> Could not set a Defender exclusion ($($_.Exception.Message)). If npm ci is slow or crashes, ask whoever manages AV to exclude $arkRoot."
 }
 
 # 4. Source clone ------------------------------------------------------------
