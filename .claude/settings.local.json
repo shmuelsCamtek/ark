@@ -55,6 +55,7 @@
       "Bash(pwsh *)",
       "PowerShell($errs = $null; $null = [System.Management.Automation.Language.Parser]::ParseFile\\('C:\\\\temp\\\\Ark\\\\scripts\\\\deploy.ps1', [ref]$null, [ref]$errs\\); if \\($errs\\) { $errs | ForEach-Object { Write-Output $_.Message } } else { Write-Output 'PARSE OK' })",
       "PowerShell($e=$null; $null=[System.Management.Automation.Language.Parser]::ParseFile\\('C:\\\\temp\\\\Ark\\\\scripts\\\\deploy.ps1',[ref]$null,[ref]$e\\); if\\($e\\){$e | ForEach-Object { $_.Message }}else{'PARSE OK'})",
+      "PowerShell(& 'C:\\\\temp\\\\Ark\\\\scripts\\\\deploy.ps1' -VmHost 62f5fb5e3738 -VmUser me_admin -Password \\(ConvertTo-SecureString '1122' -AsPlainText -Force\\))",
       "PowerShell(git *)",
       "PowerShell(\"shell probe ok\")"
     ]

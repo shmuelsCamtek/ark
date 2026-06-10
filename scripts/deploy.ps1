@@ -130,7 +130,10 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference    = 'SilentlyContinue'
 $fe = 'C:\Ark\repo\src\frontend'
 # --include=dev so build tools (vite, @types/*) install even when NODE_ENV=production.
-npm --prefix $fe ci --include=dev
+# --no-progress/--no-audit/--no-fund quiet npm's output: over a non-interactive
+# SSH pipe the progress renderer can trigger npm's "Exit handler never called!"
+# crash, and audit/fund just add noise and network round-trips.
+npm --prefix $fe ci --include=dev --no-progress --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) { throw "npm ci (frontend) failed ($LASTEXITCODE)" }
 npm --prefix $fe run build
 if ($LASTEXITCODE -ne 0) { throw "vite build failed ($LASTEXITCODE)" }
@@ -160,7 +163,7 @@ $items = Get-ChildItem "$repoBackend\*" -Force | Where-Object {
   $_.Name -notin @('node_modules', 'data', '.env', '.env.example')
 }
 Copy-Item -Path $items -Destination $appNew -Recurse -Force
-npm --prefix $appNew ci --omit=dev
+npm --prefix $appNew ci --omit=dev --no-progress --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) { throw "npm ci (backend) failed ($LASTEXITCODE)" }
 # Carry the live .env forward (it is intentionally not in git).
 if (Test-Path (Join-Path $app '.env')) {

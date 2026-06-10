@@ -106,9 +106,16 @@ if (-not (Test-Path (Join-Path $repoDir '.git'))) {
   $cloneUrl = "https://$patPlain@github.com/$repoSlug"
   git clone $cloneUrl $repoDir
   if ($LASTEXITCODE -ne 0) { throw "git clone failed ($LASTEXITCODE). Check the PAT and network." }
-  # The PAT lives in $repoDir\.git\config; restrict the tree to admins + SYSTEM.
-  icacls $repoDir /inheritance:r /grant:r "Administrators:F" "SYSTEM:F" | Out-Null
-  Write-Host "==> Clone complete; repo ACL restricted to Administrators/SYSTEM."
+  # The PAT lives in $repoDir\.git\config, so drop inheritance (keeps the token
+  # off ordinary Users). Grant the *current* account by name as well as
+  # Administrators/SYSTEM: deploy.ps1 connects over SSH where an admin account
+  # gets a UAC-filtered token, so an Administrators-group ACE alone would lock
+  # the deploy user out of its own repo. The named-user ACE is unaffected by
+  # token filtering. (Assumes you bootstrap and deploy as the same account.)
+  $me = "$env:USERDOMAIN\$env:USERNAME"
+  icacls $repoDir /inheritance:r `
+    /grant:r "${me}:(OI)(CI)F" "Administrators:(OI)(CI)F" "SYSTEM:(OI)(CI)F" /T /C /Q | Out-Null
+  Write-Host "==> Clone complete; repo ACL restricted to $me / Administrators / SYSTEM."
 } else {
   Write-Host "==> $repoDir already cloned, leaving alone."
 }

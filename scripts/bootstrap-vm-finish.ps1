@@ -35,8 +35,13 @@ if (-not (Test-Path (Join-Path $repoDir '.git'))) {
   $patPlain = [System.Net.NetworkCredential]::new('', $pat).Password
   git clone "https://$patPlain@github.com/$repoSlug" $repoDir
   if ($LASTEXITCODE -ne 0) { throw "git clone failed ($LASTEXITCODE). Check the PAT and network." }
-  icacls $repoDir /inheritance:r /grant:r "Administrators:F" "SYSTEM:F" | Out-Null
-  Write-Host "Cloned $repoDir (ACL restricted)"
+  # Grant the current account by name (not just via Administrators): the deploy
+  # connects over SSH with a UAC-filtered token, so a group-only ACE would lock
+  # the deploy user out. Assumes you bootstrap and deploy as the same account.
+  $me = "$env:USERDOMAIN\$env:USERNAME"
+  icacls $repoDir /inheritance:r `
+    /grant:r "${me}:(OI)(CI)F" "Administrators:(OI)(CI)F" "SYSTEM:(OI)(CI)F" /T /C /Q | Out-Null
+  Write-Host "Cloned $repoDir (ACL: $me / Administrators / SYSTEM)"
 } else {
   Write-Host "Exists  $repoDir"
 }
