@@ -135,6 +135,12 @@ $fe = 'C:\Ark\repo\src\frontend'
 # crash, and audit/fund just add noise and network round-trips.
 npm --prefix $fe ci --include=dev --no-progress --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) { throw "npm ci (frontend) failed ($LASTEXITCODE)" }
+# npm can crash ("Exit handler never called!") yet still exit 0 with an
+# incomplete node_modules (e.g. when registry requests time out). Verify the
+# build tool actually landed before trying to use it.
+if (-not (Test-Path (Join-Path $fe 'node_modules\.bin\vite.cmd'))) {
+  throw "npm ci finished but vite is missing from node_modules - the install did not complete (often a registry/network failure). Check 'npm ping' on the VM."
+}
 npm --prefix $fe run build
 if ($LASTEXITCODE -ne 0) { throw "vite build failed ($LASTEXITCODE)" }
 $dist = Join-Path $fe 'dist'

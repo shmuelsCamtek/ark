@@ -17,7 +17,7 @@ $ErrorActionPreference = 'Continue'
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue) {
   $PSNativeCommandUseErrorActionPreference = $false
 }
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocol]::Tls12
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $fe = 'C:\Ark\repo\src\frontend'
 function Section($t) { Write-Host "`n=== $t ===" -ForegroundColor Cyan }
@@ -65,12 +65,15 @@ Pop-Location
 $sw.Stop()
 Write-Host "`nnpm ci exit=$code in $([math]::Round($sw.Elapsed.TotalSeconds))s"
 
-if ($code -eq 0) {
+# Don't trust the exit code: npm can crash but still exit 0. The real test is
+# whether the build tool actually landed.
+$viteOk = Test-Path (Join-Path $fe 'node_modules\.bin\vite.cmd')
+if ($code -eq 0 -and $viteOk) {
   Section 'Result'
-  $vite = Join-Path $fe 'node_modules\.bin\vite.cmd'
-  Write-Host "SUCCESS. vite present: $(Test-Path $vite)"
+  Write-Host "SUCCESS. vite present: True"
   Write-Host "You can now re-run scripts\deploy.ps1 from the laptop."
 } else {
+  Write-Host "INCOMPLETE: exit=$code, vite present=$viteOk (npm did not finish the install)"
   Section 'npm debug log (last 80 lines) - the real error'
   $logDir = Join-Path $env:LOCALAPPDATA 'npm-cache\_logs'
   $log = Get-ChildItem (Join-Path $logDir '*-debug-0.log') -ErrorAction SilentlyContinue |
