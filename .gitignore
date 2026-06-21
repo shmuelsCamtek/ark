@@ -8,6 +8,9 @@ build/
 # Vite
 *.local
 
+# Claude Code tool cache
+.a5c/
+
 # IDE
 .vscode/*
 !.vscode/tasks.json
