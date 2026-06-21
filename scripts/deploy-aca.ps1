@@ -1,0 +1,119 @@
+#requires -Version 7.0
+<#
+.SYNOPSIS
+  Build and deploy Ark Story Studio to Azure Container Apps.
+
+  Builds the Docker image locally, pushes it to ACR, and updates the Container
+  App with the new image + all required environment variables. Running this
+  script is the only step needed — no .env file is required.
+
+.PARAMETER AzureDevOpsOrg
+  Azure DevOps organisation URL, e.g. https://dev.azure.com/Camtek
+
+.PARAMETER AzureDevOpsProject
+  Azure DevOps project name, e.g. Software
+
+.PARAMETER AzureTenantId
+  Optional: pin to a specific AAD tenant GUID. Defaults to 'organizations'.
+
+.PARAMETER SharePointSiteUrl
+  Optional: SharePoint site URL for story publishing.
+
+.PARAMETER Branch
+  Git branch to deploy. Defaults to the current branch.
+
+.EXAMPLE
+  .\scripts\deploy-aca.ps1 `
+    -AzureDevOpsOrg     https://dev.azure.com/Camtek `
+    -AzureDevOpsProject Software
+#>
+param(
+  [Parameter(Mandatory)] [string] $AzureDevOpsOrg,
+  [Parameter(Mandatory)] [string] $AzureDevOpsProject,
+  [Parameter()]          [string] $AzureTenantId      = '',
+  [Parameter()]          [string] $SharePointSiteUrl  = '',
+  [Parameter()]          [string] $Branch             = ''
+)
+
+$ErrorActionPreference = 'Stop'
+
+# Constants — tied to the Azure resources already provisioned
+$Acr           = 'ca13e4372bc2acr.azurecr.io'
+$ImageName     = 'ark'
+$ContainerApp  = 'ark'
+$ResourceGroup = 'POC-Project'
+$KeyVaultUri   = 'https://ark-kv-poc.vault.azure.net/'
+$Port          = '8000'
+
+# Resolve the image tag from git so the Container App revision is traceable
+$Tag = (git rev-parse --short HEAD 2>&1).Trim()
+if ($LASTEXITCODE -ne 0) { throw "git rev-parse failed — run from inside the repo" }
+$Image = "${Acr}/${ImageName}:${Tag}"
+
+if (-not $Branch) {
+  $Branch = (git rev-parse --abbrev-ref HEAD 2>&1).Trim()
+}
+
+$timer = [System.Diagnostics.Stopwatch]::StartNew()
+$step  = 0
+$total = 4
+
+function Step([string]$Name, [scriptblock]$Action) {
+  $script:step++
+  Write-Host ("  .. [{0}/{1}] {2}" -f $script:step, $total, $Name) -ForegroundColor Cyan
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
+  & $Action
+  Write-Host ("  OK [{0}/{1}] {2}  {3:n1}s" -f $script:step, $total, $Name, $sw.Elapsed.TotalSeconds) -ForegroundColor Green
+}
+
+Write-Host "==> Deploying branch '$Branch' → $Image" -ForegroundColor White
+
+Step 'Build Docker image' {
+  docker build -t $Image (Join-Path $PSScriptRoot '..')
+  if ($LASTEXITCODE -ne 0) { throw "docker build failed ($LASTEXITCODE)" }
+}
+
+Step 'Push image to ACR' {
+  az acr login --name ($Acr -split '\.')[0]
+  docker push $Image
+  if ($LASTEXITCODE -ne 0) { throw "docker push failed ($LASTEXITCODE)" }
+}
+
+Step 'Set environment variables on Container App' {
+  # Build the env-vars string — only include optional vars when provided
+  $envVars = @(
+    "AZURE_DEVOPS_ORG=$AzureDevOpsOrg"
+    "AZURE_DEVOPS_PROJECT=$AzureDevOpsProject"
+    "KEYVAULT_URI=$KeyVaultUri"
+    "PORT=$Port"
+  )
+  if ($AzureTenantId)     { $envVars += "AZURE_TENANT_ID=$AzureTenantId" }
+  if ($SharePointSiteUrl) { $envVars += "SHAREPOINT_SITE_URL=$SharePointSiteUrl" }
+
+  az containerapp update `
+    --name            $ContainerApp `
+    --resource-group  $ResourceGroup `
+    --set-env-vars    ($envVars -join ' ')
+  if ($LASTEXITCODE -ne 0) { throw "az containerapp update (env vars) failed ($LASTEXITCODE)" }
+}
+
+Step 'Update Container App image' {
+  az containerapp update `
+    --name           $ContainerApp `
+    --resource-group $ResourceGroup `
+    --image          $Image
+  if ($LASTEXITCODE -ne 0) { throw "az containerapp update (image) failed ($LASTEXITCODE)" }
+
+  # Wait for the new revision to be running
+  Write-Host "     waiting for revision to become active..."
+  Start-Sleep -Seconds 10
+  $health = az containerapp show `
+    --name           $ContainerApp `
+    --resource-group $ResourceGroup `
+    --query "properties.latestRevisionName" -o tsv
+  Write-Host "     active revision: $health"
+}
+
+$timer.Stop()
+Write-Host ("==> Deploy complete in {0:mm\:ss}" -f $timer.Elapsed) -ForegroundColor Green
+Write-Host "    Image: $Image"
