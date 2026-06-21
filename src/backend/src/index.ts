@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { bootstrapSecrets } from './services/keyVault.ts';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
@@ -11,6 +12,8 @@ import { documentsRouter } from './routes/documents.ts';
 import { sharepointRouter } from './routes/sharepoint.ts';
 import { isManualLoaded, getManualSize } from './services/manualIndex.ts';
 import { sessionMiddleware } from './middleware/session.ts';
+
+await bootstrapSecrets();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
