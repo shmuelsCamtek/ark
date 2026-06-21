@@ -1,4 +1,4 @@
-#requires -Version 7.0
+#requires -Version 5.1
 <#
 .SYNOPSIS
   Build and deploy Ark Story Studio to Azure Container Apps.
@@ -56,7 +56,7 @@ if (-not $Branch) {
 
 $timer = [System.Diagnostics.Stopwatch]::StartNew()
 $step  = 0
-$total = 4
+$total = 3
 
 function Step([string]$Name, [scriptblock]$Action) {
   $script:step++
@@ -67,16 +67,22 @@ function Step([string]$Name, [scriptblock]$Action) {
 }
 
 Write-Host "==> Deploying branch '$Branch' → $Image" -ForegroundColor White
+Write-Host "    registry:       $Acr"
+Write-Host "    container app:   $ContainerApp  (resource group: $ResourceGroup)"
+Write-Host "    image tag:       $Tag"
+Write-Host "    key vault:       $KeyVaultUri"
 
-Step 'Build Docker image' {
-  docker build -t $Image (Join-Path $PSScriptRoot '..')
-  if ($LASTEXITCODE -ne 0) { throw "docker build failed ($LASTEXITCODE)" }
-}
-
-Step 'Push image to ACR' {
-  az acr login --name ($Acr -split '\.')[0]
-  docker push $Image
-  if ($LASTEXITCODE -ne 0) { throw "docker push failed ($LASTEXITCODE)" }
+Step 'Build & push image (ACR cloud build)' {
+  # az acr build runs the Docker build remotely in ACR Tasks — no local Docker
+  # daemon required — and pushes the result straight into the registry.
+  $repoRoot = Join-Path $PSScriptRoot '..'
+  Write-Host "     uploading build context from $repoRoot (this can take a few minutes)..."
+  az acr build `
+    --registry ($Acr -split '\.')[0] `
+    --image    "${ImageName}:${Tag}" `
+    $repoRoot
+  if ($LASTEXITCODE -ne 0) { throw "az acr build failed ($LASTEXITCODE)" }
+  Write-Host "     image pushed: $Image"
 }
 
 Step 'Set environment variables on Container App' {
@@ -90,14 +96,20 @@ Step 'Set environment variables on Container App' {
   if ($AzureTenantId)     { $envVars += "AZURE_TENANT_ID=$AzureTenantId" }
   if ($SharePointSiteUrl) { $envVars += "SHAREPOINT_SITE_URL=$SharePointSiteUrl" }
 
+  Write-Host "     applying $($envVars.Count) environment variables:"
+  foreach ($e in $envVars) { Write-Host "       - $e" }
+  Write-Host "     (ANTHROPIC_API_KEY is intentionally omitted — fetched from Key Vault at runtime)"
+
   az containerapp update `
     --name            $ContainerApp `
     --resource-group  $ResourceGroup `
     --set-env-vars    ($envVars -join ' ')
   if ($LASTEXITCODE -ne 0) { throw "az containerapp update (env vars) failed ($LASTEXITCODE)" }
+  Write-Host "     environment variables applied"
 }
 
 Step 'Update Container App image' {
+  Write-Host "     pointing $ContainerApp at $Image..."
   az containerapp update `
     --name           $ContainerApp `
     --resource-group $ResourceGroup `
@@ -116,4 +128,6 @@ Step 'Update Container App image' {
 
 $timer.Stop()
 Write-Host ("==> Deploy complete in {0:mm\:ss}" -f $timer.Elapsed) -ForegroundColor Green
-Write-Host "    Image: $Image"
+Write-Host "    Image:    $Image"
+Write-Host "    Tip: check startup logs with:" -ForegroundColor DarkGray
+Write-Host "      az containerapp logs show --name $ContainerApp --resource-group $ResourceGroup --tail 50" -ForegroundColor DarkGray
