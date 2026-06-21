@@ -4,3 +4,9 @@
 src/backend/public
 *.log
 .env
+
+# Source manual PDF is indexing-time only (~170 MB). The runtime needs only the
+# generated manual-index.json, which IS baked into the image. Keep the PDF out.
+src/backend/manual/*.pdf
+src/backend/manual/manual-index.partial.json
+src/backend/manual/images
