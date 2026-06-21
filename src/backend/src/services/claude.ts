@@ -155,7 +155,7 @@ export async function chatWithCoach(
   }
 
   const response = await client().messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1500,
     system: systemPrompt,
     messages: conversation,
@@ -180,7 +180,7 @@ export async function suggestForField(
   const systemPrompt = withManualContext(baseSystemPrompt, manualContext);
 
   const response = await client().messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 512,
     system: systemPrompt,
     messages: [
