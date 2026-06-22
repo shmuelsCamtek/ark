@@ -100,10 +100,14 @@ Step 'Set environment variables on Container App' {
   foreach ($e in $envVars) { Write-Host "       - $e" }
   Write-Host "     (ANTHROPIC_API_KEY is intentionally omitted — fetched from Key Vault at runtime)"
 
+  # Pass the array directly — PowerShell expands each element into a separate
+  # argument, which is what --set-env-vars expects. Joining into one space-
+  # separated string instead would make az treat the whole thing as a single
+  # KEY=VALUE, mashing every pair into the first variable's value.
   az containerapp update `
     --name            $ContainerApp `
     --resource-group  $ResourceGroup `
-    --set-env-vars    ($envVars -join ' ')
+    --set-env-vars    $envVars
   if ($LASTEXITCODE -ne 0) { throw "az containerapp update (env vars) failed ($LASTEXITCODE)" }
   Write-Host "     environment variables applied"
 }
