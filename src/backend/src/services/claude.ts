@@ -5,7 +5,7 @@ import { buildAttachmentBlocks, type CoachAttachment } from './attachments.ts';
 
 let _client: Anthropic | null = null;
 function client() {
-  if (!_client) _client = new Anthropic();
+  if (!_client) _client = new Anthropic({ fetch: globalThis.fetch as any, maxRetries: 3 });
   return _client;
 }
 
