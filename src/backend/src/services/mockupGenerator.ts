@@ -4,7 +4,7 @@ import { buildAttachmentBlocks, type CoachAttachment } from './attachments.ts';
 
 let _client: Anthropic | null = null;
 function client(): Anthropic {
-  if (!_client) _client = new Anthropic();
+  if (!_client) _client = new Anthropic({ fetch: globalThis.fetch as any, maxRetries: 3 });
   return _client;
 }
 
@@ -36,9 +36,17 @@ Your task: based on the user story below, either generate a self-contained INTER
 
 The output will be rendered inside an <iframe sandbox="allow-scripts">, so you can ship real interactivity: clickable buttons that change visible state, working tabs/accordions/modals, in-page state, in-page form validation, hover/focus styling.
 
-Return STRICT JSON in exactly one of these two shapes:
-  { "status": "ok", "html": "<!doctype html><html>…</html>" }
-  { "status": "insufficient", "reason": "Needs more detail about …" }
+Return your response in this exact format:
+
+If you can build a mockup — write the word ok on the first line, then the complete HTML document starting on the second line:
+ok
+<!doctype html>…</html>
+
+If the story is too thin — write insufficient on the first line, then a concrete 1-2 sentence explanation on the second line:
+insufficient
+Needs more detail about which fields the form contains and what triggers it.
+
+No JSON. No code fences. No commentary. Start with exactly "ok" or "insufficient".
 
 If you can build a mockup, follow these HARD CONSTRAINTS for the HTML:
 
@@ -63,9 +71,12 @@ LAYOUT
 - Target ~480–680px wide for the main content area. Set body { font-family: Roboto, "Segoe UI", system-ui, sans-serif; margin: 0; padding: 16px; background: #fafafa; } so the rendering matches the parent app's look.
 - Make it feel like a real prototype: meaningful default values, sample data that reflects the story, working state transitions for the happy path.
 
-If the story is too thin, return { "status": "insufficient", "reason": "..." } with a concrete 1-2 sentence explanation of what's missing (e.g. "Needs more detail about which fields the form contains and what triggers it.").
+KEEP IT SHORT
+- Aim for 100–200 lines total. No HTML comments, no CSS comments, no decorative blank lines.
+- Group CSS selectors and use shorthand properties. No vendor-prefix repetition.
+- JS: just enough for the happy-path interaction — no defensive null checks, no polyfills, no utility wrappers.
 
-Return ONLY the JSON object. No prose, no code fences, no commentary.`;
+If the story is too thin, write insufficient followed by a concrete 1-2 sentence explanation of what's missing (e.g. "Needs more detail about which fields the form contains and what triggers it.").`;
 
 function buildUserPrompt(input: MockupInput): string {
   const lines: string[] = [];
@@ -87,32 +98,12 @@ function buildUserPrompt(input: MockupInput): string {
   return lines.join('\n\n');
 }
 
-function tryParseJson(s: string): unknown {
-  // 1. direct
-  try {
-    return JSON.parse(s);
-  } catch {
-    /* fall through */
-  }
-  // 2. code fence
-  const fence = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (fence) {
-    try {
-      return JSON.parse(fence[1]);
-    } catch {
-      /* fall through */
-    }
-  }
-  // 3. balanced object
-  const start = s.indexOf('{');
-  const end = s.lastIndexOf('}');
-  if (start >= 0 && end > start) {
-    try {
-      return JSON.parse(s.slice(start, end + 1));
-    } catch {
-      /* ignore */
-    }
-  }
+function parseModelResponse(raw: string): { status: 'ok'; html: string } | { status: 'insufficient'; reason: string } | null {
+  const nl = raw.indexOf('\n');
+  const firstLine = (nl >= 0 ? raw.slice(0, nl) : raw).trim().toLowerCase();
+  const rest = nl >= 0 ? raw.slice(nl + 1).trim() : '';
+  if (firstLine === 'ok' && rest) return { status: 'ok', html: rest };
+  if (firstLine === 'insufficient') return { status: 'insufficient', reason: rest || 'Story is too thin to mock up — add more detail.' };
   return null;
 }
 
@@ -186,7 +177,7 @@ export async function generateMockup(input: MockupInput): Promise<MockupResult> 
 
   const response = await client().messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 4000,
+    max_tokens: 8192,
     system,
     messages: [{ role: 'user', content: userContent }],
   });
@@ -195,38 +186,24 @@ export async function generateMockup(input: MockupInput): Promise<MockupResult> 
   const raw = block && block.type === 'text' ? block.text.trim() : '';
   const generatedAt = new Date().toISOString();
 
+  if (response.stop_reason === 'max_tokens') {
+    return { status: 'insufficient', insufficientReason: 'Model response was cut off — story may be too complex. Try reducing the acceptance criteria or scope.', generatedAt };
+  }
+
   if (!raw) {
     return { status: 'insufficient', insufficientReason: 'Model returned empty response.', generatedAt };
   }
 
-  const parsed = tryParseJson(raw);
-  if (!parsed || typeof parsed !== 'object') {
-    return { status: 'insufficient', insufficientReason: 'Model returned unparseable JSON.', generatedAt };
+  const parsed = parseModelResponse(raw);
+  if (!parsed) {
+    return { status: 'insufficient', insufficientReason: 'Model returned unrecognised response format.', generatedAt };
   }
-
-  const obj = parsed as Record<string, unknown>;
-  if (obj.status === 'insufficient') {
-    const reason = typeof obj.reason === 'string' && obj.reason.trim()
-      ? obj.reason.trim()
-      : 'Story is too thin to mock up — add more detail.';
-    return { status: 'insufficient', insufficientReason: reason, generatedAt };
+  if (parsed.status === 'insufficient') {
+    return { status: 'insufficient', insufficientReason: parsed.reason, generatedAt };
   }
-
-  if (obj.status === 'ok' && typeof obj.html === 'string' && obj.html.trim()) {
-    const sanitized = sanitizeMockupHtml(obj.html);
-    if (!sanitized.trim()) {
-      return {
-        status: 'insufficient',
-        insufficientReason: 'Model returned unsupported HTML — sanitization removed everything.',
-        generatedAt,
-      };
-    }
-    return { status: 'ok', html: sanitized, generatedAt };
+  const sanitized = sanitizeMockupHtml(parsed.html);
+  if (!sanitized.trim()) {
+    return { status: 'insufficient', insufficientReason: 'Model returned unsupported HTML — sanitization removed everything.', generatedAt };
   }
-
-  return {
-    status: 'insufficient',
-    insufficientReason: 'Model response did not match the expected shape.',
-    generatedAt,
-  };
+  return { status: 'ok', html: sanitized, generatedAt };
 }
