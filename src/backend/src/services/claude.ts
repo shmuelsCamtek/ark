@@ -5,7 +5,7 @@ import { buildAttachmentBlocks, type CoachAttachment } from './attachments.ts';
 
 let _client: Anthropic | null = null;
 function client() {
-  if (!_client) _client = new Anthropic();
+  if (!_client) _client = new Anthropic({ fetch: globalThis.fetch as any, maxRetries: 3 });
   return _client;
 }
 
@@ -155,7 +155,7 @@ export async function chatWithCoach(
   }
 
   const response = await client().messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1500,
     system: systemPrompt,
     messages: conversation,
@@ -180,7 +180,7 @@ export async function suggestForField(
   const systemPrompt = withManualContext(baseSystemPrompt, manualContext);
 
   const response = await client().messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 512,
     system: systemPrompt,
     messages: [

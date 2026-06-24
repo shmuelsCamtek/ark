@@ -6,7 +6,7 @@ import { buildManualContext } from './manualContext.ts';
 
 let _client: Anthropic | null = null;
 function client(): Anthropic {
-  if (!_client) _client = new Anthropic();
+  if (!_client) _client = new Anthropic({ fetch: globalThis.fetch as any, maxRetries: 3 });
   return _client;
 }
 
@@ -227,7 +227,7 @@ export async function scanDocument(
   const system = manualContext ? `${manualContext}\n\n---\n\n${baseSystem}` : baseSystem;
 
   const response = await client().messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system,
     messages,

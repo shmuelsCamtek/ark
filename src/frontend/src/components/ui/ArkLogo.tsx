@@ -33,6 +33,16 @@ export function ArkLogo({ size = 24 }: ArkLogoProps) {
       >
         Story Studio
       </span>
+      <span
+        style={{
+          fontSize: ARK_TOKENS.type.micro,
+          fontWeight: ARK_TOKENS.weight.regular,
+          color: ARK_TOKENS.inkSubtle,
+          letterSpacing: '0.02em',
+        }}
+      >
+        v{__APP_VERSION__}
+      </span>
     </div>
   );
 }

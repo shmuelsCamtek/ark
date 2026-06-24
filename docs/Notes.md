@@ -37,6 +37,10 @@
   - [x]  the selected items in chect are not selected (applied).
 - [ ]  better chat pending.
 - [x]  make sure linked WIs attachments and information is being read. 
+- [ ] need to add multiple screens (**multi screen**) by SW, flow, actor, etc... 
+  - [ ] request the from the user to add the additional screen and relations 
+- [ ] need to query TFS for version and Platform. 
+
 
 ## Sidebar
 - [x] sidebar, ![alt text](image.png)

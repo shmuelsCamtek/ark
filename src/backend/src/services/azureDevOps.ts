@@ -5,6 +5,10 @@ function authHeaders(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}`, Accept: 'application/json' };
 }
 
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 15_000): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+}
+
 async function logFetchFailure(label: string, url: string, res: Response): Promise<void> {
   const contentType = res.headers.get('content-type') || '';
   const body = await res.text().catch(() => '');
@@ -21,7 +25,7 @@ export async function fetchAzureAttachment(url: string, token: string): Promise<
   if (!url.startsWith(ORG_URL)) {
     throw new Error('Attachment URL is outside the configured Azure DevOps organization');
   }
-  const res = await fetch(url, { headers: authHeaders(token) });
+  const res = await fetchWithTimeout(url, { headers: authHeaders(token) });
   if (!res.ok) {
     console.error('[azure] fetchAzureAttachment failed:', res.status, await res.text().catch(() => ''));
     return null;
@@ -146,7 +150,7 @@ function extractWorkItemId(url: string | undefined): number | null {
 async function fetchWorkItemRaw(id: number, token: string): Promise<RawWorkItem | null> {
   // Try project-scoped first (works when item is in PROJECT), then fall back to org-level.
   const projectUrl = `${ORG_URL}/${PROJECT}/_apis/wit/workitems/${id}?$expand=relations&api-version=7.1`;
-  let res = await fetch(projectUrl, { headers: authHeaders(token) });
+  let res = await fetchWithTimeout(projectUrl, { headers: authHeaders(token) });
   if (res.ok) return (await res.json()) as RawWorkItem;
   if (res.status !== 404) {
     await logFetchFailure(`fetchWorkItemRaw ${id} (project)`, projectUrl, res);
@@ -154,7 +158,7 @@ async function fetchWorkItemRaw(id: number, token: string): Promise<RawWorkItem 
   }
 
   const orgUrl = `${ORG_URL}/_apis/wit/workitems/${id}?$expand=relations&api-version=7.1`;
-  res = await fetch(orgUrl, { headers: authHeaders(token) });
+  res = await fetchWithTimeout(orgUrl, { headers: authHeaders(token) });
   if (res.ok) return (await res.json()) as RawWorkItem;
   await logFetchFailure(`fetchWorkItemRaw ${id} (org)`, orgUrl, res);
   return null;
@@ -162,7 +166,7 @@ async function fetchWorkItemRaw(id: number, token: string): Promise<RawWorkItem 
 
 async function fetchComments(id: number, token: string): Promise<WorkItemComment[]> {
   const url = `${ORG_URL}/_apis/wit/workItems/${id}/comments?api-version=7.1-preview.4&$top=50&order=desc`;
-  const res = await fetch(url, { headers: authHeaders(token) });
+  const res = await fetchWithTimeout(url, { headers: authHeaders(token) });
   if (!res.ok) {
     await logFetchFailure(`fetchComments ${id}`, url, res);
     return [];
@@ -294,7 +298,7 @@ export async function createWorkItem(
   ];
 
   const url = `${ORG_URL}/${PROJECT}/_apis/wit/workitems/$${params.type}?api-version=7.1`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { ...authHeaders(token), 'Content-Type': 'application/json-patch+json' },
     body: JSON.stringify(patchDoc),
@@ -324,7 +328,7 @@ export async function searchWorkItems(query: string, token: string, top = 15): P
   const wiql = `SELECT [System.Id] FROM WorkItems WHERE ${whereClause}`;
 
   const wiqlUrl = `${ORG_URL}/${PROJECT}/_apis/wit/wiql?api-version=7.1&$top=${top}`;
-  const wiqlRes = await fetch(wiqlUrl, {
+  const wiqlRes = await fetchWithTimeout(wiqlUrl, {
     method: 'POST',
     headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: wiql }),
@@ -342,7 +346,7 @@ export async function searchWorkItems(query: string, token: string, top = 15): P
 
   const fields = 'System.Id,System.Title,System.WorkItemType,System.State,System.AssignedTo,System.AreaPath,System.IterationPath';
   const detailUrl = `${ORG_URL}/${PROJECT}/_apis/wit/workitems?ids=${ids.join(',')}&fields=${fields}&api-version=7.1`;
-  const detailRes = await fetch(detailUrl, { headers: authHeaders(token) });
+  const detailRes = await fetchWithTimeout(detailUrl, { headers: authHeaders(token) });
 
   if (!detailRes.ok) {
     console.error('[azure] searchWorkItems detail fetch failed:', detailRes.status);
@@ -374,7 +378,7 @@ export async function fetchWorkItemTitles(ids: number[], token: string): Promise
   if (ids.length === 0) return [];
   const fields = 'System.Id,System.Title,System.WorkItemType';
   const url = `${ORG_URL}/${PROJECT}/_apis/wit/workitems?ids=${ids.join(',')}&fields=${fields}&api-version=7.1`;
-  const res = await fetch(url, { headers: authHeaders(token) });
+  const res = await fetchWithTimeout(url, { headers: authHeaders(token) });
   if (!res.ok) {
     await logFetchFailure('fetchWorkItemTitles', url, res);
     return [];
