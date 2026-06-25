@@ -1,0 +1,93 @@
+name: Deploy to Azure Container Apps
+
+# Publishes Ark Story Studio to the "ark" Container App in resource group
+# POC-Project. Mirrors scripts/deploy-aca.ps1, but builds in CI:
+#   1. Log in to Azure via OIDC (no stored secret)
+#   2. Build + push the image with `az acr build` (cloud build, no Docker daemon)
+#   3. Apply env vars and point the Container App at the new image
+#
+# ANTHROPIC_API_KEY is intentionally NOT set here — the app fetches it from
+# Key Vault (ark-kv-poc) at runtime.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}   # allow manual runs from the Actions tab
+
+# Required for OIDC federated login. `contents: read` lets the job check out code.
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-aca-${{ github.ref }}
+  cancel-in-progress: false   # don't abort an in-flight deploy
+
+env:
+  # --- Fixed Azure resources (from scripts/deploy-aca.ps1) ---
+  ACR_NAME: ca13e4372bc2acr                       # registry short name (…​.azurecr.io)
+  IMAGE_NAME: ark
+  CONTAINER_APP: ark
+  RESOURCE_GROUP: POC-Project
+  KEYVAULT_URI: https://ark-kv-poc.vault.azure.net/
+  PORT: "8000"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve image tag (short SHA)
+        id: meta
+        run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build & push image (ACR cloud build)
+        run: |
+          az acr build \
+            --registry "$ACR_NAME" \
+            --image "$IMAGE_NAME:${{ steps.meta.outputs.tag }}" \
+            --image "$IMAGE_NAME:latest" \
+            .
+
+      - name: Set environment variables on Container App
+        run: |
+          ENV_VARS=(
+            "AZURE_DEVOPS_ORG=${{ vars.AZURE_DEVOPS_ORG }}"
+            "AZURE_DEVOPS_PROJECT=${{ vars.AZURE_DEVOPS_PROJECT }}"
+            "KEYVAULT_URI=$KEYVAULT_URI"
+            "PORT=$PORT"
+          )
+          # Optional vars — only applied when the repo variable is set
+          if [ -n "${{ vars.APP_AZURE_TENANT_ID }}" ]; then
+            ENV_VARS+=("AZURE_TENANT_ID=${{ vars.APP_AZURE_TENANT_ID }}")
+          fi
+          if [ -n "${{ vars.SHAREPOINT_SITE_URL }}" ]; then
+            ENV_VARS+=("SHAREPOINT_SITE_URL=${{ vars.SHAREPOINT_SITE_URL }}")
+          fi
+          az containerapp update \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --set-env-vars "${ENV_VARS[@]}"
+
+      - name: Update Container App image
+        run: |
+          az containerapp update \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$ACR_NAME.azurecr.io/$IMAGE_NAME:${{ steps.meta.outputs.tag }}"
+
+      - name: Report active revision
+        run: |
+          az containerapp show \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "properties.latestRevisionName" -o tsv
